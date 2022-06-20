@@ -1,4 +1,7 @@
-use std::{fs, io};
+use std::{
+    fs, io,
+    process::{Child, Command, Stdio},
+};
 
 use anyhow::Result;
 
@@ -9,7 +12,8 @@ struct Node {
     config: NodeConfig,
     /// The node metadata read from Ziggurat's configuration file.
     meta: NodeMetaData,
-    // process: Option<Child>
+    /// The process encapsulating the running node.
+    process: Option<Child>,
 }
 
 impl Node {
@@ -17,24 +21,64 @@ impl Node {
         let config = NodeConfig::new()?;
         let meta = NodeMetaData::new(config.path.clone())?;
 
-        Ok(Self { config, meta })
+        Ok(Self {
+            config,
+            meta,
+            process: None,
+        })
     }
 
-    fn start(&self) -> Result<()> {
+    fn start(&mut self) -> Result<()> {
         // cleanup any previous runs (node.stop won't always be reached e.g. test panics, or SIGINT)
         self.cleanup()?;
 
+        // TODO: set initial peers/initial actions.
         self.generate_config_file()?;
 
-        // TODO: start the node process.
+        let (stdout, stderr) = match self.config.log_to_stdout {
+            true => (Stdio::inherit(), Stdio::inherit()),
+            false => (Stdio::null(), Stdio::null()),
+        };
+
+        let process = Command::new(&self.meta.start_command)
+            .current_dir(&self.meta.path)
+            .args(&self.meta.start_args)
+            .stdin(Stdio::null())
+            .stdout(stdout)
+            .stderr(stderr)
+            .spawn()
+            .expect("node failed to start");
+
+        self.process = Some(process);
 
         Ok(())
     }
 
-    fn stop(&self) -> io::Result<()> {
-        // TODO: stop the node process and check for crash.
+    fn stop(&mut self) -> io::Result<()> {
+        if let Some(mut child) = self.process.take() {
+            // Stop node process, and check for crash (needs to happen before cleanup)
+            let crashed = match child.try_wait()? {
+                None => {
+                    child.kill()?;
+                    None
+                }
+                Some(exit_code) if exit_code.success() => {
+                    Some("but exited successfully somehow".to_string())
+                }
+                Some(exit_code) => Some(format!("crashed with {}", exit_code)),
+            };
 
-        self.cleanup()
+            self.cleanup()?;
+
+            if let Some(crash_msg) = crashed {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("Node exited early, {}", crash_msg),
+                ));
+            }
+        }
+
+        Ok(())
     }
 
     fn generate_config_file(&self) -> Result<()> {
@@ -67,17 +111,15 @@ impl Drop for Node {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn config_works() {
-        let node = Node::new().unwrap();
-
-        // dbg!(node.config);
-        // dbg!(node.meta);
-
-        node.start().unwrap();
-    }
-}
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//
+//     #[test]
+//     fn config_works() {
+//         let mut node = Node::new().unwrap();
+//
+//         node.start().unwrap();
+//         node.stop().unwrap();
+//     }
+// }
