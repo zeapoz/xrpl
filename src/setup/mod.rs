@@ -1,3 +1,4 @@
 //! Utilities for setting up and tearing down node Ripple node instances.
 
-mod config;
+pub mod config;
+pub mod node;
