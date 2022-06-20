@@ -13,3 +13,7 @@ toml = "0.5.9"
 [dependencies.serde]
 version = "1"
 features = [ "derive" ]
+
+[dependencies.tokio]
+version = "1"
+features = [ "full" ]
