@@ -47,7 +47,8 @@ impl NodeMetaData {
         let start_command = start_args.remove(0);
 
         let joined_path = config_path.join(RIPPLED_CONFIG);
-        start_args.push(format!("--conf {}", joined_path.to_str().unwrap()).into());
+        start_args.push("--conf".into());
+        start_args.push(joined_path.into());
 
         Ok(Self {
             path: config_file.path,
