@@ -64,6 +64,8 @@ pub struct NodeConfig {
     pub path: PathBuf,
     /// The initial max number of peer connections to allow.
     pub max_peers: usize,
+
+    pub log_to_stdout: bool,
 }
 
 impl NodeConfig {
@@ -75,6 +77,7 @@ impl NodeConfig {
                 })?
                 .join(CONFIG),
             max_peers: 50,
+            log_to_stdout: false,
         })
     }
 }
