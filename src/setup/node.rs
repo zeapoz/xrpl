@@ -115,7 +115,7 @@ impl Drop for Node {
 // mod tests {
 //     use super::*;
 //
-//     #[test]
+//     #[tokio::test]
 //     fn config_works() {
 //         let mut node = Node::new().unwrap();
 //
