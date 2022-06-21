@@ -5,7 +5,9 @@ use std::{
 
 use anyhow::Result;
 
-use crate::setup::config::{NodeConfig, NodeMetaData, RippledConfigFile, RIPPLED_CONFIG};
+use crate::setup::config::{
+    NodeConfig, NodeMetaData, RippledConfigFile, RIPPLED_CONFIG, RIPPLED_DIR,
+};
 
 struct Node {
     /// Fields to be written to the node's configuration file.
@@ -97,14 +99,29 @@ impl Node {
     }
 
     fn cleanup(&self) -> io::Result<()> {
+        self.cleanup_config_file()?;
+        self.cleanup_cache()
+    }
+
+    fn cleanup_config_file(&self) -> io::Result<()> {
         let path = self.config.path.join(RIPPLED_CONFIG);
         match fs::remove_file(path) {
-            // File may not exist, so we supress the error.
+            // File may not exist, so we suppress the error.
             Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e),
             _ => Ok(()),
         }
+    }
 
-        // TODO: determine if any caches need to be cleanup up.
+    fn cleanup_cache(&self) -> io::Result<()> {
+        let path = self.config.path.join(RIPPLED_DIR);
+        if let Err(e) = fs::remove_dir_all(path) {
+            // Directory may not exist, so we let that error through
+            if e.kind() != std::io::ErrorKind::NotFound {
+                return Err(e);
+            }
+        }
+
+        Ok(())
     }
 }
 

@@ -9,6 +9,7 @@ const CONFIG_FILE: &str = "config.toml";
 
 // Rippled's configuration file name.
 pub const RIPPLED_CONFIG: &str = "rippled.cfg";
+pub const RIPPLED_DIR: &str = "rippled";
 
 /// Convenience struct for reading Ziggurat's configuration file.
 #[derive(Deserialize)]
@@ -143,7 +144,12 @@ impl RippledConfigFile {
         writeln!(
             &mut config_str,
             "path={}",
-            config.path.join("rippled/db/nudb").to_str().unwrap()
+            config
+                .path
+                .join(RIPPLED_DIR)
+                .join("db/nudb")
+                .to_str()
+                .unwrap()
         )?;
         writeln!(&mut config_str, "online_delete=512")?;
         writeln!(&mut config_str, "advisory_delete=0")?;
@@ -153,7 +159,7 @@ impl RippledConfigFile {
         writeln!(
             &mut config_str,
             "{}",
-            config.path.join("rippled/db").to_str().unwrap()
+            config.path.join(RIPPLED_DIR).join("db").to_str().unwrap()
         )?;
         writeln!(&mut config_str, "")?;
 
@@ -163,7 +169,12 @@ impl RippledConfigFile {
         writeln!(
             &mut config_str,
             "{}",
-            config.path.join("rippled/debug.log").to_str().unwrap()
+            config
+                .path
+                .join(RIPPLED_DIR)
+                .join("debug.log")
+                .to_str()
+                .unwrap()
         )?;
         writeln!(&mut config_str, "")?;
 
