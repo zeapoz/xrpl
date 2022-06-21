@@ -139,12 +139,12 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn config_works() {
+    async fn start_stop_node() {
         let mut node = Node::new().unwrap();
 
         node.log_to_stdout(true).start().unwrap();
 
-        tokio::time::sleep(std::time::Duration::from_secs(120)).await;
+        tokio::time::sleep(std::time::Duration::from_secs(10)).await;
 
         node.stop().unwrap();
     }
