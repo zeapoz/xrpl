@@ -94,38 +94,45 @@ impl RippledConfigFile {
         writeln!(&mut config_str, "[server]")?;
         writeln!(&mut config_str, "port_rpc_admin_local")?;
         writeln!(&mut config_str, "port_peer")?;
+        writeln!(&mut config_str, "")?;
 
         writeln!(&mut config_str, "[port_rpc_admin_local]")?;
         writeln!(&mut config_str, "port = 5005")?;
         writeln!(&mut config_str, "ip = 127.0.0.1")?;
         writeln!(&mut config_str, "admin = 127.0.0.1")?;
         writeln!(&mut config_str, "protocol = http")?;
+        writeln!(&mut config_str, "")?;
 
         writeln!(&mut config_str, "[port_peer]")?;
         writeln!(&mut config_str, "port = 51235")?;
         writeln!(&mut config_str, "ip = 127.0.0.1")?;
         writeln!(&mut config_str, "protocol = peer")?;
+        writeln!(&mut config_str, "")?;
 
         // 2. Peer protocol
 
         writeln!(&mut config_str, "[peers_max]")?;
         writeln!(&mut config_str, "{}", config.max_peers)?;
+        writeln!(&mut config_str, "")?;
 
         writeln!(&mut config_str, "[sntp_servers]")?;
         writeln!(&mut config_str, "time.windows.com")?;
         writeln!(&mut config_str, "time.apple.com")?;
         writeln!(&mut config_str, "time.nist.gov")?;
         writeln!(&mut config_str, "pool.ntp.org")?;
+        writeln!(&mut config_str, "")?;
 
         // 3. Ripple protocol
 
         writeln!(&mut config_str, "[validators_file]")?;
         writeln!(&mut config_str, "validators.txt")?;
+        writeln!(&mut config_str, "")?;
 
         // 4. HTTPS client
 
         writeln!(&mut config_str, "[ssl_verify]")?;
         writeln!(&mut config_str, "0")?;
+        writeln!(&mut config_str, "")?;
 
         // 5. Reporting mode
 
@@ -140,6 +147,7 @@ impl RippledConfigFile {
         )?;
         writeln!(&mut config_str, "online_delete=512")?;
         writeln!(&mut config_str, "advisory_delete=0")?;
+        writeln!(&mut config_str, "")?;
 
         writeln!(&mut config_str, "[database_path]")?;
         writeln!(
@@ -147,6 +155,7 @@ impl RippledConfigFile {
             "{}",
             config.path.join("rippled/db").to_str().unwrap()
         )?;
+        writeln!(&mut config_str, "")?;
 
         // 7. Diagnostics
 
@@ -156,6 +165,7 @@ impl RippledConfigFile {
             "{}",
             config.path.join("rippled/debug.log").to_str().unwrap()
         )?;
+        writeln!(&mut config_str, "")?;
 
         // 8. Voting
 
