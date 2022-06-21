@@ -89,8 +89,19 @@ impl RippledConfigFile {
     pub fn generate(config: &NodeConfig) -> Result<String> {
         let mut config_str = String::new();
 
+        // Peer configuration
         writeln!(&mut config_str, "[peers_max]")?;
         writeln!(&mut config_str, "{}", config.max_peers)?;
+        // Separate sections with a newline.
+        writeln!(&mut config_str, "")?;
+
+        // DB configuration
+        writeln!(&mut config_str, "[node_db]")?;
+        writeln!(&mut config_str, "type=NuDB")?;
+        // TODO: make constant.
+        writeln!(&mut config_str, "path={:?}/db/nudb", config.path)?;
+        writeln!(&mut config_str, "online_delete=512")?;
+        writeln!(&mut config_str, "advisory_delete=0")?;
 
         Ok(config_str)
     }

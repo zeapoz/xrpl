@@ -28,6 +28,12 @@ impl Node {
         })
     }
 
+    /// Sets whether to log the node's output to Ziggurat's output stream.
+    fn log_to_stdout(&mut self, log_to_stdout: bool) -> &mut Self {
+        self.config.log_to_stdout = log_to_stdout;
+        self
+    }
+
     fn start(&mut self) -> Result<()> {
         // cleanup any previous runs (node.stop won't always be reached e.g. test panics, or SIGINT)
         self.cleanup()?;
@@ -111,15 +117,18 @@ impl Drop for Node {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//
-//     #[tokio::test]
-//     fn config_works() {
-//         let mut node = Node::new().unwrap();
-//
-//         node.start().unwrap();
-//         node.stop().unwrap();
-//     }
-// }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn config_works() {
+        let mut node = Node::new().unwrap();
+
+        node.log_to_stdout(true).start().unwrap();
+
+        tokio::time::sleep(std::time::Duration::from_secs(120)).await;
+
+        node.stop().unwrap();
+    }
+}
