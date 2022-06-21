@@ -142,7 +142,7 @@ impl RippledConfigFile {
         writeln!(&mut config_str, "type=NuDB")?;
         writeln!(
             &mut config_str,
-            "{}",
+            "path={}",
             config.path.join("rippled/db/nudb").to_str().unwrap()
         )?;
         writeln!(&mut config_str, "online_delete=512")?;
