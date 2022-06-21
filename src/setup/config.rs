@@ -7,8 +7,10 @@ use serde::Deserialize;
 const CONFIG: &str = ".ziggurat";
 const CONFIG_FILE: &str = "config.toml";
 
-// Ripple's configuration file name.
+// Rippled's configuration file name.
 pub const RIPPLED_CONFIG: &str = "rippled.cfg";
+// The path for the DB used by Rippled.
+const NUDB_PATH: &str = "db/nudb";
 
 /// Convenience struct for reading Ziggurat's configuration file.
 #[derive(Deserialize)]
@@ -98,8 +100,11 @@ impl RippledConfigFile {
         // DB configuration
         writeln!(&mut config_str, "[node_db]")?;
         writeln!(&mut config_str, "type=NuDB")?;
-        // TODO: make constant.
-        writeln!(&mut config_str, "path={:?}/db/nudb", config.path)?;
+        writeln!(
+            &mut config_str,
+            "{}",
+            config.path.join(NUDB_PATH).to_str().unwrap()
+        )?;
         writeln!(&mut config_str, "online_delete=512")?;
         writeln!(&mut config_str, "advisory_delete=0")?;
 
