@@ -71,9 +71,9 @@ impl Node {
                     None
                 }
                 Some(exit_code) if exit_code.success() => {
-                    Some("but exited successfully somehow".to_string())
+                    Some("but with a \"success\" exit code".to_string())
                 }
-                Some(exit_code) => Some(format!("crashed with {}", exit_code)),
+                Some(exit_code) => Some(format!("crashed with exit code {}", exit_code)),
             };
 
             self.cleanup()?;
