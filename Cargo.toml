@@ -7,8 +7,29 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
+async-trait = "0.1"
+base64 = "0.13"
+bytes = "1"
 home = "0.5.3"
+httparse = "1.7"
+openssl = "0.10"
+pea2pea = "0.38"
+sha2 = "0.10"
+tokio-openssl = "0.6"
 toml = "0.5.9"
+
+[dependencies.futures-util]
+version = "0.3"
+features = ["sink"]
+
+[dependencies.rand]
+version = "0.8"
+default-features = false
+features = ["getrandom", "small_rng"]
+
+[dependencies.secp256k1]
+version = "0.22"
+features = ["global-context", "rand-std"]
 
 [dependencies.serde]
 version = "1"
@@ -17,3 +38,16 @@ features = [ "derive" ]
 [dependencies.tokio]
 version = "1"
 features = [ "full" ]
+
+[dependencies.tokio-util]
+version = "0.7"
+features = ["codec"]
+
+[dependencies.tracing]
+version = "0.1"
+default-features = false
+
+[dependencies.tracing-subscriber]
+version = "0.3"
+default-features = false
+features = ["ansi", "env-filter", "fmt", "parking_lot", "smallvec"]
