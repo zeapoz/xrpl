@@ -55,11 +55,11 @@ fn get_shared_value<S>(tls_stream: &SslStream<S>) -> io::Result<Vec<u8>> {
 #[async_trait::async_trait]
 impl Handshake for SyntheticNode {
     async fn perform_handshake(&self, mut conn: Connection) -> io::Result<Connection> {
-        let node_conn_side = !conn.side();
+        let own_conn_side = !conn.side();
         let stream = self.take_stream(&mut conn);
         let addr = conn.addr();
 
-        let tls_stream = match node_conn_side {
+        let tls_stream = match own_conn_side {
             ConnectionSide::Initiator => {
                 let ssl = self
                     .tls
