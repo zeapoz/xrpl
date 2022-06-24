@@ -1,6 +1,9 @@
 use pea2pea::{protocols::Handshake, Pea2Pea};
 
-use crate::{setup::node::Node, tools::synthetic_node::SyntheticNode};
+use crate::{
+    setup::node::Node,
+    tools::{synthetic_node::SyntheticNode, wait_until},
+};
 
 #[tokio::test]
 async fn handshake_when_node_receives_connection() {
@@ -19,17 +22,14 @@ async fn handshake_when_node_receives_connection() {
 
     // Wait for node to be fully started.
     // TODO: replace with a connection from the node to signal readiness.
-    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 
     let synth_node = SyntheticNode::new(node_config).await;
     synth_node.enable_handshake().await;
-
     synth_node.node().connect(node.addr()).await.unwrap();
 
     // This is only set post-handshake.
     assert!(synth_node.node().is_connected(node.addr()));
-
-    // TODO: introduce the `wait_until!` macro.
 
     // Gracefully shut down the nodes.
     node.stop().unwrap();
