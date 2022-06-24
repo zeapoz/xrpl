@@ -7,6 +7,16 @@ use openssl::{
 use pea2pea::{Node, Pea2Pea};
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
 
+/// Enables tracing for all [`SyntheticNode`] instances (usually scoped by test).
+pub fn enable_tracing() {
+    use tracing_subscriber::{fmt, EnvFilter};
+
+    fmt()
+        .with_test_writer()
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
+}
+
 // A synthetic node adhering to Ripple's network protocol.
 #[derive(Clone)]
 pub struct SyntheticNode {
