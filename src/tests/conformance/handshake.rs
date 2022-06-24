@@ -7,10 +7,10 @@ use crate::{
 
 #[tokio::test]
 async fn handshake_when_node_receives_connection() {
-    crate::tools::synthetic_node::enable_tracing();
+    // crate::tools::synthetic_node::enable_tracing();
 
     let mut node = Node::new().unwrap();
-    node.log_to_stdout(true).start().unwrap();
+    node.log_to_stdout(false).start().unwrap();
 
     // Start synthetic node.
     let node_config = pea2pea::Config {
