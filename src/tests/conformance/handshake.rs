@@ -1,4 +1,4 @@
-use pea2pea::Pea2Pea;
+use pea2pea::{protocols::Handshake, Pea2Pea};
 
 use crate::{setup::node::Node, tools::synthetic_node::SyntheticNode};
 
@@ -22,6 +22,8 @@ async fn handshake_when_node_receives_connection() {
     tokio::time::sleep(std::time::Duration::from_secs(5)).await;
 
     let synth_node = SyntheticNode::new(node_config).await;
+    synth_node.enable_handshake().await;
+
     synth_node.node().connect(node.addr()).await.unwrap();
 
     // This is only set post-handshake.
