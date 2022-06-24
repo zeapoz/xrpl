@@ -1,4 +1,10 @@
-use std::{ffi::OsString, fmt::Write, fs, io, path::PathBuf};
+use std::{
+    ffi::OsString,
+    fmt::Write,
+    fs, io,
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    path::PathBuf,
+};
 
 use anyhow::Result;
 use serde::Deserialize;
@@ -10,6 +16,9 @@ const CONFIG_FILE: &str = "config.toml";
 // Rippled's configuration file name.
 pub const RIPPLED_CONFIG: &str = "rippled.cfg";
 pub const RIPPLED_DIR: &str = "rippled";
+
+// The default port to start a Rippled node on.
+const DEFAULT_PORT: u16 = 8080;
 
 /// Convenience struct for reading Ziggurat's configuration file.
 #[derive(Deserialize)]
@@ -64,20 +73,27 @@ impl NodeMetaData {
 pub struct NodeConfig {
     /// The path of the cache directory of the node (and Ziggurat); this is `~/.ziggurat`.
     pub path: PathBuf,
+    /// The socket address of the node.
+    pub local_addr: SocketAddr,
     /// The initial max number of peer connections to allow.
     pub max_peers: usize,
-
+    // Toggles node logging to stdout.
     pub log_to_stdout: bool,
 }
 
 impl NodeConfig {
     pub fn new() -> io::Result<Self> {
+        // Set the port explicitly.
+        let mut local_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0);
+        local_addr.set_port(DEFAULT_PORT);
+
         Ok(Self {
             path: home::home_dir()
                 .ok_or_else(|| {
                     io::Error::new(io::ErrorKind::NotFound, "couldn't find home directory")
                 })?
                 .join(CONFIG),
+            local_addr,
             max_peers: 50,
             log_to_stdout: false,
         })
