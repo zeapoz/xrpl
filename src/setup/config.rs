@@ -121,8 +121,8 @@ impl RippledConfigFile {
         writeln!(&mut config_str)?;
 
         writeln!(&mut config_str, "[port_peer]")?;
-        writeln!(&mut config_str, "port = 51235")?;
-        writeln!(&mut config_str, "ip = 127.0.0.1")?;
+        writeln!(&mut config_str, "port = {}", config.local_addr.port())?;
+        writeln!(&mut config_str, "ip = {}", config.local_addr.ip())?;
         writeln!(&mut config_str, "protocol = peer")?;
         writeln!(&mut config_str)?;
 
