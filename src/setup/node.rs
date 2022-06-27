@@ -143,7 +143,7 @@ impl Drop for Node {
 mod tests {
     use super::*;
 
-    #[ignore]
+    #[ignore = "convenience test to tinker with a running node for dev purposes"]
     #[tokio::test]
     async fn start_stop_node() {
         let mut node = Node::new().unwrap();

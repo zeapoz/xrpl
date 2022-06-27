@@ -12,8 +12,7 @@ async fn handshake_when_node_receives_connection() {
     // Start synthetic node.
     let node_config = pea2pea::Config {
         listener_ip: Some("127.0.0.1".parse().unwrap()),
-        desired_listening_port: Some(12345),
-        allow_random_port: false,
+        allow_random_port: true,
         ..Default::default()
     };
 
@@ -27,6 +26,6 @@ async fn handshake_when_node_receives_connection() {
     // This is only set post-handshake.
     assert!(synth_node.node().is_connected(node.addr()));
 
-    // Gracefully shut down the nodes.
+    // Gracefully shut down the Ripple node.
     node.stop().unwrap();
 }
