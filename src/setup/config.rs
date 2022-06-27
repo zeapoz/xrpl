@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     ffi::OsString,
     fmt::Write,
     fs, io,
@@ -75,9 +76,11 @@ pub struct NodeConfig {
     pub path: PathBuf,
     /// The socket address of the node.
     pub local_addr: SocketAddr,
+    /// The initial peer set of the node.
+    pub initial_peers: HashSet<SocketAddr>,
     /// The initial max number of peer connections to allow.
     pub max_peers: usize,
-    // Toggles node logging to stdout.
+    /// Toggles node logging to stdout.
     pub log_to_stdout: bool,
 }
 
@@ -93,6 +96,7 @@ impl NodeConfig {
                 })?
                 .join(CONFIG),
             local_addr,
+            initial_peers: Default::default(),
             max_peers: 50,
             log_to_stdout: false,
         })
@@ -126,6 +130,11 @@ impl RippledConfigFile {
         writeln!(&mut config_str)?;
 
         // 2. Peer protocol
+
+        writeln!(&mut config_str, "[ips_fixed]")?;
+        for addr in &config.initial_peers {
+            writeln!(&mut config_str, "{} {}", addr.ip(), addr.port())?;
+        }
 
         writeln!(&mut config_str, "[peers_max]")?;
         writeln!(&mut config_str, "{}", config.max_peers)?;
