@@ -1,4 +1,10 @@
-use std::{ffi::OsString, fmt::Write, fs, io, path::PathBuf};
+use std::{
+    ffi::OsString,
+    fmt::Write,
+    fs, io,
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    path::PathBuf,
+};
 
 use anyhow::Result;
 use serde::Deserialize;
@@ -10,6 +16,9 @@ const CONFIG_FILE: &str = "config.toml";
 // Rippled's configuration file name.
 pub const RIPPLED_CONFIG: &str = "rippled.cfg";
 pub const RIPPLED_DIR: &str = "rippled";
+
+// The default port to start a Rippled node on.
+const DEFAULT_PORT: u16 = 8080;
 
 /// Convenience struct for reading Ziggurat's configuration file.
 #[derive(Deserialize)]
@@ -64,20 +73,26 @@ impl NodeMetaData {
 pub struct NodeConfig {
     /// The path of the cache directory of the node (and Ziggurat); this is `~/.ziggurat`.
     pub path: PathBuf,
+    /// The socket address of the node.
+    pub local_addr: SocketAddr,
     /// The initial max number of peer connections to allow.
     pub max_peers: usize,
-
+    // Toggles node logging to stdout.
     pub log_to_stdout: bool,
 }
 
 impl NodeConfig {
     pub fn new() -> io::Result<Self> {
+        // Set the port explicitly.
+        let local_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), DEFAULT_PORT);
+
         Ok(Self {
             path: home::home_dir()
                 .ok_or_else(|| {
                     io::Error::new(io::ErrorKind::NotFound, "couldn't find home directory")
                 })?
                 .join(CONFIG),
+            local_addr,
             max_peers: 50,
             log_to_stdout: false,
         })
@@ -105,8 +120,8 @@ impl RippledConfigFile {
         writeln!(&mut config_str)?;
 
         writeln!(&mut config_str, "[port_peer]")?;
-        writeln!(&mut config_str, "port = 51235")?;
-        writeln!(&mut config_str, "ip = 127.0.0.1")?;
+        writeln!(&mut config_str, "port = {}", config.local_addr.port())?;
+        writeln!(&mut config_str, "ip = {}", config.local_addr.ip())?;
         writeln!(&mut config_str, "protocol = peer")?;
         writeln!(&mut config_str)?;
 
