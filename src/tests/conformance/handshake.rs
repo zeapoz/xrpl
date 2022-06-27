@@ -36,7 +36,7 @@ async fn handshake_when_node_receives_connection() {
 
 #[tokio::test]
 async fn handshake_when_node_initiates_connection() {
-    crate::tools::synthetic_node::enable_tracing();
+    // crate::tools::synthetic_node::enable_tracing();
 
     // Start synthetic node.
     let node_config = pea2pea::Config {
