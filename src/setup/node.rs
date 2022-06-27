@@ -35,6 +35,11 @@ impl Node {
         self.config.local_addr
     }
 
+    pub fn initial_peers(&mut self, addrs: Vec<SocketAddr>) -> &mut Self {
+        self.config.initial_peers = addrs.into_iter().collect();
+        self
+    }
+
     /// Sets whether to log the node's output to Ziggurat's output stream.
     pub fn log_to_stdout(&mut self, log_to_stdout: bool) -> &mut Self {
         self.config.log_to_stdout = log_to_stdout;
