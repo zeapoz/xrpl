@@ -1,5 +1,6 @@
 use std::{
     fs, io,
+    net::SocketAddr,
     process::{Child, Command, Stdio},
 };
 
@@ -9,7 +10,7 @@ use crate::setup::config::{
     NodeConfig, NodeMetaData, RippledConfigFile, RIPPLED_CONFIG, RIPPLED_DIR,
 };
 
-struct Node {
+pub struct Node {
     /// Fields to be written to the node's configuration file.
     config: NodeConfig,
     /// The node metadata read from Ziggurat's configuration file.
@@ -19,7 +20,7 @@ struct Node {
 }
 
 impl Node {
-    fn new() -> Result<Self> {
+    pub fn new() -> Result<Self> {
         let config = NodeConfig::new()?;
         let meta = NodeMetaData::new(config.path.clone())?;
 
@@ -30,13 +31,17 @@ impl Node {
         })
     }
 
+    pub fn addr(&self) -> SocketAddr {
+        self.config.local_addr
+    }
+
     /// Sets whether to log the node's output to Ziggurat's output stream.
-    fn log_to_stdout(&mut self, log_to_stdout: bool) -> &mut Self {
+    pub fn log_to_stdout(&mut self, log_to_stdout: bool) -> &mut Self {
         self.config.log_to_stdout = log_to_stdout;
         self
     }
 
-    fn start(&mut self) -> Result<()> {
+    pub fn start(&mut self) -> Result<()> {
         // cleanup any previous runs (node.stop won't always be reached e.g. test panics, or SIGINT)
         self.cleanup()?;
 
@@ -62,7 +67,7 @@ impl Node {
         Ok(())
     }
 
-    fn stop(&mut self) -> io::Result<()> {
+    pub fn stop(&mut self) -> io::Result<()> {
         if let Some(mut child) = self.process.take() {
             // Stop node process, and check for crash (needs to happen before cleanup)
             let crashed = match child.try_wait()? {
@@ -138,6 +143,7 @@ impl Drop for Node {
 mod tests {
     use super::*;
 
+    #[ignore = "convenience test to tinker with a running node for dev purposes"]
     #[tokio::test]
     async fn start_stop_node() {
         let mut node = Node::new().unwrap();
