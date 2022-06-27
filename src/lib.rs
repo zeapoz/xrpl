@@ -1,6 +1,6 @@
-mod protocol;
+pub mod protocol;
 pub mod setup;
-mod tools;
+pub mod tools;
 
 #[cfg(test)]
 mod tests;
