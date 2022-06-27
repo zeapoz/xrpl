@@ -27,6 +27,7 @@ async fn handshake_when_node_receives_connection() {
     synth_node.node().connect(node.addr()).await.unwrap();
 
     // This is only set post-handshake.
+    assert_eq!(synth_node.node().num_connected(), 1);
     assert!(synth_node.node().is_connected(node.addr()));
 
     // Gracefully shut down the Ripple node.
@@ -55,6 +56,7 @@ async fn handshake_when_node_initiates_connection() {
         .unwrap();
 
     wait_until!(CONNECTION_TIMEOUT, synth_node.node().num_connected() == 1);
+    assert!(synth_node.is_connected_ip(node.addr().ip()));
 
     // Gracefully shut down the Ripple node.
     node.stop().unwrap();

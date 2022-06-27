@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{net::IpAddr, sync::Arc};
 
 use openssl::{
     pkcs12::Pkcs12,
@@ -92,5 +92,12 @@ impl SyntheticNode {
                 connector,
             },
         }
+    }
+
+    pub fn is_connected_ip(&self, ip: IpAddr) -> bool {
+        self.node()
+            .connected_addrs()
+            .iter()
+            .any(|addr| addr.ip() == ip)
     }
 }
