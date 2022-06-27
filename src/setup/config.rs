@@ -84,8 +84,7 @@ pub struct NodeConfig {
 impl NodeConfig {
     pub fn new() -> io::Result<Self> {
         // Set the port explicitly.
-        let mut local_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0);
-        local_addr.set_port(DEFAULT_PORT);
+        let local_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), DEFAULT_PORT);
 
         Ok(Self {
             path: home::home_dir()
