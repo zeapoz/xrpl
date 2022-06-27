@@ -4,7 +4,7 @@ use pea2pea::{protocols::Handshake, Pea2Pea};
 
 use crate::{setup::node::Node, tools::synthetic_node::SyntheticNode, wait_until};
 
-const CONNECTION_TIMEOUT: Duration = Duration::from_secs(1);
+const CONNECTION_TIMEOUT: Duration = Duration::from_secs(2);
 
 #[tokio::test]
 async fn handshake_when_node_receives_connection() {
@@ -54,10 +54,7 @@ async fn handshake_when_node_initiates_connection() {
         .start()
         .unwrap();
 
-    wait_until!(
-        CONNECTION_TIMEOUT,
-        synth_node.node().is_connected(node.addr())
-    );
+    wait_until!(CONNECTION_TIMEOUT, synth_node.node().num_connected() == 1);
 
     // Gracefully shut down the Ripple node.
     node.stop().unwrap();
