@@ -1,6 +1,7 @@
 use std::io;
 
-use bytes::{Buf, BytesMut};
+use bytes::{Buf, BufMut, BytesMut};
+use prost::Message;
 use tokio_util::codec::{Decoder, Encoder};
 use tracing::*;
 
@@ -203,10 +204,92 @@ impl Decoder for BinaryCodec {
     }
 }
 
-impl Encoder<BinaryMessage> for BinaryCodec {
+fn pack(dst: &mut [u8], size: u32) {
+    dst[0] = ((size >> 24) & 0x0f) as u8;
+    dst[1] = ((size >> 16) & 0xff) as u8;
+    dst[2] = ((size >> 8) & 0xff) as u8;
+    dst[3] = (size & 0xff) as u8;
+}
+
+impl Encoder<Payload> for BinaryCodec {
     type Error = io::Error;
 
-    fn encode(&mut self, _message: BinaryMessage, _dst: &mut BytesMut) -> Result<(), Self::Error> {
-        todo!();
+    fn encode(&mut self, message: Payload, dst: &mut BytesMut) -> Result<(), Self::Error> {
+        let (payload_len, msg_type) = match &message {
+            Payload::TmManifests(msg) => {
+                (msg.encoded_len() as u32, MessageType::MtManifests as i32)
+            }
+            Payload::TmValidation(msg) => {
+                (msg.encoded_len() as u32, MessageType::MtValidation as i32)
+            }
+            Payload::TmValidatorListCollection(msg) => (
+                msg.encoded_len() as u32,
+                MessageType::MtValidatorlistcollection as i32,
+            ),
+            Payload::TmGetPeerShardInfoV2(msg) => (
+                msg.encoded_len() as u32,
+                MessageType::MtGetPeerShardInfoV2 as i32,
+            ),
+        };
+
+        let header_size = HEADER_LEN_UNCOMPRESSED;
+        let _header = Header {
+            total_wire_size: header_size + payload_len,
+            header_size,
+            payload_wire_size: payload_len,
+            uncompressed_size: payload_len,
+            message_type: msg_type as u16,
+            compression: Compression::None, // TODO: are compressed messages used?
+        };
+
+        let mut header_bytes = [0u8; HEADER_LEN_UNCOMPRESSED as usize];
+
+        pack(&mut header_bytes, payload_len);
+
+        header_bytes[4] = ((msg_type >> 8) & 0xff) as u8;
+        header_bytes[5] = (msg_type & 0xff) as u8;
+
+        let mut bytes = BytesMut::new();
+
+        bytes.put(&header_bytes[..]);
+
+        match message {
+            Payload::TmManifests(msg) => (msg.encode(&mut bytes).unwrap(),),
+            Payload::TmValidation(msg) => (msg.encode(&mut bytes).unwrap(),),
+            Payload::TmValidatorListCollection(msg) => (msg.encode(&mut bytes).unwrap(),),
+            Payload::TmGetPeerShardInfoV2(msg) => (msg.encode(&mut bytes).unwrap(),),
+        };
+
+        dst.put(&*bytes);
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn decode_and_encode() {
+        // a sample raw message
+        let raw = BytesMut::from(
+            &b"\0\0\0\xeb\0)\n\xe8\x01\"\x80\0\0\x01&\x01\xbb\xef\xd0)*Qj\":r\
+            \x8b\x90\xe3fz`[Q\x1c5@P\xcd\\\x1e0\x0c5\xdd\xe9A\xe2\xf62\xa4\xbev\x81jD)Z~\xda6\xa8\x96\
+            \x81H\xa6P\x17\x81\xcc\xe2\x81\x12\xdeF\xba\x9fCj \xc7\xce\x9b\xcb\xf7\x8f\x90$\x1f\x9b\xfb\
+            \xc3W\xcd\x1c\\\xb5\xe2x\x12P\x19\x14\xcb1\x9bh\x9cY\\\x02RDF(\x17\xcc\xa8\xf3>\x05\x83\xd8\
+            \x14y\xfa\xb6\xdb\xa4\xe0\x1e\x96M4s!\x03f\x98Z*X\xfc\xddd\0J\n\x1b\x0f\xe5\xc7U\x08\x91\
+            Cgu\xadPV-\xa6\xdf\xac\xe1:\xe6/vF0D\x02 5(s\x01\x17\x94\x07\x9a\xe9\x9c\x1c\xe9g\x02Y\
+            \x9fZ!\x1c\xecg+\\\x11NS\xb8g\x05\x8c;b\x02 {\xe0\x14\xe6\xc7\x91M\xd0#\xf6;'i\xc5\
+            \xad\"~\xb2\xdd\xb93\xf7V\xa1Zc\xe2D\xf8\x8bf\xd3"[..],
+        );
+
+        let mut codec = BinaryCodec::new(Span::none());
+        let msg = codec.decode(&mut raw.clone()).unwrap().unwrap();
+
+        let mut encoded = BytesMut::new();
+        codec.encode(msg.payload, &mut encoded).unwrap();
+
+        assert_eq!(raw, encoded);
     }
 }
