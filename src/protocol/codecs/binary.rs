@@ -75,6 +75,7 @@ impl Decoder for BinaryCodec {
     type Item = BinaryMessage;
     type Error = io::Error;
 
+    // Based on Ripple's `invokeProtocolMessage` (ripple/overlay/impl/ProtocolMessage.cpp)
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         if src.is_empty() {
             return Ok(None);
@@ -204,6 +205,7 @@ impl Decoder for BinaryCodec {
     }
 }
 
+// Based on `pack` from Ripple's `Message::setHeader` (ripple/overlay/impl/Message.cpp)
 fn pack(dst: &mut [u8], size: u32) {
     dst[0] = ((size >> 24) & 0x0f) as u8;
     dst[1] = ((size >> 16) & 0xff) as u8;
@@ -214,6 +216,7 @@ fn pack(dst: &mut [u8], size: u32) {
 impl Encoder<Payload> for BinaryCodec {
     type Error = io::Error;
 
+    // Based on Ripple's `Message::Message` (ripple/overlay/impl/Message.cpp)
     fn encode(&mut self, message: Payload, dst: &mut BytesMut) -> Result<(), Self::Error> {
         let (payload_len, msg_type) = match &message {
             Payload::TmManifests(msg) => {
