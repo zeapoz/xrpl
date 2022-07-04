@@ -45,6 +45,12 @@ pub struct Header {
 #[non_exhaustive]
 pub enum Payload {
     TmManifests(TmManifests),
+    TmPing(TmPing),
+    TmTransaction(TmTransaction),
+    TmGetLedger(TmGetLedger),
+    TmProposeLedger(TmProposeSet),
+    TmStatusChange(TmStatusChange),
+    TmHaveSet(TmHaveTransactionSet),
     TmValidation(TmValidation),
     TmValidatorListCollection(TmValidatorListCollection),
     TmGetPeerShardInfoV2(TmGetPeerShardInfoV2),
@@ -75,6 +81,7 @@ impl Decoder for BinaryCodec {
     type Item = BinaryMessage;
     type Error = io::Error;
 
+    // Based on Ripple's `invokeProtocolMessage` (ripple/overlay/impl/ProtocolMessage.cpp)
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         if src.is_empty() {
             return Ok(None);
@@ -186,10 +193,16 @@ impl Decoder for BinaryCodec {
             let mut payload = src.split_to(payload_wire_size as usize);
 
             let payload = match header.message_type {
-                2 => Payload::TmManifests(prost::Message::decode(&mut payload)?),
-                41 => Payload::TmValidation(prost::Message::decode(&mut payload)?),
-                56 => Payload::TmValidatorListCollection(prost::Message::decode(&mut payload)?),
-                61 => Payload::TmGetPeerShardInfoV2(prost::Message::decode(&mut payload)?),
+                2 => Payload::TmManifests(Message::decode(&mut payload)?),
+                3 => Payload::TmPing(Message::decode(&mut payload)?),
+                30 => Payload::TmTransaction(Message::decode(&mut payload)?),
+                31 => Payload::TmGetLedger(Message::decode(&mut payload)?),
+                33 => Payload::TmProposeLedger(Message::decode(&mut payload)?),
+                34 => Payload::TmStatusChange(Message::decode(&mut payload)?),
+                35 => Payload::TmHaveSet(Message::decode(&mut payload)?),
+                41 => Payload::TmValidation(Message::decode(&mut payload)?),
+                56 => Payload::TmValidatorListCollection(Message::decode(&mut payload)?),
+                61 => Payload::TmGetPeerShardInfoV2(Message::decode(&mut payload)?),
                 _ => unimplemented!(),
             };
 
@@ -204,6 +217,7 @@ impl Decoder for BinaryCodec {
     }
 }
 
+// Based on `pack` from Ripple's `Message::setHeader` (ripple/overlay/impl/Message.cpp)
 fn pack(dst: &mut [u8], size: u32) {
     dst[0] = ((size >> 24) & 0x0f) as u8;
     dst[1] = ((size >> 16) & 0xff) as u8;
@@ -214,14 +228,30 @@ fn pack(dst: &mut [u8], size: u32) {
 impl Encoder<Payload> for BinaryCodec {
     type Error = io::Error;
 
+    // Based on Ripple's `Message::Message` (ripple/overlay/impl/Message.cpp)
     fn encode(&mut self, message: Payload, dst: &mut BytesMut) -> Result<(), Self::Error> {
         let (payload_len, msg_type) = match &message {
             Payload::TmManifests(msg) => {
                 (msg.encoded_len() as u32, MessageType::MtManifests as i32)
             }
+            Payload::TmPing(msg) => (msg.encoded_len() as u32, MessageType::MtPing as i32),
+            Payload::TmTransaction(msg) => {
+                (msg.encoded_len() as u32, MessageType::MtTransaction as i32)
+            }
+            Payload::TmGetLedger(msg) => {
+                (msg.encoded_len() as u32, MessageType::MtGetLedger as i32)
+            }
+            Payload::TmProposeLedger(msg) => (
+                msg.encoded_len() as u32,
+                MessageType::MtProposeLedger as i32,
+            ),
+            Payload::TmStatusChange(msg) => {
+                (msg.encoded_len() as u32, MessageType::MtStatusChange as i32)
+            }
             Payload::TmValidation(msg) => {
                 (msg.encoded_len() as u32, MessageType::MtValidation as i32)
             }
+            Payload::TmHaveSet(msg) => (msg.encoded_len() as u32, MessageType::MtHaveSet as i32),
             Payload::TmValidatorListCollection(msg) => (
                 msg.encoded_len() as u32,
                 MessageType::MtValidatorlistcollection as i32,
@@ -255,7 +285,13 @@ impl Encoder<Payload> for BinaryCodec {
 
         match message {
             Payload::TmManifests(msg) => (msg.encode(&mut bytes).unwrap(),),
+            Payload::TmPing(msg) => (msg.encode(&mut bytes).unwrap(),),
+            Payload::TmTransaction(msg) => (msg.encode(&mut bytes).unwrap(),),
+            Payload::TmGetLedger(msg) => (msg.encode(&mut bytes).unwrap(),),
+            Payload::TmProposeLedger(msg) => (msg.encode(&mut bytes).unwrap(),),
+            Payload::TmStatusChange(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmValidation(msg) => (msg.encode(&mut bytes).unwrap(),),
+            Payload::TmHaveSet(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmValidatorListCollection(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmGetPeerShardInfoV2(msg) => (msg.encode(&mut bytes).unwrap(),),
         };
