@@ -186,10 +186,10 @@ impl Decoder for BinaryCodec {
             let mut payload = src.split_to(payload_wire_size as usize);
 
             let payload = match header.message_type {
-                2 => Payload::TmManifests(prost::Message::decode(&mut payload)?),
-                41 => Payload::TmValidation(prost::Message::decode(&mut payload)?),
-                56 => Payload::TmValidatorListCollection(prost::Message::decode(&mut payload)?),
-                61 => Payload::TmGetPeerShardInfoV2(prost::Message::decode(&mut payload)?),
+                2 => Payload::TmManifests(Message::decode(&mut payload)?),
+                41 => Payload::TmValidation(Message::decode(&mut payload)?),
+                56 => Payload::TmValidatorListCollection(Message::decode(&mut payload)?),
+                61 => Payload::TmGetPeerShardInfoV2(Message::decode(&mut payload)?),
                 _ => unimplemented!(),
             };
 
