@@ -50,17 +50,7 @@ impl SyntheticNode {
         // generate the keypair and prepare the crypto engine
 
         let engine = Secp256k1::new();
-        // let (private_key, public_key) = engine.generate_keypair(&mut secp256k1::rand::thread_rng());
-        // FIXME: un-hardcode (taken from a fresh rippled node)
-        let private_key = SecretKey::from_slice(
-            &base64::decode(b"t/FfoDGZhMDfFiFHz42jYZfSuuaTU+Qrv9O5wAYEgaI=").unwrap(),
-        )
-        .unwrap();
-        // FIXME: un-hardcode (taken from a fresh rippled node)
-        let public_key = PublicKey::from_slice(
-            &base64::decode(b"A/Y8pgzgBYwYYk70wLrwoDxtLoBYTEEDvEn0DWTms6QU").unwrap(),
-        )
-        .unwrap();
+        let (private_key, public_key) = engine.generate_keypair(&mut secp256k1::rand::thread_rng());
         let crypto = Arc::new(Crypto {
             engine,
             private_key,
