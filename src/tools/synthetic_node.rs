@@ -1,11 +1,10 @@
 use std::{net::IpAddr, sync::Arc};
 
-use openssl::{
-    pkcs12::Pkcs12,
-    ssl::{SslAcceptor, SslConnector, SslMethod, SslVerifyMode},
-};
+use openssl::ssl::{SslAcceptor, SslConnector, SslMethod, SslVerifyMode};
 use pea2pea::{Node, Pea2Pea};
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
+
+use crate::tools::tls_cert;
 
 /// Enables tracing for all [`SyntheticNode`] instances (usually scoped by test).
 pub fn enable_tracing() {
@@ -59,11 +58,12 @@ impl SyntheticNode {
 
         // TLS acceptor
 
-        let file = include_bytes!("./tls_identity.pfx");
-        let identity = Pkcs12::from_der(&file[..]).unwrap().parse("pass").unwrap();
+        let (_ca_cert, ca_key_pair) = tls_cert::mk_ca_cert().unwrap();
+        let (cert, key_pair) = tls_cert::mk_ca_signed_cert(&ca_key_pair).unwrap();
+
         let mut acceptor = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
-        acceptor.set_private_key(&identity.pkey).unwrap();
-        acceptor.set_certificate(&identity.cert).unwrap();
+        acceptor.set_private_key(&key_pair).unwrap();
+        acceptor.set_certificate(&cert).unwrap();
         let acceptor = acceptor.build();
 
         // TLS connector

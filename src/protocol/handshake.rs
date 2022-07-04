@@ -30,7 +30,7 @@ fn encode_base58(node_type: NodeType, public_key: &[u8]) -> String {
     payload.extend_from_slice(public_key);
 
     bs58::encode(payload)
-        .with_alphabet(&bs58::Alphabet::RIPPLE)
+        .with_alphabet(bs58::Alphabet::RIPPLE)
         .with_check()
         .into_string()
 }
