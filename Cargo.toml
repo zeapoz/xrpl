@@ -19,6 +19,11 @@ sha2 = "0.10"
 tokio-openssl = "0.6"
 toml = "0.5.9"
 
+[dependencies.bs58]
+version = "0.4.0"
+default-features = false
+features = ["check", "alloc"]
+
 [dependencies.futures-util]
 version = "0.3"
 features = ["sink"]
