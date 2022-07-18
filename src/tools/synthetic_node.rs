@@ -75,7 +75,7 @@ impl SyntheticNode {
         // the node
 
         Self {
-            node: Node::new(Some(config)).await.unwrap(),
+            node: Node::new(config).await.unwrap(),
             crypto,
             tls: Tls {
                 acceptor,
