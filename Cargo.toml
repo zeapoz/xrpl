@@ -34,7 +34,7 @@ default-features = false
 features = ["getrandom", "small_rng"]
 
 [dependencies.secp256k1]
-version = "0.23"
+version = "0.24"
 features = ["global-context", "rand-std"]
 
 [dependencies.serde]
