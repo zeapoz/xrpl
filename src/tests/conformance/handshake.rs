@@ -11,14 +11,16 @@ async fn handshake_when_node_receives_connection() {
     // crate::tools::synthetic_node::enable_tracing();
 
     let mut node = Node::new().unwrap();
-    node.log_to_stdout(false).start().unwrap();
+    node.log_to_stdout(false)
+        .start(CONNECTION_TIMEOUT)
+        .await
+        .unwrap();
 
     // Start synthetic node.
     let node_config = pea2pea::Config {
         listener_ip: Some("127.0.0.1".parse().unwrap()),
         ..Default::default()
     };
-    wait_until!(CONNECTION_TIMEOUT, tokio::net::TcpStream::connect(node.addr()).await.is_ok());
 
     let synth_node = SyntheticNode::new(node_config).await;
     synth_node.enable_handshake().await;
@@ -50,7 +52,8 @@ async fn handshake_when_node_initiates_connection() {
     // TODO: consider implementing a hs! (HashSet::new) macro.
     node.initial_peers(vec![synth_node.node().listening_addr().unwrap()])
         .log_to_stdout(false)
-        .start()
+        .start(CONNECTION_TIMEOUT)
+        .await
         .unwrap();
 
     wait_until!(CONNECTION_TIMEOUT, synth_node.node().num_connected() == 1);
