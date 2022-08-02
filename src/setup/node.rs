@@ -85,7 +85,7 @@ impl Node {
                 }
                 Some(exit_code) => Some(format!("crashed with exit code {}", exit_code)),
             };
-
+            child.wait()?;
             self.cleanup()?;
 
             if let Some(crash_msg) = crashed {

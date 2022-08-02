@@ -18,9 +18,7 @@ async fn handshake_when_node_receives_connection() {
         listener_ip: Some("127.0.0.1".parse().unwrap()),
         ..Default::default()
     };
-
-    // TODO: replace with a connection from the node to signal readiness.
-    tokio::time::sleep(CONNECTION_TIMEOUT).await;
+    wait_until!(CONNECTION_TIMEOUT, tokio::net::TcpStream::connect(node.addr()).await.is_ok());
 
     let synth_node = SyntheticNode::new(node_config).await;
     synth_node.enable_handshake().await;
