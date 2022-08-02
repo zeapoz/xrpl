@@ -2,9 +2,11 @@ use std::{
     fs, io,
     net::SocketAddr,
     process::{Child, Command, Stdio},
+    time::Duration,
 };
 
 use anyhow::Result;
+use tokio::io::AsyncWriteExt;
 
 use crate::setup::config::{
     NodeConfig, NodeMetaData, RippledConfigFile, RIPPLED_CONFIG, RIPPLED_DIR,
@@ -46,7 +48,7 @@ impl Node {
         self
     }
 
-    pub fn start(&mut self) -> Result<()> {
+    pub async fn start(&mut self, timeout: Duration) -> Result<()> {
         // cleanup any previous runs (node.stop won't always be reached e.g. test panics, or SIGINT)
         self.cleanup()?;
 
@@ -67,6 +69,7 @@ impl Node {
             .spawn()
             .expect("node failed to start");
 
+        self.wait_for_start(timeout).await;
         self.process = Some(process);
 
         Ok(())
@@ -97,6 +100,22 @@ impl Node {
         }
 
         Ok(())
+    }
+
+    async fn wait_for_start(&self, timeout: Duration) {
+        loop {
+            let now = std::time::Instant::now();
+            if let Ok(mut stream) = tokio::net::TcpStream::connect(self.addr()).await {
+                stream.shutdown().await.unwrap();
+                break;
+            } else {
+                let sleep_duration = std::time::Duration::from_millis(10);
+                tokio::time::sleep(sleep_duration).await;
+                if now.elapsed() > timeout {
+                    panic!("node not started");
+                }
+            }
+        }
     }
 
     fn generate_config_file(&self) -> Result<()> {
@@ -153,7 +172,10 @@ mod tests {
     async fn start_stop_node() {
         let mut node = Node::new().unwrap();
 
-        node.log_to_stdout(true).start().unwrap();
+        node.log_to_stdout(true)
+            .start(Duration::from_secs(2))
+            .await
+            .unwrap();
 
         tokio::time::sleep(std::time::Duration::from_secs(10)).await;
 
