@@ -2,13 +2,18 @@ use std::{
     fs, io,
     net::SocketAddr,
     process::{Child, Command, Stdio},
+    time::Duration,
 };
 
 use anyhow::Result;
+use tokio::io::AsyncWriteExt;
 
-use crate::setup::config::{
-    NodeConfig, NodeMetaData, RippledConfigFile, RIPPLED_CONFIG, RIPPLED_DIR,
+use crate::{
+    setup::config::{NodeConfig, NodeMetaData, RippledConfigFile, RIPPLED_CONFIG, RIPPLED_DIR},
+    wait_until,
 };
+
+pub const CONNECTION_TIMEOUT: Duration = Duration::from_secs(2);
 
 pub struct Node {
     /// Fields to be written to the node's configuration file.
@@ -46,7 +51,7 @@ impl Node {
         self
     }
 
-    pub fn start(&mut self) -> Result<()> {
+    pub async fn start(&mut self) -> Result<()> {
         // cleanup any previous runs (node.stop won't always be reached e.g. test panics, or SIGINT)
         self.cleanup()?;
 
@@ -67,6 +72,7 @@ impl Node {
             .spawn()
             .expect("node failed to start");
 
+        self.wait_for_start().await;
         self.process = Some(process);
 
         Ok(())
@@ -85,7 +91,7 @@ impl Node {
                 }
                 Some(exit_code) => Some(format!("crashed with exit code {}", exit_code)),
             };
-
+            child.wait()?;
             self.cleanup()?;
 
             if let Some(crash_msg) = crashed {
@@ -97,6 +103,18 @@ impl Node {
         }
 
         Ok(())
+    }
+
+    async fn wait_for_start(&self) {
+        wait_until!(
+            CONNECTION_TIMEOUT,
+            if let Ok(mut stream) = tokio::net::TcpStream::connect(self.addr()).await {
+                stream.shutdown().await.unwrap();
+                true
+            } else {
+                false
+            }
+        );
     }
 
     fn generate_config_file(&self) -> Result<()> {
@@ -153,7 +171,7 @@ mod tests {
     async fn start_stop_node() {
         let mut node = Node::new().unwrap();
 
-        node.log_to_stdout(true).start().unwrap();
+        node.log_to_stdout(true).start().await.unwrap();
 
         tokio::time::sleep(std::time::Duration::from_secs(10)).await;
 

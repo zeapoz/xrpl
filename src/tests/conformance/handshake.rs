@@ -1,26 +1,23 @@
-use std::time::Duration;
-
 use pea2pea::{protocols::Handshake, Pea2Pea};
 
-use crate::{setup::node::Node, tools::synthetic_node::SyntheticNode, wait_until};
-
-const CONNECTION_TIMEOUT: Duration = Duration::from_secs(2);
+use crate::{
+    setup::node::{Node, CONNECTION_TIMEOUT},
+    tools::synthetic_node::SyntheticNode,
+    wait_until,
+};
 
 #[tokio::test]
 async fn handshake_when_node_receives_connection() {
     // crate::tools::synthetic_node::enable_tracing();
 
     let mut node = Node::new().unwrap();
-    node.log_to_stdout(false).start().unwrap();
+    node.log_to_stdout(false).start().await.unwrap();
 
     // Start synthetic node.
     let node_config = pea2pea::Config {
         listener_ip: Some("127.0.0.1".parse().unwrap()),
         ..Default::default()
     };
-
-    // TODO: replace with a connection from the node to signal readiness.
-    tokio::time::sleep(CONNECTION_TIMEOUT).await;
 
     let synth_node = SyntheticNode::new(node_config).await;
     synth_node.enable_handshake().await;
@@ -53,6 +50,7 @@ async fn handshake_when_node_initiates_connection() {
     node.initial_peers(vec![synth_node.node().listening_addr().unwrap()])
         .log_to_stdout(false)
         .start()
+        .await
         .unwrap();
 
     wait_until!(CONNECTION_TIMEOUT, synth_node.node().num_connected() == 1);
