@@ -46,6 +46,7 @@ pub struct Header {
 pub enum Payload {
     TmManifests(TmManifests),
     TmPing(TmPing),
+    TmEndpoints(TmEndpoints),
     TmTransaction(TmTransaction),
     TmGetLedger(TmGetLedger),
     TmProposeLedger(TmProposeSet),
@@ -172,7 +173,7 @@ impl Decoder for BinaryCodec {
                     message_type,
                     compression: Compression::None,
                 };
-
+                trace!(parent: &self.span, "header: {:?}", header);
                 self.current_msg_header = Some(header);
             } else {
                 error!(parent: &self.span, "invalid compression indicator");
@@ -195,6 +196,7 @@ impl Decoder for BinaryCodec {
             let payload = match header.message_type {
                 2 => Payload::TmManifests(Message::decode(&mut payload)?),
                 3 => Payload::TmPing(Message::decode(&mut payload)?),
+                15 => Payload::TmEndpoints(Message::decode(&mut payload)?),
                 30 => Payload::TmTransaction(Message::decode(&mut payload)?),
                 31 => Payload::TmGetLedger(Message::decode(&mut payload)?),
                 33 => Payload::TmProposeLedger(Message::decode(&mut payload)?),
@@ -235,6 +237,9 @@ impl Encoder<Payload> for BinaryCodec {
                 (msg.encoded_len() as u32, MessageType::MtManifests as i32)
             }
             Payload::TmPing(msg) => (msg.encoded_len() as u32, MessageType::MtPing as i32),
+            Payload::TmEndpoints(msg) => {
+                (msg.encoded_len() as u32, MessageType::MtEndpoints as i32)
+            }
             Payload::TmTransaction(msg) => {
                 (msg.encoded_len() as u32, MessageType::MtTransaction as i32)
             }
@@ -286,6 +291,7 @@ impl Encoder<Payload> for BinaryCodec {
         match message {
             Payload::TmManifests(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmPing(msg) => (msg.encode(&mut bytes).unwrap(),),
+            Payload::TmEndpoints(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmTransaction(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmGetLedger(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmProposeLedger(msg) => (msg.encode(&mut bytes).unwrap(),),
