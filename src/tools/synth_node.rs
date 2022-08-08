@@ -1,6 +1,6 @@
 use std::{
     io,
-    net::{IpAddr, SocketAddr},
+    net::{AddrParseError, IpAddr, SocketAddr},
 };
 
 use pea2pea::{
@@ -33,6 +33,15 @@ impl SyntheticNode {
         inner.enable_reading().await;
         inner.enable_writing().await;
         Self { inner, receiver }
+    }
+
+    /// Starts node bound to localhost and with default [pea2pea::Config]
+    pub async fn start() -> Result<Self, AddrParseError> {
+        let node_config = pea2pea::Config {
+            listener_ip: Some("127.0.0.1".parse()?),
+            ..Default::default()
+        };
+        Ok(Self::new(node_config).await)
     }
 
     /// Connects to the target address.
