@@ -79,7 +79,7 @@ impl SyntheticNode {
         self.inner.is_connected_ip(addr)
     }
 
-    pub async fn expect_message(&mut self, check: fn(&BinaryMessage) -> bool) -> bool {
+    pub async fn expect_message(&mut self, check: &dyn Fn(&BinaryMessage) -> bool) -> bool {
         timeout(EXPECTED_MESSAGE_TIMEOUT, async {
             loop {
                 let (_, message) = self.recv_message().await;
