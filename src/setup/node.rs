@@ -36,6 +36,15 @@ impl Node {
         })
     }
 
+    pub async fn start_with_peers(peers: Vec<SocketAddr>) -> Result<Self> {
+        let mut node = Self::new()?;
+        node.log_to_stdout(false)
+            .initial_peers(peers)
+            .start()
+            .await?;
+        Ok(node)
+    }
+
     pub fn addr(&self) -> SocketAddr {
         self.config.local_addr
     }
