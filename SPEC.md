@@ -100,5 +100,5 @@ The test index makes use of symbolic language in describing connection and messa
     The node responds with `pong` message for `ping`.
 
     <>
-    -> ping message with random sequential number
-    <- pong response with the same sequential number
+    -> ping message with random `sequence` number
+    <- pong response with the same `sequence` number

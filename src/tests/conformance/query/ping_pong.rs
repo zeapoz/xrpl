@@ -11,7 +11,8 @@ use crate::{
         codecs::binary::{BinaryMessage, Payload},
         proto::{tm_ping::PingType, TmPing},
     },
-    tests::conformance::common::{start_ripple_node, start_synth_node},
+    setup::node::Node,
+    tools::synth_node::SyntheticNode,
 };
 
 #[tokio::test]
@@ -19,10 +20,10 @@ async fn should_respond_with_pong_for_ping() {
     // ZG-CONFORMANCE-003
 
     // Start Ripple node
-    let mut node = start_ripple_node().await;
+    let mut node = Node::start_with_peers(vec![]).await.unwrap();
 
     // Start synth node and connect to Ripple
-    let mut synth_node = start_synth_node().await;
+    let mut synth_node = SyntheticNode::start().await.unwrap();
     synth_node.connect(node.addr()).await.unwrap();
 
     // Send `ping` message
