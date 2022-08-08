@@ -6,8 +6,11 @@ use crate::{
 
 #[tokio::test]
 async fn handshake_when_node_receives_connection() {
+    // ZG-CONFORMANCE-001
+
     // crate::tools::synthetic_node::enable_tracing();
 
+    // Start the Ripple node
     let mut node = Node::new().unwrap();
     node.log_to_stdout(false).start().await.unwrap();
 
@@ -30,6 +33,8 @@ async fn handshake_when_node_receives_connection() {
 
 #[tokio::test]
 async fn handshake_when_node_initiates_connection() {
+    // ZG-CONFORMANCE-002
+
     // crate::tools::synthetic_node::enable_tracing();
 
     // Start synthetic node.
