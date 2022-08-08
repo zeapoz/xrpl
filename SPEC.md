@@ -72,3 +72,33 @@ The fuzz tests aim to buttress the message conformance tests with extra verifica
 # Test Index
 
 The test index makes use of symbolic language in describing connection and message sending directions. As a convention, Ziggurat test nodes are to the left of the connection/message arrows, and Rippled instances are to the right: `A -> B` and `A <- B`. In this way, `->` signifies "Ziggurat connects to Rippled" and `<-` signifies the opposite. Furthermore, `-> ping` signifies "Ziggurat sends a `Ping` message to Rippled" and `<- pong` signifies "Rippled sends a `Pong` message to Ziggurat". Lastly, `<>` signifies a completed handshake, in either direction.
+
+## Conformance
+
+### ZG-CONFORMANCE-001
+
+    The node correctly performs a handshake from the responder side.
+
+    ->
+    -> public key & session signature
+    <- public key & session signature
+
+    Assert: the node’s peer count has increased to 1 and the synthetic node is an established peer.
+
+### ZG-CONFORMANCE-002
+
+    The node correctly performs a handshake from the initiator side.
+
+    <-
+    <- public key & session signature
+    -> public key & session signature
+
+    Assert: the node’s peer count has increased to 1 and the synthetic node is an established peer.
+
+### ZG-CONFORMANCE-003
+
+    The node responds with `pong` message for `ping`.
+
+    <>
+    -> ping message with random sequential number
+    <- pong response with the same sequential number
