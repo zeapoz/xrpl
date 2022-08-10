@@ -49,6 +49,7 @@ pub enum Payload {
     TmEndpoints(TmEndpoints),
     TmTransaction(TmTransaction),
     TmGetLedger(TmGetLedger),
+    TmLedgerData(TmLedgerData),
     TmProposeLedger(TmProposeSet),
     TmStatusChange(TmStatusChange),
     TmHaveSet(TmHaveTransactionSet),
@@ -199,6 +200,7 @@ impl Decoder for BinaryCodec {
                 15 => Payload::TmEndpoints(Message::decode(&mut payload)?),
                 30 => Payload::TmTransaction(Message::decode(&mut payload)?),
                 31 => Payload::TmGetLedger(Message::decode(&mut payload)?),
+                32 => Payload::TmLedgerData(Message::decode(&mut payload)?),
                 33 => Payload::TmProposeLedger(Message::decode(&mut payload)?),
                 34 => Payload::TmStatusChange(Message::decode(&mut payload)?),
                 35 => Payload::TmHaveSet(Message::decode(&mut payload)?),
@@ -245,6 +247,9 @@ impl Encoder<Payload> for BinaryCodec {
             }
             Payload::TmGetLedger(msg) => {
                 (msg.encoded_len() as u32, MessageType::MtGetLedger as i32)
+            }
+            Payload::TmLedgerData(msg) => {
+                (msg.encoded_len() as u32, MessageType::MtLedgerData as i32)
             }
             Payload::TmProposeLedger(msg) => (
                 msg.encoded_len() as u32,
@@ -294,6 +299,7 @@ impl Encoder<Payload> for BinaryCodec {
             Payload::TmEndpoints(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmTransaction(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmGetLedger(msg) => (msg.encode(&mut bytes).unwrap(),),
+            Payload::TmLedgerData(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmProposeLedger(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmStatusChange(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmValidation(msg) => (msg.encode(&mut bytes).unwrap(),),
