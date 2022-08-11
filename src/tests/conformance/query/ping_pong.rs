@@ -1,8 +1,8 @@
-//! Contains test with basic queries.
+//! Contains test with ping queries.
 //!
 //! Queries and expected replies:
 //!
-//!     - Ping -> Pong
+//!     - mtPING (with PingType::TpPing) -> mtPING (with PingType::PtPong)
 
 use rand::{thread_rng, RngCore};
 

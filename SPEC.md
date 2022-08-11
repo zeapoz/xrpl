@@ -102,3 +102,14 @@ The test index makes use of symbolic language in describing connection and messa
     <>
     -> ping message with random `sequence` number
     <- pong response with the same `sequence` number
+
+### ZG-CONFORMANCE-004
+    
+    The node responds with mtLEDGER_DATA for mtGET_LEDGER.
+    
+    -> mtGET_LEDGER with iType == LiBase
+    <- mtLEDGER_DATA
+    
+    or:
+    -> mtGET_LEDGER with iType == LiAsNode
+    <- mtLEDGER_DATA
