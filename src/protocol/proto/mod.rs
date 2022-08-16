@@ -5,13 +5,13 @@
 //------------------------------------------------------------------------------
 
 /// Provides the current ephemeral key for a validator.
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmManifest {
     /// A Manifest object in the Ripple serialization format.
     #[prost(bytes = "vec", required, tag = "1")]
     pub stobject: ::prost::alloc::vec::Vec<u8>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmManifests {
     #[prost(message, repeated, tag = "1")]
     pub list: ::prost::alloc::vec::Vec<TmManifest>,
@@ -23,7 +23,7 @@ pub struct TmManifests {
 //------------------------------------------------------------------------------
 
 /// The status of a node in our cluster
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmClusterNode {
     #[prost(string, required, tag = "1")]
     pub public_key: ::prost::alloc::string::String,
@@ -37,7 +37,7 @@ pub struct TmClusterNode {
     pub address: ::core::option::Option<::prost::alloc::string::String>,
 }
 /// Sources that are placing load on the server
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmLoadSource {
     #[prost(string, required, tag = "1")]
     pub name: ::prost::alloc::string::String,
@@ -48,7 +48,7 @@ pub struct TmLoadSource {
     pub count: ::core::option::Option<u32>,
 }
 /// The status of all nodes in the cluster
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmCluster {
     #[prost(message, repeated, tag = "1")]
     pub cluster_nodes: ::prost::alloc::vec::Vec<TmClusterNode>,
@@ -56,7 +56,7 @@ pub struct TmCluster {
     pub load_sources: ::prost::alloc::vec::Vec<TmLoadSource>,
 }
 /// Node public key
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmLink {
     /// node public key
     #[deprecated]
@@ -64,7 +64,7 @@ pub struct TmLink {
     pub node_pub_key: ::prost::alloc::vec::Vec<u8>,
 }
 /// Request info on shards held
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmGetPeerShardInfo {
     /// number of hops to travel
     #[deprecated]
@@ -80,7 +80,7 @@ pub struct TmGetPeerShardInfo {
     pub peer_chain: ::prost::alloc::vec::Vec<TmLink>,
 }
 /// Info about shards held
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmPeerShardInfo {
     /// rangeSet of shard indexes
     #[deprecated]
@@ -104,13 +104,13 @@ pub struct TmPeerShardInfo {
     pub peer_chain: ::prost::alloc::vec::Vec<TmLink>,
 }
 /// Peer public key
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmPublicKey {
     #[prost(bytes = "vec", required, tag = "1")]
     pub public_key: ::prost::alloc::vec::Vec<u8>,
 }
 /// Request peer shard information
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmGetPeerShardInfoV2 {
     /// Peer public keys used to route messages
     #[prost(message, repeated, tag = "1")]
@@ -120,7 +120,7 @@ pub struct TmGetPeerShardInfoV2 {
     pub relays: u32,
 }
 /// Peer shard information
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmPeerShardInfoV2 {
     /// Message creation time
     #[prost(uint32, required, tag = "1")]
@@ -143,7 +143,7 @@ pub struct TmPeerShardInfoV2 {
 }
 /// Nested message and enum types in `TMPeerShardInfoV2`.
 pub mod tm_peer_shard_info_v2 {
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    #[derive(Clone, PartialEq, Eq, ::prost::Message)]
     pub struct TmIncomplete {
         #[prost(uint32, required, tag = "1")]
         pub shard_index: u32,
@@ -154,7 +154,7 @@ pub mod tm_peer_shard_info_v2 {
         pub progress: ::core::option::Option<u32>,
     }
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmTransaction {
     #[prost(bytes = "vec", required, tag = "1")]
     pub raw_transaction: ::prost::alloc::vec::Vec<u8>,
@@ -166,12 +166,12 @@ pub struct TmTransaction {
     #[prost(bool, optional, tag = "4")]
     pub deferred: ::core::option::Option<bool>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmTransactions {
     #[prost(message, repeated, tag = "1")]
     pub transactions: ::prost::alloc::vec::Vec<TmTransaction>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmStatusChange {
     #[prost(enumeration = "NodeStatus", optional, tag = "1")]
     pub new_status: ::core::option::Option<i32>,
@@ -191,7 +191,7 @@ pub struct TmStatusChange {
     pub last_seq: ::core::option::Option<u32>,
 }
 /// Announce to the network our position on a closing ledger
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmProposeSet {
     #[prost(uint32, required, tag = "1")]
     pub propose_seq: u32,
@@ -222,7 +222,7 @@ pub struct TmProposeSet {
     #[prost(uint32, optional, tag = "12")]
     pub hops: ::core::option::Option<u32>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmHaveTransactionSet {
     #[prost(enumeration = "TxSetStatus", required, tag = "1")]
     pub status: i32,
@@ -230,7 +230,7 @@ pub struct TmHaveTransactionSet {
     pub hash: ::prost::alloc::vec::Vec<u8>,
 }
 /// Validator list (UNL)
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmValidatorList {
     #[prost(bytes = "vec", required, tag = "1")]
     pub manifest: ::prost::alloc::vec::Vec<u8>,
@@ -242,7 +242,7 @@ pub struct TmValidatorList {
     pub version: u32,
 }
 /// Validator List v2
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct ValidatorBlobInfo {
     #[prost(bytes = "vec", optional, tag = "1")]
     pub manifest: ::core::option::Option<::prost::alloc::vec::Vec<u8>>,
@@ -252,7 +252,7 @@ pub struct ValidatorBlobInfo {
     pub signature: ::prost::alloc::vec::Vec<u8>,
 }
 /// Collection of Validator List v2 (UNL)
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmValidatorListCollection {
     #[prost(uint32, required, tag = "1")]
     pub version: u32,
@@ -262,7 +262,7 @@ pub struct TmValidatorListCollection {
     pub blobs: ::prost::alloc::vec::Vec<ValidatorBlobInfo>,
 }
 /// Used to sign a final closed ledger after reprocessing
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmValidation {
     /// The serialized validation
     #[prost(bytes = "vec", required, tag = "1")]
@@ -277,7 +277,7 @@ pub struct TmValidation {
     pub hops: ::core::option::Option<u32>,
 }
 /// An array of Endpoint messages
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmEndpoints {
     /// This field is used to allow the TMEndpoints message format to be
     /// modified as necessary in the future.
@@ -290,7 +290,7 @@ pub struct TmEndpoints {
 pub mod tm_endpoints {
     /// An update to the Endpoint type that uses a string
     /// to represent endpoints, thus allowing ipv6 or ipv4 addresses
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    #[derive(Clone, PartialEq, Eq, ::prost::Message)]
     pub struct TmEndpointv2 {
         #[prost(string, required, tag = "1")]
         pub endpoint: ::prost::alloc::string::String,
@@ -298,7 +298,7 @@ pub mod tm_endpoints {
         pub hops: u32,
     }
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmIndexedObject {
     #[prost(bytes = "vec", optional, tag = "1")]
     pub hash: ::core::option::Option<::prost::alloc::vec::Vec<u8>>,
@@ -311,7 +311,7 @@ pub struct TmIndexedObject {
     #[prost(uint32, optional, tag = "5")]
     pub ledger_seq: ::core::option::Option<u32>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmGetObjectByHash {
     #[prost(enumeration = "tm_get_object_by_hash::ObjectType", required, tag = "1")]
     pub r#type: i32,
@@ -346,7 +346,7 @@ pub mod tm_get_object_by_hash {
         OtTransactions = 7,
     }
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmLedgerNode {
     #[prost(bytes = "vec", required, tag = "1")]
     pub nodedata: ::prost::alloc::vec::Vec<u8>,
@@ -354,7 +354,7 @@ pub struct TmLedgerNode {
     #[prost(bytes = "vec", optional, tag = "2")]
     pub nodeid: ::core::option::Option<::prost::alloc::vec::Vec<u8>>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmGetLedger {
     #[prost(enumeration = "TmLedgerInfoType", required, tag = "1")]
     pub itype: i32,
@@ -375,7 +375,7 @@ pub struct TmGetLedger {
     #[prost(uint32, optional, tag = "8")]
     pub query_depth: ::core::option::Option<u32>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmLedgerData {
     #[prost(bytes = "vec", required, tag = "1")]
     pub ledger_hash: ::prost::alloc::vec::Vec<u8>,
@@ -390,7 +390,7 @@ pub struct TmLedgerData {
     #[prost(enumeration = "TmReplyError", optional, tag = "6")]
     pub error: ::core::option::Option<i32>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmPing {
     #[prost(enumeration = "tm_ping::PingType", required, tag = "1")]
     pub r#type: i32,
@@ -414,7 +414,7 @@ pub mod tm_ping {
         PtPong = 1,
     }
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmSquelch {
     /// squelch if true, otherwise unsquelch
     #[prost(bool, required, tag = "1")]
@@ -426,7 +426,7 @@ pub struct TmSquelch {
     #[prost(uint32, optional, tag = "3")]
     pub squelch_duration: ::core::option::Option<u32>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmProofPathRequest {
     #[prost(bytes = "vec", required, tag = "1")]
     pub key: ::prost::alloc::vec::Vec<u8>,
@@ -435,7 +435,7 @@ pub struct TmProofPathRequest {
     #[prost(enumeration = "TmLedgerMapType", required, tag = "3")]
     pub r#type: i32,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmProofPathResponse {
     #[prost(bytes = "vec", required, tag = "1")]
     pub key: ::prost::alloc::vec::Vec<u8>,
@@ -450,12 +450,12 @@ pub struct TmProofPathResponse {
     #[prost(enumeration = "TmReplyError", optional, tag = "6")]
     pub error: ::core::option::Option<i32>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmReplayDeltaRequest {
     #[prost(bytes = "vec", required, tag = "1")]
     pub ledger_hash: ::prost::alloc::vec::Vec<u8>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmReplayDeltaResponse {
     #[prost(bytes = "vec", required, tag = "1")]
     pub ledger_hash: ::prost::alloc::vec::Vec<u8>,
@@ -466,7 +466,7 @@ pub struct TmReplayDeltaResponse {
     #[prost(enumeration = "TmReplyError", optional, tag = "4")]
     pub error: ::core::option::Option<i32>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, ::prost::Message)]
 pub struct TmHaveTransactions {
     #[prost(bytes = "vec", repeated, tag = "1")]
     pub hashes: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
