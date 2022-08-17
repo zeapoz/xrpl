@@ -1,5 +1,4 @@
 //! Contains test with ping queries.
-//! ZG-CONFORMANCE-003
 //! Queries and expected replies:
 //!
 //!     - mtPING (with PingType::TpPing) -> mtPING (with PingType::PtPong)
@@ -11,11 +10,12 @@ use crate::{
         codecs::binary::{BinaryMessage, Payload},
         proto::{tm_ping::PingType, TmPing},
     },
-    tests::conformance::perform_query_response_test,
+    tests::conformance::perform_response_test,
 };
 
 #[tokio::test]
 async fn should_respond_with_pong_for_ping() {
+    // ZG-CONFORMANCE-003
     // Send `ping` message
     let seq = thread_rng().next_u32();
 
@@ -37,5 +37,5 @@ async fn should_respond_with_pong_for_ping() {
         )
     };
     // Wait for reply
-    perform_query_response_test(payload, &check).await;
+    perform_response_test(Some(payload), &check).await;
 }

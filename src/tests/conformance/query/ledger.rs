@@ -1,5 +1,4 @@
 //! Contains test with ledger queries.
-//! ZG-CONFORMANCE-004
 //! Queries and expected replies:
 //!
 //!     - mtGET_LEDGER -> mtLEDGER_DATA
@@ -9,11 +8,12 @@ use crate::{
         codecs::binary::{BinaryMessage, Payload},
         proto::{TmGetLedger, TmLedgerInfoType, TmLedgerType},
     },
-    tests::conformance::perform_query_response_test,
+    tests::conformance::perform_response_test,
 };
 
 #[tokio::test]
 async fn should_respond_with_ledger_data_for_basic_info() {
+    // ZG-CONFORMANCE-004
     let payload = Payload::TmGetLedger(TmGetLedger {
         itype: TmLedgerInfoType::LiBase as i32,
         ltype: Some(TmLedgerType::LtClosed as i32),
@@ -29,6 +29,7 @@ async fn should_respond_with_ledger_data_for_basic_info() {
 
 #[tokio::test]
 async fn should_respond_with_ledger_data_for_account_state_info() {
+    // ZG-CONFORMANCE-005
     let payload = Payload::TmGetLedger(TmGetLedger {
         itype: TmLedgerInfoType::LiAsNode as i32,
         ltype: Some(TmLedgerType::LtClosed as i32),
@@ -46,5 +47,5 @@ async fn should_respond_with_ledger_data_for_account_state_info() {
 
 async fn check_for_ledger_data_response(payload: Payload) {
     let check = |m: &BinaryMessage| matches!(&m.payload, Payload::TmLedgerData(..));
-    perform_query_response_test(payload, &check).await;
+    perform_response_test(Some(payload), &check).await;
 }
