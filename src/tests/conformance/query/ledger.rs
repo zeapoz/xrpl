@@ -9,8 +9,7 @@ use crate::{
         codecs::binary::{BinaryMessage, Payload},
         proto::{TmGetLedger, TmLedgerInfoType, TmLedgerType},
     },
-    setup::node::Node,
-    tools::synth_node::SyntheticNode,
+    tests::conformance::perform_query_response_test,
 };
 
 #[tokio::test]
@@ -46,21 +45,6 @@ async fn should_respond_with_ledger_data_for_account_state_info() {
 }
 
 async fn check_for_ledger_data_response(payload: Payload) {
-    // Start Ripple node
-    let mut node = Node::start_with_peers(vec![]).await.unwrap();
-
-    // Start synth node and connect to Ripple
-    let mut synth_node = SyntheticNode::start().await.unwrap();
-    synth_node.connect(node.addr()).await.unwrap();
-
-    // Send message
-    synth_node.unicast(node.addr(), payload).unwrap();
-
-    // Wait for 'mtLEDGER_DATA' response
     let check = |m: &BinaryMessage| matches!(&m.payload, Payload::TmLedgerData(..));
-    assert!(synth_node.expect_message(&check).await);
-
-    // Shutdown both nodes
-    synth_node.shut_down().await;
-    node.stop().unwrap();
+    perform_query_response_test(payload, &check).await;
 }
