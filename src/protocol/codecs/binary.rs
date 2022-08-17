@@ -54,6 +54,7 @@ pub enum Payload {
     TmStatusChange(TmStatusChange),
     TmHaveSet(TmHaveTransactionSet),
     TmValidation(TmValidation),
+    TmGetObjectByHash(TmGetObjectByHash),
     TmValidatorListCollection(TmValidatorListCollection),
     TmGetPeerShardInfoV2(TmGetPeerShardInfoV2),
 }
@@ -205,6 +206,7 @@ impl Decoder for BinaryCodec {
                 34 => Payload::TmStatusChange(Message::decode(&mut payload)?),
                 35 => Payload::TmHaveSet(Message::decode(&mut payload)?),
                 41 => Payload::TmValidation(Message::decode(&mut payload)?),
+                42 => Payload::TmGetObjectByHash(Message::decode(&mut payload)?),
                 56 => Payload::TmValidatorListCollection(Message::decode(&mut payload)?),
                 61 => Payload::TmGetPeerShardInfoV2(Message::decode(&mut payload)?),
                 _ => unimplemented!(),
@@ -261,6 +263,9 @@ impl Encoder<Payload> for BinaryCodec {
             Payload::TmValidation(msg) => {
                 (msg.encoded_len() as u32, MessageType::MtValidation as i32)
             }
+            Payload::TmGetObjectByHash(msg) => {
+                (msg.encoded_len() as u32, MessageType::MtGetObjects as i32)
+            }
             Payload::TmHaveSet(msg) => (msg.encoded_len() as u32, MessageType::MtHaveSet as i32),
             Payload::TmValidatorListCollection(msg) => (
                 msg.encoded_len() as u32,
@@ -303,6 +308,7 @@ impl Encoder<Payload> for BinaryCodec {
             Payload::TmProposeLedger(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmStatusChange(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmValidation(msg) => (msg.encode(&mut bytes).unwrap(),),
+            Payload::TmGetObjectByHash(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmHaveSet(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmValidatorListCollection(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmGetPeerShardInfoV2(msg) => (msg.encode(&mut bytes).unwrap(),),
