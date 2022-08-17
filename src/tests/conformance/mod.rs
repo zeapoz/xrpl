@@ -7,8 +7,8 @@ use crate::{
 mod handshake;
 mod query;
 
-async fn perform_query_response_test(
-    query_msg: Payload,
+async fn perform_response_test(
+    query_msg: Option<Payload>,
     response_check: &dyn Fn(&BinaryMessage) -> bool,
 ) {
     // Start Ripple node
@@ -18,8 +18,8 @@ async fn perform_query_response_test(
     let mut synth_node = SyntheticNode::start().await.unwrap();
     synth_node.connect(node.addr()).await.unwrap();
 
-    // Send the query message
-    synth_node.unicast(node.addr(), query_msg).unwrap();
+    // Send the query message (if present)
+    query_msg.map(|message| synth_node.unicast(node.addr(), message).unwrap());
 
     // Wait for a response and perform the given check for it
     assert!(synth_node.expect_message(response_check).await);
