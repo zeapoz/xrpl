@@ -1,5 +1,5 @@
 //! Contains test with ping queries.
-//!
+//! ZG-CONFORMANCE-003
 //! Queries and expected replies:
 //!
 //!     - mtPING (with PingType::TpPing) -> mtPING (with PingType::PtPong)
@@ -11,21 +11,11 @@ use crate::{
         codecs::binary::{BinaryMessage, Payload},
         proto::{tm_ping::PingType, TmPing},
     },
-    setup::node::Node,
-    tools::synth_node::SyntheticNode,
+    tests::conformance::perform_query_response_test,
 };
 
 #[tokio::test]
 async fn should_respond_with_pong_for_ping() {
-    // ZG-CONFORMANCE-003
-
-    // Start Ripple node
-    let mut node = Node::start_with_peers(vec![]).await.unwrap();
-
-    // Start synth node and connect to Ripple
-    let mut synth_node = SyntheticNode::start().await.unwrap();
-    synth_node.connect(node.addr()).await.unwrap();
-
     // Send `ping` message
     let seq = thread_rng().next_u32();
 
@@ -35,10 +25,6 @@ async fn should_respond_with_pong_for_ping() {
         ping_time: None,
         net_time: None,
     });
-
-    synth_node.unicast(node.addr(), payload).unwrap();
-
-    // Wait for 'pong' response
     let check = |m: &BinaryMessage| {
         matches!(
             &m.payload,
@@ -50,9 +36,6 @@ async fn should_respond_with_pong_for_ping() {
             }) if *s == seq && *r_type == PingType::PtPong as i32
         )
     };
-    assert!(synth_node.expect_message(&check).await);
-
-    // Shutdown both nodes
-    synth_node.shut_down().await;
-    node.stop().unwrap();
+    // Wait for reply
+    perform_query_response_test(payload, &check).await;
 }
