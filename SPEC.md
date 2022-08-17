@@ -107,9 +107,10 @@ The test index makes use of symbolic language in describing connection and messa
     
     The node responds with mtLEDGER_DATA for mtGET_LEDGER.
     
+    <>
     -> mtGET_LEDGER with iType == LiBase
     <- mtLEDGER_DATA
-    
     or:
+
     -> mtGET_LEDGER with iType == LiAsNode
     <- mtLEDGER_DATA
