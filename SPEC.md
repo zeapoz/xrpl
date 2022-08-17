@@ -105,12 +105,23 @@ The test index makes use of symbolic language in describing connection and messa
 
 ### ZG-CONFORMANCE-004
     
-    The node responds with mtLEDGER_DATA for mtGET_LEDGER.
+    The node responds with mtLEDGER_DATA for mtGET_LEDGER with iType == LiBase.
     
     <>
     -> mtGET_LEDGER with iType == LiBase
     <- mtLEDGER_DATA
-    or:
 
+### ZG-CONFORMANCE-005
+
+    The node responds with mtLEDGER_DATA for mtGET_LEDGER with iType == LiAsNode.
+
+    <>
     -> mtGET_LEDGER with iType == LiAsNode
     <- mtLEDGER_DATA
+
+### ZG-CONFORMANCE-006
+
+    The node requests mtGET_PEER_SHARD_INFO_V2 after start up.
+
+    ->
+    <- mtGET_PEER_SHARD_INFO_V2
