@@ -11,6 +11,7 @@ use crate::{
         proto::{tm_ping::PingType, TmPing},
     },
     tests::conformance::perform_response_test,
+    tools::config::TestConfig,
 };
 
 #[tokio::test]
@@ -37,5 +38,9 @@ async fn should_respond_with_pong_for_ping() {
         )
     };
     // Wait for reply
-    perform_response_test(Some(payload), &check).await;
+    perform_response_test(
+        TestConfig::new().unwrap().with_initial_message(payload),
+        &check,
+    )
+    .await;
 }
