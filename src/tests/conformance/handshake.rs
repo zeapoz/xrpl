@@ -1,6 +1,6 @@
 use crate::{
     setup::node::{Node, CONNECTION_TIMEOUT},
-    tools::synth_node::SyntheticNode,
+    tools::{config::TestConfig, synth_node::SyntheticNode},
     wait_until,
 };
 
@@ -14,7 +14,7 @@ async fn handshake_when_node_receives_connection() {
     let mut node = Node::start_with_peers(vec![]).await.unwrap();
 
     // Start synthetic node.
-    let synth_node = SyntheticNode::start().await.unwrap();
+    let synth_node = SyntheticNode::new(&TestConfig::new().unwrap()).await;
     synth_node.connect(node.addr()).await.unwrap();
 
     // This is only set post-handshake.
@@ -33,7 +33,7 @@ async fn handshake_when_node_initiates_connection() {
     // crate::tools::synthetic_node::enable_tracing();
 
     // Start synthetic node.
-    let synth_node = SyntheticNode::start().await.unwrap();
+    let synth_node = SyntheticNode::new(&TestConfig::new().unwrap()).await;
 
     // Start the Ripple node and set the synth node as an initial peer.
     let mut node = Node::start_with_peers(vec![synth_node.listening_addr().unwrap()])
