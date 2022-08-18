@@ -1,6 +1,6 @@
 use std::{
     io,
-    net::{AddrParseError, IpAddr, SocketAddr},
+    net::{IpAddr, SocketAddr},
 };
 
 use pea2pea::{
@@ -15,6 +15,7 @@ use tokio::{
 use crate::{
     protocol::codecs::binary::{BinaryMessage, Payload},
     tools::{
+        config::TestConfig,
         constants::{EXPECTED_MESSAGE_TIMEOUT, SYNTH_NODE_QUEUE_DEPTH},
         inner_node::InnerNode,
     },
@@ -26,22 +27,15 @@ pub struct SyntheticNode {
 }
 
 impl SyntheticNode {
-    pub async fn new(config: pea2pea::Config) -> Self {
+    pub async fn new(config: &TestConfig) -> Self {
         let (sender, receiver) = mpsc::channel(SYNTH_NODE_QUEUE_DEPTH);
         let inner = InnerNode::new(config, sender).await;
-        inner.enable_handshake().await;
+        if config.synth_node_config.do_handshake {
+            inner.enable_handshake().await;
+        }
         inner.enable_reading().await;
         inner.enable_writing().await;
         Self { inner, receiver }
-    }
-
-    /// Starts node bound to localhost and with default [pea2pea::Config]
-    pub async fn start() -> Result<Self, AddrParseError> {
-        let node_config = pea2pea::Config {
-            listener_ip: Some("127.0.0.1".parse()?),
-            ..Default::default()
-        };
-        Ok(Self::new(node_config).await)
     }
 
     /// Connects to the target address.

@@ -121,7 +121,7 @@ The test index makes use of symbolic language in describing connection and messa
 
 ### ZG-CONFORMANCE-006
 
-    The node requests mtGET_PEER_SHARD_INFO_V2 after start up.
+    The node requests mtGET_PEER_SHARD_INFO_V2 after connection and handshake.
 
-    ->
+    <>
     <- mtGET_PEER_SHARD_INFO_V2
