@@ -1,5 +1,6 @@
 //! Utilities for network testing.
 
+pub mod config;
 pub mod constants;
 pub mod inner_node;
 pub mod synth_node;

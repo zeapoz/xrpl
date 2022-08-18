@@ -9,7 +9,10 @@ use pea2pea::{Node, Pea2Pea};
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
 use tokio::sync::mpsc::Sender;
 
-use crate::{protocol::codecs::binary::BinaryMessage, tools::tls_cert};
+use crate::{
+    protocol::codecs::binary::BinaryMessage,
+    tools::{config::TestConfig, tls_cert},
+};
 
 /// Enables tracing for all [`SyntheticNode`] instances (usually scoped by test).
 pub fn enable_tracing() {
@@ -51,7 +54,7 @@ impl Pea2Pea for InnerNode {
 }
 
 impl InnerNode {
-    pub async fn new(config: pea2pea::Config, sender: Sender<(SocketAddr, BinaryMessage)>) -> Self {
+    pub async fn new(config: &TestConfig, sender: Sender<(SocketAddr, BinaryMessage)>) -> Self {
         // generate the keypair and prepare the crypto engine
 
         let engine = Secp256k1::new();
@@ -79,7 +82,7 @@ impl InnerNode {
 
         // the node
         Self {
-            node: Node::new(config).await.unwrap(),
+            node: Node::new(config.pea2pea_config.clone()).await.unwrap(),
             sender,
             crypto,
             tls: Tls {

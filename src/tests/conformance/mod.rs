@@ -1,25 +1,28 @@
 use crate::{
-    protocol::codecs::binary::{BinaryMessage, Payload},
+    protocol::codecs::binary::BinaryMessage,
     setup::node::Node,
-    tools::synth_node::SyntheticNode,
+    tools::{config::TestConfig, synth_node::SyntheticNode},
 };
 
 mod handshake;
 mod query;
 
 async fn perform_response_test(
-    query_msg: Option<Payload>,
+    config: TestConfig,
     response_check: &dyn Fn(&BinaryMessage) -> bool,
 ) {
     // Start Ripple node
     let mut node = Node::start_with_peers(vec![]).await.unwrap();
 
     // Start synth node and connect to Ripple
-    let mut synth_node = SyntheticNode::start().await.unwrap();
+    let mut synth_node = SyntheticNode::new(&config).await;
     synth_node.connect(node.addr()).await.unwrap();
 
     // Send the query message (if present)
-    query_msg.map(|message| synth_node.unicast(node.addr(), message).unwrap());
+    config
+        .synth_node_config
+        .initial_message
+        .map(|message| synth_node.unicast(node.addr(), message).unwrap());
 
     // Wait for a response and perform the given check for it
     assert!(synth_node.expect_message(response_check).await);
