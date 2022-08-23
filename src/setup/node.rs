@@ -55,6 +55,11 @@ impl Node {
         self
     }
 
+    pub fn validator_token(&mut self, token: String) -> &mut Self {
+        self.config.validator_token = Some(token);
+        self
+    }
+
     /// Sets whether to log the node's output to Ziggurat's output stream.
     pub fn log_to_stdout(&mut self, log_to_stdout: bool) -> &mut Self {
         self.config.log_to_stdout = log_to_stdout;
@@ -130,7 +135,6 @@ impl Node {
     fn generate_config_file(&self) -> Result<()> {
         let path = self.config.path.join(RIPPLED_CONFIG);
         let content = RippledConfigFile::generate(&self.config)?;
-
         fs::write(path, content)?;
 
         Ok(())
@@ -177,12 +181,15 @@ mod tests {
     use std::net::Ipv4Addr;
 
     use super::*;
+    use crate::setup::config::ZIGGURAT_CONFIG;
 
     #[ignore = "convenience test to tinker with a running node for dev purposes"]
     #[tokio::test]
     async fn start_stop_node() {
         let mut node = Node::new(
-            home::home_dir().expect("Can't find home directory"),
+            home::home_dir()
+                .expect("Can't find home directory")
+                .join(ZIGGURAT_CONFIG),
             IpAddr::V4(Ipv4Addr::LOCALHOST),
         )
         .unwrap();

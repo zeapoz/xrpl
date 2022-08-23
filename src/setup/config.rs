@@ -11,15 +11,16 @@ use anyhow::Result;
 use serde::Deserialize;
 
 // Ziggurat's configuration directory and file. Caches are written to this directory.
-const CONFIG: &str = ".ziggurat";
-const CONFIG_FILE: &str = "config.toml";
+pub const ZIGGURAT_CONFIG: &str = ".ziggurat";
+// Configuration file with paths to start rippled.
+pub const CONFIG_FILE: &str = "config.toml"; // TODO rename to something better.
 
 // Rippled's configuration file name.
 pub const RIPPLED_CONFIG: &str = "rippled.cfg";
 pub const RIPPLED_DIR: &str = "rippled";
 
 // The default port to start a Rippled node on.
-const DEFAULT_PORT: u16 = 8080;
+pub const DEFAULT_PORT: u16 = 8080;
 
 /// Convenience struct for reading Ziggurat's configuration file.
 #[derive(Deserialize)]
@@ -82,6 +83,8 @@ pub struct NodeConfig {
     pub max_peers: usize,
     /// Toggles node logging to stdout.
     pub log_to_stdout: bool,
+    /// Token when run as a validator.
+    pub validator_token: Option<String>,
 }
 
 impl NodeConfig {
@@ -90,11 +93,12 @@ impl NodeConfig {
         let local_addr = SocketAddr::new(ip_addr, DEFAULT_PORT);
 
         Self {
-            path: path.join(CONFIG),
+            path,
             local_addr,
             initial_peers: Default::default(),
             max_peers: 50,
             log_to_stdout: false,
+            validator_token: None,
         }
     }
 }
@@ -125,6 +129,12 @@ impl RippledConfigFile {
         writeln!(&mut config_str, "protocol = peer")?;
         writeln!(&mut config_str)?;
 
+        if let Some(token) = &config.validator_token {
+            writeln!(&mut config_str, "[validator_token]")?;
+            writeln!(&mut config_str, "{}", token)?;
+            writeln!(&mut config_str)?;
+        }
+
         // 2. Peer protocol
         writeln!(&mut config_str, "[reduce_relay]")?;
         writeln!(&mut config_str, "tx_enable = 1")?;
@@ -134,6 +144,7 @@ impl RippledConfigFile {
         for addr in &config.initial_peers {
             writeln!(&mut config_str, "{} {}", addr.ip(), addr.port())?;
         }
+        writeln!(&mut config_str)?;
 
         writeln!(&mut config_str, "[peers_max]")?;
         writeln!(&mut config_str, "{}", config.max_peers)?;
