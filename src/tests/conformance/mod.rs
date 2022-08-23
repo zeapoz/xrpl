@@ -1,3 +1,5 @@
+use std::net::{IpAddr, Ipv4Addr};
+
 use crate::{
     protocol::codecs::binary::BinaryMessage,
     setup::node::Node,
@@ -12,7 +14,13 @@ async fn perform_response_test(
     response_check: &dyn Fn(&BinaryMessage) -> bool,
 ) {
     // Start Ripple node
-    let mut node = Node::start_with_peers(vec![]).await.unwrap();
+    let mut node = Node::start(
+        home::home_dir().expect("Can't find home directory"),
+        IpAddr::V4(Ipv4Addr::LOCALHOST),
+        vec![],
+    )
+    .await
+    .unwrap();
 
     // Start synth node and connect to Ripple
     let mut synth_node = SyntheticNode::new(&config).await;

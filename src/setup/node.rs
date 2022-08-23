@@ -1,6 +1,7 @@
 use std::{
     fs, io,
-    net::SocketAddr,
+    net::{IpAddr, SocketAddr},
+    path::PathBuf,
     process::{Child, Command, Stdio},
     time::Duration,
 };
@@ -25,8 +26,8 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn new() -> Result<Self> {
-        let config = NodeConfig::new()?;
+    pub fn new(path: PathBuf, ip_addr: IpAddr) -> Result<Self> {
+        let config = NodeConfig::new(path, ip_addr);
         let meta = NodeMetaData::new(config.path.clone())?;
 
         Ok(Self {
@@ -36,11 +37,11 @@ impl Node {
         })
     }
 
-    pub async fn start_with_peers(peers: Vec<SocketAddr>) -> Result<Self> {
-        let mut node = Self::new()?;
+    pub async fn start(path: PathBuf, ip_addr: IpAddr, peers: Vec<SocketAddr>) -> Result<Self> {
+        let mut node = Self::new(path, ip_addr)?;
         node.log_to_stdout(false)
             .initial_peers(peers)
-            .start()
+            .start_process()
             .await?;
         Ok(node)
     }
@@ -60,7 +61,7 @@ impl Node {
         self
     }
 
-    pub async fn start(&mut self) -> Result<()> {
+    pub async fn start_process(&mut self) -> Result<()> {
         // cleanup any previous runs (node.stop won't always be reached e.g. test panics, or SIGINT)
         self.cleanup()?;
 
@@ -173,14 +174,20 @@ impl Drop for Node {
 
 #[cfg(test)]
 mod tests {
+    use std::net::Ipv4Addr;
+
     use super::*;
 
     #[ignore = "convenience test to tinker with a running node for dev purposes"]
     #[tokio::test]
     async fn start_stop_node() {
-        let mut node = Node::new().unwrap();
+        let mut node = Node::new(
+            home::home_dir().expect("Can't find home directory"),
+            IpAddr::V4(Ipv4Addr::LOCALHOST),
+        )
+        .unwrap();
 
-        node.log_to_stdout(true).start().await.unwrap();
+        node.log_to_stdout(true).start_process().await.unwrap();
 
         tokio::time::sleep(std::time::Duration::from_secs(10)).await;
 
