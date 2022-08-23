@@ -48,9 +48,5 @@ async fn should_respond_with_ledger_data_for_account_state_info() {
 
 async fn check_for_ledger_data_response(payload: Payload) {
     let check = |m: &BinaryMessage| matches!(&m.payload, Payload::TmLedgerData(..));
-    perform_response_test(
-        TestConfig::new().unwrap().with_initial_message(payload),
-        &check,
-    )
-    .await;
+    perform_response_test(TestConfig::default().with_initial_message(payload), &check).await;
 }

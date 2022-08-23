@@ -2,8 +2,8 @@ use std::{
     collections::HashSet,
     ffi::OsString,
     fmt::Write,
-    fs, io,
-    net::{IpAddr, Ipv4Addr, SocketAddr},
+    fs,
+    net::{IpAddr, SocketAddr},
     path::PathBuf,
 };
 
@@ -85,21 +85,17 @@ pub struct NodeConfig {
 }
 
 impl NodeConfig {
-    pub fn new() -> io::Result<Self> {
+    pub fn new(path: PathBuf, ip_addr: IpAddr) -> Self {
         // Set the port explicitly.
-        let local_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), DEFAULT_PORT);
+        let local_addr = SocketAddr::new(ip_addr, DEFAULT_PORT);
 
-        Ok(Self {
-            path: home::home_dir()
-                .ok_or_else(|| {
-                    io::Error::new(io::ErrorKind::NotFound, "couldn't find home directory")
-                })?
-                .join(CONFIG),
+        Self {
+            path: path.join(CONFIG),
             local_addr,
             initial_peers: Default::default(),
             max_peers: 50,
             log_to_stdout: false,
-        })
+        }
     }
 }
 
@@ -118,8 +114,8 @@ impl RippledConfigFile {
 
         writeln!(&mut config_str, "[port_rpc_admin_local]")?;
         writeln!(&mut config_str, "port = 5005")?;
-        writeln!(&mut config_str, "ip = 127.0.0.1")?;
-        writeln!(&mut config_str, "admin = 127.0.0.1")?;
+        writeln!(&mut config_str, "ip = {}", config.local_addr.ip())?;
+        writeln!(&mut config_str, "admin = {}", config.local_addr.ip())?;
         writeln!(&mut config_str, "protocol = http")?;
         writeln!(&mut config_str)?;
 
