@@ -1,7 +1,10 @@
 use std::net::{IpAddr, Ipv4Addr};
 
 use crate::{
-    setup::node::{Node, CONNECTION_TIMEOUT},
+    setup::{
+        config::ZIGGURAT_CONFIG,
+        node::{Node, CONNECTION_TIMEOUT},
+    },
     tools::{config::TestConfig, synth_node::SyntheticNode},
     wait_until,
 };
@@ -14,7 +17,9 @@ async fn handshake_when_node_receives_connection() {
 
     // Start the Ripple node
     let mut node = Node::start(
-        home::home_dir().expect("Can't find home directory"),
+        home::home_dir()
+            .expect("Can't find home directory")
+            .join(ZIGGURAT_CONFIG),
         IpAddr::V4(Ipv4Addr::LOCALHOST),
         vec![],
     )
@@ -45,7 +50,9 @@ async fn handshake_when_node_initiates_connection() {
 
     // Start the Ripple node and set the synth node as an initial peer.
     let mut node = Node::start(
-        home::home_dir().expect("Can't find home directory"),
+        home::home_dir()
+            .expect("Can't find home directory")
+            .join(ZIGGURAT_CONFIG),
         IpAddr::V4(Ipv4Addr::LOCALHOST),
         vec![synth_node.listening_addr().unwrap()],
     )
