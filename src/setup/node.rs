@@ -162,7 +162,7 @@ impl NodeBuilder {
     }
 
     /// Sets validator token to be placed in rippled.cfg.
-    /// This will make the node to be run in validator mode.
+    /// This will configure the node to run as a validator.
     pub fn validator_token(mut self, token: String) -> Self {
         self.config.validator_token = Some(token);
         self
@@ -183,33 +183,5 @@ impl NodeBuilder {
         };
         node.start_process().await?;
         Ok(node)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::net::Ipv4Addr;
-
-    use super::*;
-    use crate::setup::config::ZIGGURAT_DIR;
-
-    #[ignore = "convenience test to tinker with a running node for dev purposes"]
-    #[tokio::test]
-    async fn start_stop_node() {
-        let mut node = NodeBuilder::new(
-            home::home_dir()
-                .expect("Can't find home directory")
-                .join(ZIGGURAT_DIR),
-            IpAddr::V4(Ipv4Addr::LOCALHOST),
-        )
-        .unwrap()
-        .log_to_stdout(true)
-        .build()
-        .await
-        .unwrap();
-
-        tokio::time::sleep(std::time::Duration::from_secs(10)).await;
-
-        node.stop().unwrap();
     }
 }

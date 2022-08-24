@@ -25,21 +25,21 @@ const VALIDATOR_KEYS: [&str; 3] = [
     "nHUuYdS49cPfRmCXPTwu7MVVFZFFmfG7y5sRttirVMhwuD7xStQp",
 ];
 
-/// A struct allowing for convenient starting and stopping a small testnet.
+/// A struct to conveniently start and stop a small testnet.
 pub struct TestNet {
     // Setup information for each node. Used for writing configuration.
-    setups: [NodeSetup; 3],
-    // Running nodes. Used to stopping the testnet.
+    setups: [NodeSetup; VALIDATOR_KEYS.len()],
+    // Running nodes. Used to stop the testnet.
     running: Vec<Node>,
     // Sets whether to log the node's output to Ziggurat's output stream.
     use_stdout: bool,
-    // Path under which all nodes will be build
+    // Path under which all nodes will be built
     path: PathBuf,
 }
 
 impl TestNet {
-    #[allow(dead_code)] // for some bizarre reason clippy --all-targets reports this function as unused :-/
-    fn new() -> io::Result<Self> {
+    /// Creates a new TestNet (without starting it).
+    pub fn new() -> io::Result<Self> {
         Ok(Self {
             setups: [
                 NodeSetup::new(
