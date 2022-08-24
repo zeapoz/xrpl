@@ -10,7 +10,7 @@ use std::{
 
 use crate::setup::{
     config::{CONFIG_FILE, DEFAULT_PORT, ZIGGURAT_CONFIG},
-    node::Node,
+    node::{Node, NodeBuilder},
 };
 
 /// Testnet's directory for nodes' configs.
@@ -112,13 +112,12 @@ impl TestNet {
         fs::create_dir_all(&path)?;
         write_validators_file(&path, validators_contents).await?;
         copy_config_file(&path).await?;
-        let mut node = Node::new(path, setup.ip)?;
-        let peers = self.collect_other_peers(setup);
-        node.initial_peers(peers);
-        node.log_to_stdout(self.use_stdout);
-        node.validator_token(setup.validator_token.clone());
-        node.start_process().await?;
-        Ok(node)
+        NodeBuilder::new(path, setup.ip)?
+            .initial_peers(self.collect_other_peers(setup))
+            .log_to_stdout(self.use_stdout)
+            .validator_token(setup.validator_token.clone())
+            .build()
+            .await
     }
 
     // Builds a list of peers for the node. Each node has two peers (the other nodes in the testnet).

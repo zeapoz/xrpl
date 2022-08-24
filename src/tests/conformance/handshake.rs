@@ -3,7 +3,7 @@ use std::net::{IpAddr, Ipv4Addr};
 use crate::{
     setup::{
         config::ZIGGURAT_CONFIG,
-        node::{Node, CONNECTION_TIMEOUT},
+        node::{NodeBuilder, CONNECTION_TIMEOUT},
     },
     tools::{config::TestConfig, synth_node::SyntheticNode},
     wait_until,
@@ -15,14 +15,15 @@ async fn handshake_when_node_receives_connection() {
 
     // crate::tools::synthetic_node::enable_tracing();
 
-    // Start the Ripple node
-    let mut node = Node::start(
+    // Build and start the Ripple node
+    let mut node = NodeBuilder::new(
         home::home_dir()
             .expect("Can't find home directory")
             .join(ZIGGURAT_CONFIG),
         IpAddr::V4(Ipv4Addr::LOCALHOST),
-        vec![],
     )
+    .unwrap()
+    .build()
     .await
     .unwrap();
 
@@ -48,14 +49,16 @@ async fn handshake_when_node_initiates_connection() {
     // Start synthetic node.
     let synth_node = SyntheticNode::new(&TestConfig::default()).await;
 
-    // Start the Ripple node and set the synth node as an initial peer.
-    let mut node = Node::start(
+    // Build and start the Ripple node and set the synth node as an initial peer.
+    let mut node = NodeBuilder::new(
         home::home_dir()
             .expect("Can't find home directory")
             .join(ZIGGURAT_CONFIG),
         IpAddr::V4(Ipv4Addr::LOCALHOST),
-        vec![synth_node.listening_addr().unwrap()],
     )
+    .unwrap()
+    .initial_peers(vec![synth_node.listening_addr().unwrap()])
+    .build()
     .await
     .unwrap();
 

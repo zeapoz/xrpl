@@ -26,73 +26,11 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn new(path: PathBuf, ip_addr: IpAddr) -> Result<Self> {
-        let config = NodeConfig::new(path, ip_addr);
-        let meta = NodeMetaData::new(config.path.clone())?;
-
-        Ok(Self {
-            config,
-            meta,
-            process: None,
-        })
-    }
-
-    pub async fn start(path: PathBuf, ip_addr: IpAddr, peers: Vec<SocketAddr>) -> Result<Self> {
-        let mut node = Self::new(path, ip_addr)?;
-        node.log_to_stdout(false)
-            .initial_peers(peers)
-            .start_process()
-            .await?;
-        Ok(node)
-    }
-
     pub fn addr(&self) -> SocketAddr {
         self.config.local_addr
     }
 
-    pub fn initial_peers(&mut self, addrs: Vec<SocketAddr>) -> &mut Self {
-        self.config.initial_peers = addrs.into_iter().collect();
-        self
-    }
-
-    pub fn validator_token(&mut self, token: String) -> &mut Self {
-        self.config.validator_token = Some(token);
-        self
-    }
-
-    /// Sets whether to log the node's output to Ziggurat's output stream.
-    pub fn log_to_stdout(&mut self, log_to_stdout: bool) -> &mut Self {
-        self.config.log_to_stdout = log_to_stdout;
-        self
-    }
-
-    pub async fn start_process(&mut self) -> Result<()> {
-        // cleanup any previous runs (node.stop won't always be reached e.g. test panics, or SIGINT)
-        self.cleanup()?;
-
-        // TODO: set initial peers/initial actions.
-        self.generate_config_file()?;
-
-        let (stdout, stderr) = match self.config.log_to_stdout {
-            true => (Stdio::inherit(), Stdio::inherit()),
-            false => (Stdio::null(), Stdio::null()),
-        };
-
-        let process = Command::new(&self.meta.start_command)
-            .current_dir(&self.meta.path)
-            .args(&self.meta.start_args)
-            .stdin(Stdio::null())
-            .stdout(stdout)
-            .stderr(stderr)
-            .spawn()
-            .expect("node failed to start");
-
-        self.wait_for_start().await;
-        self.process = Some(process);
-
-        Ok(())
-    }
-
+    // TODO change to consume self, it's probably useless now anyway
     pub fn stop(&mut self) -> io::Result<()> {
         if let Some(mut child) = self.process.take() {
             // Stop node process, and check for crash (needs to happen before cleanup)
@@ -116,6 +54,33 @@ impl Node {
                 ));
             }
         }
+
+        Ok(())
+    }
+
+    async fn start_process(&mut self) -> Result<()> {
+        // cleanup any previous runs (node.stop won't always be reached e.g. test panics, or SIGINT)
+        self.cleanup()?;
+
+        // TODO: set initial peers/initial actions.
+        self.generate_config_file()?;
+
+        let (stdout, stderr) = match self.config.log_to_stdout {
+            true => (Stdio::inherit(), Stdio::inherit()),
+            false => (Stdio::null(), Stdio::null()),
+        };
+
+        let process = Command::new(&self.meta.start_command)
+            .current_dir(&self.meta.path)
+            .args(&self.meta.start_args)
+            .stdin(Stdio::null())
+            .stdout(stdout)
+            .stderr(stderr)
+            .spawn()
+            .expect("node failed to start");
+
+        self.wait_for_start().await;
+        self.process = Some(process);
 
         Ok(())
     }
@@ -176,6 +141,51 @@ impl Drop for Node {
     }
 }
 
+/// Convenience struct to better control configuration/build/start for [Node]
+pub struct NodeBuilder {
+    config: NodeConfig,
+    meta: NodeMetaData,
+}
+
+impl NodeBuilder {
+    /// Sets up minimal configuration for the node.
+    pub fn new(path: PathBuf, ip_addr: IpAddr) -> Result<Self> {
+        let config = NodeConfig::new(path, ip_addr);
+        let meta = NodeMetaData::new(config.path.clone())?;
+        Ok(Self { config, meta })
+    }
+
+    /// Sets initial peers for the node.
+    pub fn initial_peers(mut self, addrs: Vec<SocketAddr>) -> Self {
+        self.config.initial_peers = addrs.into_iter().collect();
+        self
+    }
+
+    /// Sets validator token to be placed in rippled.cfg.
+    /// This will make the node to be run in validator mode.
+    pub fn validator_token(mut self, token: String) -> Self {
+        self.config.validator_token = Some(token);
+        self
+    }
+
+    /// Sets whether to log the node's output to Ziggurat's output stream.
+    pub fn log_to_stdout(mut self, log_to_stdout: bool) -> Self {
+        self.config.log_to_stdout = log_to_stdout;
+        self
+    }
+
+    /// Builds and starts the new node.
+    pub async fn build(self) -> Result<Node> {
+        let mut node = Node {
+            config: self.config,
+            meta: self.meta,
+            process: None,
+        };
+        node.start_process().await?;
+        Ok(node)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::net::Ipv4Addr;
@@ -186,15 +196,17 @@ mod tests {
     #[ignore = "convenience test to tinker with a running node for dev purposes"]
     #[tokio::test]
     async fn start_stop_node() {
-        let mut node = Node::new(
+        let mut node = NodeBuilder::new(
             home::home_dir()
                 .expect("Can't find home directory")
                 .join(ZIGGURAT_CONFIG),
             IpAddr::V4(Ipv4Addr::LOCALHOST),
         )
+        .unwrap()
+        .log_to_stdout(true)
+        .build()
+        .await
         .unwrap();
-
-        node.log_to_stdout(true).start_process().await.unwrap();
 
         tokio::time::sleep(std::time::Duration::from_secs(10)).await;
 
