@@ -2,7 +2,7 @@ use std::net::{IpAddr, Ipv4Addr};
 
 use crate::{
     setup::{
-        config::ZIGGURAT_CONFIG,
+        config::ZIGGURAT_DIR,
         node::{NodeBuilder, CONNECTION_TIMEOUT},
     },
     tools::synth_node::SyntheticNode,
@@ -19,7 +19,7 @@ async fn handshake_when_node_receives_connection() {
     let mut node = NodeBuilder::new(
         home::home_dir()
             .expect("Can't find home directory")
-            .join(ZIGGURAT_CONFIG),
+            .join(ZIGGURAT_DIR),
         IpAddr::V4(Ipv4Addr::LOCALHOST),
     )
     .unwrap()
@@ -53,7 +53,7 @@ async fn handshake_when_node_initiates_connection() {
     let mut node = NodeBuilder::new(
         home::home_dir()
             .expect("Can't find home directory")
-            .join(ZIGGURAT_CONFIG),
+            .join(ZIGGURAT_DIR),
         IpAddr::V4(Ipv4Addr::LOCALHOST),
     )
     .unwrap()

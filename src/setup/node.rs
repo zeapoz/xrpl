@@ -191,7 +191,7 @@ mod tests {
     use std::net::Ipv4Addr;
 
     use super::*;
-    use crate::setup::config::ZIGGURAT_CONFIG;
+    use crate::setup::config::ZIGGURAT_DIR;
 
     #[ignore = "convenience test to tinker with a running node for dev purposes"]
     #[tokio::test]
@@ -199,7 +199,7 @@ mod tests {
         let mut node = NodeBuilder::new(
             home::home_dir()
                 .expect("Can't find home directory")
-                .join(ZIGGURAT_CONFIG),
+                .join(ZIGGURAT_DIR),
             IpAddr::V4(Ipv4Addr::LOCALHOST),
         )
         .unwrap()
