@@ -2,8 +2,8 @@ use std::{
     collections::HashSet,
     ffi::OsString,
     fmt::Write,
-    fs, io,
-    net::{IpAddr, Ipv4Addr, SocketAddr},
+    fs,
+    net::{IpAddr, SocketAddr},
     path::PathBuf,
 };
 
@@ -11,15 +11,16 @@ use anyhow::Result;
 use serde::Deserialize;
 
 // Ziggurat's configuration directory and file. Caches are written to this directory.
-const CONFIG: &str = ".ziggurat";
-const CONFIG_FILE: &str = "config.toml";
+pub const ZIGGURAT_DIR: &str = ".ziggurat";
+// Configuration file with paths to start rippled.
+pub const ZIGGURAT_CONFIG: &str = "config.toml";
 
 // Rippled's configuration file name.
 pub const RIPPLED_CONFIG: &str = "rippled.cfg";
 pub const RIPPLED_DIR: &str = "rippled";
 
 // The default port to start a Rippled node on.
-const DEFAULT_PORT: u16 = 8080;
+pub const DEFAULT_PORT: u16 = 8080;
 
 /// Convenience struct for reading Ziggurat's configuration file.
 #[derive(Deserialize)]
@@ -44,7 +45,7 @@ pub struct NodeMetaData {
 impl NodeMetaData {
     pub fn new(config_path: PathBuf) -> Result<NodeMetaData> {
         // Read Ziggurat's configuration file.
-        let path = config_path.join(CONFIG_FILE);
+        let path = config_path.join(ZIGGURAT_CONFIG);
         let config_string = fs::read_to_string(path)?;
         let config_file: ConfigFile = toml::from_str(&config_string)?;
 
@@ -82,24 +83,23 @@ pub struct NodeConfig {
     pub max_peers: usize,
     /// Toggles node logging to stdout.
     pub log_to_stdout: bool,
+    /// Token when run as a validator.
+    pub validator_token: Option<String>,
 }
 
 impl NodeConfig {
-    pub fn new() -> io::Result<Self> {
+    pub fn new(path: PathBuf, ip_addr: IpAddr) -> Self {
         // Set the port explicitly.
-        let local_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), DEFAULT_PORT);
+        let local_addr = SocketAddr::new(ip_addr, DEFAULT_PORT);
 
-        Ok(Self {
-            path: home::home_dir()
-                .ok_or_else(|| {
-                    io::Error::new(io::ErrorKind::NotFound, "couldn't find home directory")
-                })?
-                .join(CONFIG),
+        Self {
+            path,
             local_addr,
             initial_peers: Default::default(),
             max_peers: 50,
             log_to_stdout: false,
-        })
+            validator_token: None,
+        }
     }
 }
 
@@ -118,8 +118,8 @@ impl RippledConfigFile {
 
         writeln!(&mut config_str, "[port_rpc_admin_local]")?;
         writeln!(&mut config_str, "port = 5005")?;
-        writeln!(&mut config_str, "ip = 127.0.0.1")?;
-        writeln!(&mut config_str, "admin = 127.0.0.1")?;
+        writeln!(&mut config_str, "ip = {}", config.local_addr.ip())?;
+        writeln!(&mut config_str, "admin = {}", config.local_addr.ip())?;
         writeln!(&mut config_str, "protocol = http")?;
         writeln!(&mut config_str)?;
 
@@ -128,6 +128,12 @@ impl RippledConfigFile {
         writeln!(&mut config_str, "ip = {}", config.local_addr.ip())?;
         writeln!(&mut config_str, "protocol = peer")?;
         writeln!(&mut config_str)?;
+
+        if let Some(token) = &config.validator_token {
+            writeln!(&mut config_str, "[validator_token]")?;
+            writeln!(&mut config_str, "{}", token)?;
+            writeln!(&mut config_str)?;
+        }
 
         // 2. Peer protocol
         writeln!(&mut config_str, "[reduce_relay]")?;
@@ -138,6 +144,7 @@ impl RippledConfigFile {
         for addr in &config.initial_peers {
             writeln!(&mut config_str, "{} {}", addr.ip(), addr.port())?;
         }
+        writeln!(&mut config_str)?;
 
         writeln!(&mut config_str, "[peers_max]")?;
         writeln!(&mut config_str, "{}", config.max_peers)?;

@@ -1,4 +1,4 @@
-use std::io;
+use std::net::{IpAddr, Ipv4Addr};
 
 #[cfg(doc)]
 use crate::setup::node::Node;
@@ -13,18 +13,24 @@ pub struct TestConfig {
     pub pea2pea_config: pea2pea::Config,
 }
 
-impl TestConfig {
-    pub fn new() -> io::Result<Self> {
-        Ok(Self {
-            real_node_config: NodeConfig::new()?,
+impl Default for TestConfig {
+    fn default() -> Self {
+        let ip_addr = IpAddr::V4(Ipv4Addr::LOCALHOST);
+        Self {
+            real_node_config: NodeConfig::new(
+                home::home_dir().expect("Can't find home directory"),
+                ip_addr,
+            ),
             synth_node_config: Default::default(),
             pea2pea_config: pea2pea::Config {
-                listener_ip: Some("127.0.0.1".parse().unwrap()),
+                listener_ip: Some(ip_addr),
                 ..Default::default()
             },
-        })
+        }
     }
+}
 
+impl TestConfig {
     pub fn with_handshake(mut self, handshake: bool) -> Self {
         self.synth_node_config.do_handshake = handshake;
         self

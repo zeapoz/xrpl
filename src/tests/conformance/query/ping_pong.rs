@@ -38,9 +38,5 @@ async fn should_respond_with_pong_for_ping() {
         )
     };
     // Wait for reply
-    perform_response_test(
-        TestConfig::new().unwrap().with_initial_message(payload),
-        &check,
-    )
-    .await;
+    perform_response_test(TestConfig::default().with_initial_message(payload), &check).await;
 }

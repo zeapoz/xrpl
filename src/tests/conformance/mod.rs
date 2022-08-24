@@ -1,6 +1,8 @@
+use std::net::{IpAddr, Ipv4Addr};
+
 use crate::{
     protocol::codecs::binary::BinaryMessage,
-    setup::node::Node,
+    setup::{config::ZIGGURAT_DIR, node::NodeBuilder},
     tools::{config::TestConfig, synth_node::SyntheticNode},
 };
 
@@ -11,8 +13,17 @@ async fn perform_response_test(
     config: TestConfig,
     response_check: &dyn Fn(&BinaryMessage) -> bool,
 ) {
-    // Start Ripple node
-    let mut node = Node::start_with_peers(vec![]).await.unwrap();
+    // Build and start Ripple node
+    let mut node = NodeBuilder::new(
+        home::home_dir()
+            .expect("Can't find home directory")
+            .join(ZIGGURAT_DIR),
+        IpAddr::V4(Ipv4Addr::LOCALHOST),
+    )
+    .unwrap()
+    .build()
+    .await
+    .unwrap();
 
     // Start synth node and connect to Ripple
     let mut synth_node = SyntheticNode::new(&config).await;
