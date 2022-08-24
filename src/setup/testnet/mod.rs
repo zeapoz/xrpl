@@ -9,7 +9,7 @@ use std::{
 };
 
 use crate::setup::{
-    config::{CONFIG_FILE, DEFAULT_PORT, ZIGGURAT_CONFIG},
+    config::{DEFAULT_PORT, ZIGGURAT_CONFIG, ZIGGURAT_DIR},
     node::{Node, NodeBuilder},
 };
 
@@ -140,9 +140,9 @@ impl TestNet {
 async fn copy_config_file(target: &Path) -> io::Result<u64> {
     let source = home::home_dir()
         .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "couldn't find home directory"))?
-        .join(ZIGGURAT_CONFIG) // TODO extract `home` + `.ziggurat` to separate function
-        .join(CONFIG_FILE);
-    fs::copy(source, target.join(CONFIG_FILE))
+        .join(ZIGGURAT_DIR) // TODO extract `home` + `.ziggurat` to separate function
+        .join(ZIGGURAT_CONFIG);
+    fs::copy(source, target.join(ZIGGURAT_CONFIG))
 }
 
 // Saves `validators.txt` file in a node's subdirectory.
@@ -156,7 +156,7 @@ fn build_testnet_path() -> io::Result<PathBuf> {
     // TODOnow change name
     Ok(home::home_dir()
         .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "couldn't find home directory"))?
-        .join(ZIGGURAT_CONFIG)
+        .join(ZIGGURAT_DIR)
         .join(TESTNET_DIR))
 }
 

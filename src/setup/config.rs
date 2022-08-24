@@ -11,9 +11,9 @@ use anyhow::Result;
 use serde::Deserialize;
 
 // Ziggurat's configuration directory and file. Caches are written to this directory.
-pub const ZIGGURAT_CONFIG: &str = ".ziggurat";
+pub const ZIGGURAT_DIR: &str = ".ziggurat";
 // Configuration file with paths to start rippled.
-pub const CONFIG_FILE: &str = "config.toml"; // TODO rename to something better.
+pub const ZIGGURAT_CONFIG: &str = "config.toml";
 
 // Rippled's configuration file name.
 pub const RIPPLED_CONFIG: &str = "rippled.cfg";
@@ -45,7 +45,7 @@ pub struct NodeMetaData {
 impl NodeMetaData {
     pub fn new(config_path: PathBuf) -> Result<NodeMetaData> {
         // Read Ziggurat's configuration file.
-        let path = config_path.join(CONFIG_FILE);
+        let path = config_path.join(ZIGGURAT_CONFIG);
         let config_string = fs::read_to_string(path)?;
         let config_file: ConfigFile = toml::from_str(&config_string)?;
 

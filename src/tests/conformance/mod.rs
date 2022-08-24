@@ -2,7 +2,7 @@ use std::net::{IpAddr, Ipv4Addr};
 
 use crate::{
     protocol::codecs::binary::BinaryMessage,
-    setup::{config::ZIGGURAT_CONFIG, node::NodeBuilder},
+    setup::{config::ZIGGURAT_DIR, node::NodeBuilder},
     tools::{config::TestConfig, synth_node::SyntheticNode},
 };
 
@@ -17,7 +17,7 @@ async fn perform_response_test(
     let mut node = NodeBuilder::new(
         home::home_dir()
             .expect("Can't find home directory")
-            .join(ZIGGURAT_CONFIG),
+            .join(ZIGGURAT_DIR),
         IpAddr::V4(Ipv4Addr::LOCALHOST),
     )
     .unwrap()
