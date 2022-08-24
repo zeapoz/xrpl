@@ -5,7 +5,7 @@ use crate::{
         config::ZIGGURAT_CONFIG,
         node::{NodeBuilder, CONNECTION_TIMEOUT},
     },
-    tools::{config::TestConfig, synth_node::SyntheticNode},
+    tools::synth_node::SyntheticNode,
     wait_until,
 };
 
@@ -28,7 +28,7 @@ async fn handshake_when_node_receives_connection() {
     .unwrap();
 
     // Start synthetic node.
-    let synth_node = SyntheticNode::new(&TestConfig::default()).await;
+    let synth_node = SyntheticNode::new(&Default::default()).await;
     synth_node.connect(node.addr()).await.unwrap();
 
     // This is only set post-handshake.
@@ -47,7 +47,7 @@ async fn handshake_when_node_initiates_connection() {
     // crate::tools::synthetic_node::enable_tracing();
 
     // Start synthetic node.
-    let synth_node = SyntheticNode::new(&TestConfig::default()).await;
+    let synth_node = SyntheticNode::new(&Default::default()).await;
 
     // Build and start the Ripple node and set the synth node as an initial peer.
     let mut node = NodeBuilder::new(
