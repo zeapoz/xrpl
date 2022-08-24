@@ -19,6 +19,12 @@ const TESTNET_DIR: &str = "testnet";
 /// Validators file name.
 const VALIDATORS_FILE_NAME: &str = "validators.txt";
 
+const VALIDATOR_KEYS: [&str; 3] = [
+    "nHUSqn9qjEF7JJkVqvY7BFLMKdqP5KLLEjo5oB4QH43ADDndRawB",
+    "nHUEsvSFTf1Snr7ZUdLxjcMW6PKcMrwwXCGZBg6xb1ePG8R4C3TS",
+    "nHUuYdS49cPfRmCXPTwu7MVVFZFFmfG7y5sRttirVMhwuD7xStQp",
+];
+
 /// A struct allowing for convenient starting and stopping a small testnet.
 pub struct TestNet {
     // Setup information for each node. Used for writing configuration.
@@ -38,17 +44,17 @@ impl TestNet {
             setups: [
                 NodeSetup::new(
                     "127.0.0.1".parse().unwrap(),
-                    "nHUSqn9qjEF7JJkVqvY7BFLMKdqP5KLLEjo5oB4QH43ADDndRawB".into(),
+                    VALIDATOR_KEYS[0].into(),
                     include_str!("token1.txt").into(),
                 ),
                 NodeSetup::new(
                     "127.0.0.2".parse().unwrap(),
-                    "nHUEsvSFTf1Snr7ZUdLxjcMW6PKcMrwwXCGZBg6xb1ePG8R4C3TS".into(),
+                    VALIDATOR_KEYS[1].into(),
                     include_str!("token2.txt").into(),
                 ),
                 NodeSetup::new(
                     "127.0.0.3".parse().unwrap(),
-                    "nHUuYdS49cPfRmCXPTwu7MVVFZFFmfG7y5sRttirVMhwuD7xStQp".into(),
+                    VALIDATOR_KEYS[2].into(),
                     include_str!("token3.txt").into(),
                 ),
             ],
