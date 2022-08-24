@@ -27,11 +27,14 @@ pub struct TestNet {
     running: Vec<Node>,
     // Sets whether to log the node's output to Ziggurat's output stream.
     use_stdout: bool,
+    // Path under which all nodes will be build
+    path: PathBuf,
 }
 
-impl Default for TestNet {
-    fn default() -> Self {
-        Self {
+impl TestNet {
+    #[allow(dead_code)] // for some bizarre reason clippy --all-targets reports this function as unused :-/
+    fn new() -> io::Result<Self> {
+        Ok(Self {
             setups: [
                 NodeSetup::new(
                     "127.0.0.1".parse().unwrap(),
@@ -51,11 +54,10 @@ impl Default for TestNet {
             ],
             running: vec![],
             use_stdout: false,
-        }
+            path: build_testnet_path()?,
+        })
     }
-}
 
-impl TestNet {
     /// Starts a testnet.
     pub async fn start(&mut self) -> anyhow::Result<()> {
         self.cleanup().await?;
@@ -92,7 +94,7 @@ impl TestNet {
 
     // Removes ~/.ziggurat/testnet directory
     async fn cleanup(&self) -> io::Result<()> {
-        if let Err(e) = fs::remove_dir_all(build_testnet_path()?) {
+        if let Err(e) = fs::remove_dir_all(&self.path) {
             // Directory may not exist, so we let that error through
             if e.kind() != io::ErrorKind::NotFound {
                 return Err(e);
@@ -108,7 +110,7 @@ impl TestNet {
         setup: &NodeSetup,
         validators_contents: &str,
     ) -> anyhow::Result<Node> {
-        let path = build_testnet_path()?.join(suffix);
+        let path = self.path.join(suffix);
         fs::create_dir_all(&path)?;
         write_validators_file(&path, validators_contents).await?;
         copy_config_file(&path).await?;
@@ -151,6 +153,7 @@ async fn write_validators_file(path: &Path, contents: &str) -> io::Result<()> {
 
 // Convenience function to build testnet's path.
 fn build_testnet_path() -> io::Result<PathBuf> {
+    // TODOnow change name
     Ok(home::home_dir()
         .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "couldn't find home directory"))?
         .join(ZIGGURAT_CONFIG)
@@ -186,10 +189,8 @@ mod test {
     #[ignore = "convenience test to tinker with a running nodes for dev purposes"]
     #[tokio::test]
     async fn should_start_stop_testnet() {
-        let mut testnet = TestNet {
-            use_stdout: true,
-            ..Default::default()
-        };
+        let mut testnet = TestNet::new().unwrap();
+        testnet.use_stdout = true;
         testnet.start().await.unwrap();
         // TODO wait for nodes to start and verify state. At the moment the test is successful it it doesn't panic.
         tokio::time::sleep(Duration::from_secs(10)).await;
