@@ -85,6 +85,8 @@ pub struct NodeConfig {
     pub log_to_stdout: bool,
     /// Token when run as a validator.
     pub validator_token: Option<String>,
+    /// Network's id to form an isolated testnet.
+    pub network_id: Option<u32>,
 }
 
 impl NodeConfig {
@@ -99,6 +101,7 @@ impl NodeConfig {
             max_peers: 50,
             log_to_stdout: false,
             validator_token: None,
+            network_id: None,
         }
     }
 }
@@ -132,6 +135,12 @@ impl RippledConfigFile {
         if let Some(token) = &config.validator_token {
             writeln!(&mut config_str, "[validator_token]")?;
             writeln!(&mut config_str, "{}", token)?;
+            writeln!(&mut config_str)?;
+        }
+
+        if let Some(network_id) = &config.network_id {
+            writeln!(&mut config_str, "[network_id]")?;
+            writeln!(&mut config_str, "{}", network_id)?;
             writeln!(&mut config_str)?;
         }
 
