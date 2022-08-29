@@ -8,9 +8,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::setup::{
-    config::{DEFAULT_PORT, ZIGGURAT_CONFIG, ZIGGURAT_DIR},
-    node::{Node, NodeBuilder},
+use crate::{
+    setup::{
+        config::{DEFAULT_PORT, ZIGGURAT_CONFIG, ZIGGURAT_DIR},
+        node::{Node, NodeBuilder},
+    },
+    tools::constants::TESTNET_NETWORK_ID,
 };
 
 /// Testnet's directory for nodes' configs.
@@ -124,6 +127,7 @@ impl TestNet {
             .initial_peers(self.collect_other_peers(setup))
             .log_to_stdout(self.use_stdout)
             .validator_token(setup.validator_token.clone())
+            .network_id(TESTNET_NETWORK_ID)
             .build()
             .await
     }
@@ -159,7 +163,6 @@ async fn write_validators_file(path: &Path, contents: &str) -> io::Result<()> {
 
 // Convenience function to build testnet's path.
 fn build_testnet_path() -> io::Result<PathBuf> {
-    // TODOnow change name
     Ok(home::home_dir()
         .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "couldn't find home directory"))?
         .join(ZIGGURAT_DIR)
