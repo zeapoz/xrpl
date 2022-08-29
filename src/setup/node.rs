@@ -174,6 +174,12 @@ impl NodeBuilder {
         self
     }
 
+    /// Sets network's id to form an isolated testnet.
+    pub fn network_id(mut self, network_id: u32) -> Self {
+        self.config.network_id = Some(network_id);
+        self
+    }
+
     /// Builds and starts the new node.
     pub async fn build(self) -> Result<Node> {
         let mut node = Node {
