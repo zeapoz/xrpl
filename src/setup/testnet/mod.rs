@@ -202,7 +202,7 @@ mod test {
         testnet.use_stdout = true;
         testnet.start().await.unwrap();
         // TODO wait for nodes to start and verify state. At the moment the test is successful it it doesn't panic.
-        tokio::time::sleep(Duration::from_secs(10)).await;
+        tokio::time::sleep(Duration::from_secs(10 * 60)).await;
         testnet.stop().await.unwrap();
     }
 }
