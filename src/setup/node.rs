@@ -2,19 +2,16 @@ use std::{
     fs, io,
     net::{IpAddr, SocketAddr},
     path::PathBuf,
-    process::{Child, Command, Stdio},
-    time::Duration,
+    process::Child,
 };
 
 use anyhow::Result;
-use tokio::io::AsyncWriteExt;
 
-use crate::{
-    setup::config::{NodeConfig, NodeMetaData, RippledConfigFile, RIPPLED_CONFIG, RIPPLED_DIR},
-    wait_until,
+use crate::setup::{
+    config::{NodeConfig, NodeMetaData, RippledConfigFile, RIPPLED_CONFIG, RIPPLED_DIR},
+    process,
+    process::wait_for_start,
 };
-
-pub const CONNECTION_TIMEOUT: Duration = Duration::from_secs(2);
 
 pub struct Node {
     /// Fields to be written to the node's configuration file.
@@ -32,19 +29,9 @@ impl Node {
 
     // TODO change to consume self, it's probably useless now anyway
     pub fn stop(&mut self) -> io::Result<()> {
-        if let Some(mut child) = self.process.take() {
+        if let Some(child) = self.process.take() {
             // Stop node process, and check for crash (needs to happen before cleanup)
-            let crashed = match child.try_wait()? {
-                None => {
-                    child.kill()?;
-                    None
-                }
-                Some(exit_code) if exit_code.success() => {
-                    Some("but with a \"success\" exit code".to_string())
-                }
-                Some(exit_code) => Some(format!("crashed with exit code {}", exit_code)),
-            };
-            child.wait()?;
+            let crashed = process::stop(child);
             self.cleanup()?;
 
             if let Some(crash_msg) = crashed {
@@ -62,39 +49,13 @@ impl Node {
         // cleanup any previous runs (node.stop won't always be reached e.g. test panics, or SIGINT)
         self.cleanup()?;
 
-        // TODO: set initial peers/initial actions.
+        // generate config and start child process
         self.generate_config_file()?;
-
-        let (stdout, stderr) = match self.config.log_to_stdout {
-            true => (Stdio::inherit(), Stdio::inherit()),
-            false => (Stdio::null(), Stdio::null()),
-        };
-
-        let process = Command::new(&self.meta.start_command)
-            .current_dir(&self.meta.path)
-            .args(&self.meta.start_args)
-            .stdin(Stdio::null())
-            .stdout(stdout)
-            .stderr(stderr)
-            .spawn()
-            .expect("node failed to start");
-
-        self.wait_for_start().await;
+        let process = process::start(&self.meta, self.config.log_to_stdout);
+        wait_for_start(&self.addr()).await;
         self.process = Some(process);
 
         Ok(())
-    }
-
-    async fn wait_for_start(&self) {
-        wait_until!(
-            CONNECTION_TIMEOUT,
-            if let Ok(mut stream) = tokio::net::TcpStream::connect(self.addr()).await {
-                stream.shutdown().await.unwrap();
-                true
-            } else {
-                false
-            }
-        );
     }
 
     fn generate_config_file(&self) -> Result<()> {
