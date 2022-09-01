@@ -72,7 +72,7 @@ impl NodeMetaData {
 
 /// Fields to be written to the node's configuration file.
 #[derive(Debug)]
-pub struct NodeConfig {
+pub struct NewNodeConfig {
     /// The path of the cache directory of the node (and Ziggurat); this is `~/.ziggurat`.
     pub path: PathBuf,
     /// The socket address of the node.
@@ -82,14 +82,14 @@ pub struct NodeConfig {
     /// The initial max number of peer connections to allow.
     pub max_peers: usize,
     /// Toggles node logging to stdout.
-    pub log_to_stdout: bool,
+    pub log_to_stdout: bool, // TODO remove from this struct
     /// Token when run as a validator.
     pub validator_token: Option<String>,
     /// Network's id to form an isolated testnet.
     pub network_id: Option<u32>,
 }
 
-impl NodeConfig {
+impl NewNodeConfig {
     pub fn new(path: PathBuf, ip_addr: IpAddr) -> Self {
         // Set the port explicitly.
         let local_addr = SocketAddr::new(ip_addr, DEFAULT_PORT);
@@ -109,7 +109,7 @@ impl NodeConfig {
 pub struct RippledConfigFile;
 
 impl RippledConfigFile {
-    pub fn generate(config: &NodeConfig) -> Result<String> {
+    pub fn generate(config: &NewNodeConfig) -> Result<String> {
         let mut config_str = String::new();
 
         // 1. Server

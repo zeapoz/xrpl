@@ -4,12 +4,12 @@ use std::net::{IpAddr, Ipv4Addr};
 use crate::setup::node::Node;
 #[cfg(doc)]
 use crate::tools::synth_node::SyntheticNode;
-use crate::{protocol::codecs::binary::Payload, setup::config::NodeConfig};
+use crate::{protocol::codecs::binary::Payload, setup::config::NewNodeConfig};
 
 /// Test configuration. Contains setup options for [SyntheticNode], [Node] and [pea2pea::Config].
 pub struct TestConfig {
     pub synth_node_config: SyntheticNodeTestConfig,
-    pub real_node_config: NodeConfig,
+    pub real_node_config: NewNodeConfig,
     pub pea2pea_config: pea2pea::Config,
 }
 
@@ -17,7 +17,7 @@ impl Default for TestConfig {
     fn default() -> Self {
         let ip_addr = IpAddr::V4(Ipv4Addr::LOCALHOST);
         Self {
-            real_node_config: NodeConfig::new(
+            real_node_config: NewNodeConfig::new(
                 home::home_dir().expect("Can't find home directory"),
                 ip_addr,
             ),

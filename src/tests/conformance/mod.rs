@@ -8,6 +8,7 @@ use crate::{
 
 mod handshake;
 mod query;
+mod stateful;
 
 async fn perform_response_test(
     config: TestConfig,
