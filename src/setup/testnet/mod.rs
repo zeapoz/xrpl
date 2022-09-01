@@ -195,7 +195,7 @@ mod test {
 
     use crate::setup::testnet::TestNet;
 
-    #[ignore = "convenience test to tinker with a running nodes for dev purposes"]
+    #[ignore = "convenience test to tinker with running nodes for dev purposes"]
     #[tokio::test]
     async fn should_start_stop_testnet() {
         let mut testnet = TestNet::new().unwrap();

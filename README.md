@@ -30,6 +30,7 @@ Follow the steps below to save an initial state that can be loaded later for oth
     "Account": "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
     "Balance": "100000000000000000",
    ```
+   This should happen within about a minute.
    Ignore error for the account `rNGknFCRBZguXcPqC63k6xTZnonSe6ZuWt` for the time being.
 3. Run `python3 tools/transfer.py` to transfer xrp from genesis account to a new account.
 4. Run `python3 tools/account_info.py` again to monitor accounts. The response for genesis account should include:
@@ -42,5 +43,5 @@ Follow the steps below to save an initial state that can be loaded later for oth
         "Account": "rNGknFCRBZguXcPqC63k6xTZnonSe6ZuWt",
         "Balance": "5000000000",
    ```
-5. Copy the node's files `cp -a ~/.ziggurat/testnet/1 ~/.ziggurat/ripple_test_state`
+5. Copy the node's files `cp -a ~/.ziggurat/testnet/1 ~/.ziggurat/ripple_stateful`
 6. Now you can stop the test started in step 1.

@@ -1,8 +1,8 @@
 use std::net::{IpAddr, Ipv4Addr};
 
 use crate::{
-    setup::{config::ZIGGURAT_DIR, node::NodeBuilder, process::CONNECTION_TIMEOUT},
-    tools::synth_node::SyntheticNode,
+    setup::{config::ZIGGURAT_DIR, node::NodeBuilder},
+    tools::{constants::CONNECTION_TIMEOUT, synth_node::SyntheticNode},
     wait_until,
 };
 

@@ -3,14 +3,11 @@
 use std::{
     net::SocketAddr,
     process::{Child, Command, Stdio},
-    time::Duration,
 };
 
 use tokio::io::AsyncWriteExt;
 
-use crate::{setup::config::NodeMetaData, wait_until};
-
-pub const CONNECTION_TIMEOUT: Duration = Duration::from_secs(2);
+use crate::{setup::config::NodeMetaData, tools::constants::CONNECTION_TIMEOUT, wait_until};
 
 /// Stops the child and collects its exit message.
 pub fn stop(mut child: Child) -> Option<String> {

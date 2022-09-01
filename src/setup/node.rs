@@ -1,17 +1,30 @@
 use std::{
     fs, io,
-    net::{IpAddr, SocketAddr},
+    net::{IpAddr, SocketAddr, SocketAddrV4},
     path::PathBuf,
     process::Child,
 };
 
 use anyhow::Result;
+use fs_extra::dir::{copy, CopyOptions};
+use tempfile::TempDir;
 
-use crate::setup::{
-    config::{NodeConfig, NodeMetaData, RippledConfigFile, RIPPLED_CONFIG, RIPPLED_DIR},
-    process,
-    process::wait_for_start,
+use crate::{
+    setup::{
+        config::{
+            NewNodeConfig, NodeMetaData, RippledConfigFile, RIPPLED_CONFIG, RIPPLED_DIR,
+            ZIGGURAT_DIR,
+        },
+        process,
+        process::wait_for_start,
+    },
+    tools::constants::{JSON_RPC_PORT, STATEFUL_DIR, STATEFUL_IP},
 };
+
+pub enum NodeConfig {
+    Stateless(NewNodeConfig),
+    Stateful(TempDir),
+}
 
 pub struct Node {
     /// Fields to be written to the node's configuration file.
@@ -23,8 +36,41 @@ pub struct Node {
 }
 
 impl Node {
+    /// Creates a new running node with the config and database loaded from the predefined state directory.
+    /// Before the start, content is copied to a new temporary directory and loaded from there.
+    /// This is done to avoid `poisoning` the predefined state directory.
+    pub async fn stateful() -> Result<Node> {
+        let from = build_stateful_path()?;
+        let temp_dir = TempDir::new()?;
+        copy(from, &temp_dir, &CopyOptions::new())?;
+        let mut meta = NodeMetaData::new(temp_dir.path().to_path_buf().join(STATEFUL_DIR))?;
+        meta.start_args.append(&mut vec![
+            "--valid".into(),
+            "--quorum".into(),
+            "1".into(),
+            "--load".into(),
+        ]);
+        let process = process::start(&meta, true);
+        wait_for_start(&SocketAddr::V4(SocketAddrV4::new(
+            STATEFUL_IP,
+            JSON_RPC_PORT,
+        )))
+        .await;
+        Ok(Node {
+            config: NodeConfig::Stateful(temp_dir),
+            meta,
+            process: Some(process),
+        })
+    }
+
     pub fn addr(&self) -> SocketAddr {
-        self.config.local_addr
+        // TODO move to NodeConfig
+        match &self.config {
+            NodeConfig::Stateless(config) => config.local_addr,
+            NodeConfig::Stateful(_) => {
+                SocketAddr::V4(SocketAddrV4::new(STATEFUL_IP, JSON_RPC_PORT))
+            }
+        }
     }
 
     // TODO change to consume self, it's probably useless now anyway
@@ -51,7 +97,12 @@ impl Node {
 
         // generate config and start child process
         self.generate_config_file()?;
-        let process = process::start(&self.meta, self.config.log_to_stdout);
+        let log_to_stdout = match &self.config {
+            // TODO move to NodeConfig
+            NodeConfig::Stateless(config) => config.log_to_stdout,
+            NodeConfig::Stateful(_) => true, // For now, stateful node logs to stdout.
+        };
+        let process = process::start(&self.meta, log_to_stdout);
         wait_for_start(&self.addr()).await;
         self.process = Some(process);
 
@@ -59,10 +110,12 @@ impl Node {
     }
 
     fn generate_config_file(&self) -> Result<()> {
-        let path = self.config.path.join(RIPPLED_CONFIG);
-        let content = RippledConfigFile::generate(&self.config)?;
-        fs::write(path, content)?;
-
+        if let NodeConfig::Stateless(config) = &self.config {
+            // TODO move to NodeConfig
+            let path = config.path.join(RIPPLED_CONFIG);
+            let content = RippledConfigFile::generate(config)?;
+            fs::write(path, content)?;
+        }
         Ok(())
     }
 
@@ -72,7 +125,12 @@ impl Node {
     }
 
     fn cleanup_config_file(&self) -> io::Result<()> {
-        let path = self.config.path.join(RIPPLED_CONFIG);
+        let path = match &self.config {
+            // TODO move to NodeConfig
+            NodeConfig::Stateless(config) => config.path.clone(),
+            NodeConfig::Stateful(path) => path.path().to_path_buf(),
+        };
+        let path = path.join(RIPPLED_CONFIG);
         match fs::remove_file(path) {
             // File may not exist, so we suppress the error.
             Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e),
@@ -81,14 +139,18 @@ impl Node {
     }
 
     fn cleanup_cache(&self) -> io::Result<()> {
-        let path = self.config.path.join(RIPPLED_DIR);
+        let path = match &self.config {
+            // TODO move to NodeConfig
+            NodeConfig::Stateless(config) => config.path.clone(),
+            NodeConfig::Stateful(path) => path.path().to_path_buf(),
+        };
+        let path = path.join(RIPPLED_DIR);
         if let Err(e) = fs::remove_dir_all(path) {
             // Directory may not exist, so we let that error through
-            if e.kind() != std::io::ErrorKind::NotFound {
+            if e.kind() != io::ErrorKind::NotFound {
                 return Err(e);
             }
         }
-
         Ok(())
     }
 }
@@ -102,16 +164,23 @@ impl Drop for Node {
     }
 }
 
+fn build_stateful_path() -> io::Result<PathBuf> {
+    Ok(home::home_dir()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "couldn't find home directory"))?
+        .join(ZIGGURAT_DIR)
+        .join(STATEFUL_DIR))
+}
+
 /// Convenience struct to better control configuration/build/start for [Node]
 pub struct NodeBuilder {
-    config: NodeConfig,
+    config: NewNodeConfig,
     meta: NodeMetaData,
 }
 
 impl NodeBuilder {
     /// Sets up minimal configuration for the node.
     pub fn new(path: PathBuf, ip_addr: IpAddr) -> Result<Self> {
-        let config = NodeConfig::new(path, ip_addr);
+        let config = NewNodeConfig::new(path, ip_addr);
         let meta = NodeMetaData::new(config.path.clone())?;
         Ok(Self { config, meta })
     }
@@ -144,7 +213,7 @@ impl NodeBuilder {
     /// Builds and starts the new node.
     pub async fn build(self) -> Result<Node> {
         let mut node = Node {
-            config: self.config,
+            config: NodeConfig::Stateless(self.config),
             meta: self.meta,
             process: None,
         };
