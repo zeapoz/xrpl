@@ -51,11 +51,12 @@ impl Node {
             "--load".into(),
         ]);
         let process = process::start(&meta, true);
-        wait_for_start(&SocketAddr::V4(SocketAddrV4::new(
+        wait_for_start(SocketAddr::V4(SocketAddrV4::new(
             STATEFUL_IP,
             JSON_RPC_PORT,
         )))
         .await;
+
         Ok(Node {
             config: NodeConfig::Stateful(temp_dir),
             meta,
@@ -103,7 +104,7 @@ impl Node {
             NodeConfig::Stateful(_) => true, // For now, stateful node logs to stdout.
         };
         let process = process::start(&self.meta, log_to_stdout);
-        wait_for_start(&self.addr()).await;
+        wait_for_start(self.addr()).await;
         self.process = Some(process);
 
         Ok(())

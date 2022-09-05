@@ -7,7 +7,7 @@ use std::{
 
 use tokio::io::AsyncWriteExt;
 
-use crate::{setup::config::NodeMetaData, tools::constants::CONNECTION_TIMEOUT, wait_until};
+use crate::{setup::config::NodeMetaData, tools::constants::CONNECTION_TIMEOUT};
 
 /// Stops the child and collects its exit message.
 pub fn stop(mut child: Child) -> Option<String> {
@@ -42,14 +42,15 @@ pub fn start(meta: &NodeMetaData, log_to_stdout: bool) -> Child {
 }
 
 /// Waits until given socket starts accepting connections or a timeout elapses.
-pub async fn wait_for_start(addr: &SocketAddr) {
-    wait_until!(
-        CONNECTION_TIMEOUT,
-        if let Ok(mut stream) = tokio::net::TcpStream::connect(addr).await {
-            stream.shutdown().await.unwrap();
-            true
-        } else {
-            false
+pub async fn wait_for_start(addr: SocketAddr) {
+    tokio::time::timeout(CONNECTION_TIMEOUT, async move {
+        loop {
+            if let Ok(mut stream) = tokio::net::TcpStream::connect(addr).await {
+                stream.shutdown().await.unwrap();
+                break;
+            }
         }
-    );
+    })
+    .await
+    .unwrap();
 }
