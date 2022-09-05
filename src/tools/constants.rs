@@ -13,7 +13,7 @@ pub const SYNTH_NODE_QUEUE_DEPTH: usize = 100;
 pub const TESTNET_NETWORK_ID: u32 = 239048;
 
 /// Directory containing saved ledger and config to be loaded after the start.
-pub const STATEFUL_DIR: &str = "ripple_stateful";
+pub const NODE_STATE_DIR: &str = "ripple_stateful";
 
 /// IP address when starting a node with prebuilt ledger.
 pub const STATEFUL_IP: Ipv4Addr = Ipv4Addr::LOCALHOST;

@@ -2,33 +2,29 @@ use std::{
     fs, io,
     net::{IpAddr, SocketAddr, SocketAddrV4},
     path::PathBuf,
-    process::Child,
+    process::{Child, Command, Stdio},
 };
 
 use anyhow::Result;
 use fs_extra::dir::{copy, CopyOptions};
 use tempfile::TempDir;
+use tokio::io::AsyncWriteExt;
 
 use crate::{
-    setup::{
-        config::{
-            NewNodeConfig, NodeMetaData, RippledConfigFile, RIPPLED_CONFIG, RIPPLED_DIR,
-            ZIGGURAT_DIR,
-        },
-        process,
-        process::wait_for_start,
+    setup::config::{
+        NewNodeConfig, NodeMetaData, RippledConfigFile, RIPPLED_CONFIG, RIPPLED_DIR, ZIGGURAT_DIR,
     },
-    tools::constants::{JSON_RPC_PORT, STATEFUL_DIR, STATEFUL_IP},
+    tools::constants::{CONNECTION_TIMEOUT, JSON_RPC_PORT, NODE_STATE_DIR, STATEFUL_IP},
 };
 
-pub enum NodeConfig {
+pub enum NodeSetup {
     Stateless(NewNodeConfig),
     Stateful(TempDir),
 }
 
 pub struct Node {
     /// Fields to be written to the node's configuration file.
-    config: NodeConfig,
+    config: NodeSetup,
     /// The node metadata read from Ziggurat's configuration file.
     meta: NodeMetaData,
     /// The process encapsulating the running node.
@@ -43,14 +39,14 @@ impl Node {
         let from = build_stateful_path()?;
         let temp_dir = TempDir::new()?;
         copy(from, &temp_dir, &CopyOptions::new())?;
-        let mut meta = NodeMetaData::new(temp_dir.path().to_path_buf().join(STATEFUL_DIR))?;
+        let mut meta = NodeMetaData::new(temp_dir.path().to_path_buf().join(NODE_STATE_DIR))?;
         meta.start_args.append(&mut vec![
             "--valid".into(),
             "--quorum".into(),
             "1".into(),
             "--load".into(),
         ]);
-        let process = process::start(&meta, true);
+        let process = start_process(&meta, true);
         wait_for_start(SocketAddr::V4(SocketAddrV4::new(
             STATEFUL_IP,
             JSON_RPC_PORT,
@@ -58,7 +54,7 @@ impl Node {
         .await;
 
         Ok(Node {
-            config: NodeConfig::Stateful(temp_dir),
+            config: NodeSetup::Stateful(temp_dir),
             meta,
             process: Some(process),
         })
@@ -67,10 +63,8 @@ impl Node {
     pub fn addr(&self) -> SocketAddr {
         // TODO move to NodeConfig
         match &self.config {
-            NodeConfig::Stateless(config) => config.local_addr,
-            NodeConfig::Stateful(_) => {
-                SocketAddr::V4(SocketAddrV4::new(STATEFUL_IP, JSON_RPC_PORT))
-            }
+            NodeSetup::Stateless(config) => config.local_addr,
+            NodeSetup::Stateful(_) => SocketAddr::V4(SocketAddrV4::new(STATEFUL_IP, JSON_RPC_PORT)),
         }
     }
 
@@ -78,7 +72,7 @@ impl Node {
     pub fn stop(&mut self) -> io::Result<()> {
         if let Some(child) = self.process.take() {
             // Stop node process, and check for crash (needs to happen before cleanup)
-            let crashed = process::stop(child);
+            let crashed = stop_process(child);
             self.cleanup()?;
 
             if let Some(crash_msg) = crashed {
@@ -100,10 +94,10 @@ impl Node {
         self.generate_config_file()?;
         let log_to_stdout = match &self.config {
             // TODO move to NodeConfig
-            NodeConfig::Stateless(config) => config.log_to_stdout,
-            NodeConfig::Stateful(_) => true, // For now, stateful node logs to stdout.
+            NodeSetup::Stateless(config) => config.log_to_stdout,
+            NodeSetup::Stateful(_) => true, // For now, stateful node logs to stdout.
         };
-        let process = process::start(&self.meta, log_to_stdout);
+        let process = start_process(&self.meta, log_to_stdout);
         wait_for_start(self.addr()).await;
         self.process = Some(process);
 
@@ -111,7 +105,7 @@ impl Node {
     }
 
     fn generate_config_file(&self) -> Result<()> {
-        if let NodeConfig::Stateless(config) = &self.config {
+        if let NodeSetup::Stateless(config) = &self.config {
             // TODO move to NodeConfig
             let path = config.path.join(RIPPLED_CONFIG);
             let content = RippledConfigFile::generate(config)?;
@@ -128,8 +122,8 @@ impl Node {
     fn cleanup_config_file(&self) -> io::Result<()> {
         let path = match &self.config {
             // TODO move to NodeConfig
-            NodeConfig::Stateless(config) => config.path.clone(),
-            NodeConfig::Stateful(path) => path.path().to_path_buf(),
+            NodeSetup::Stateless(config) => config.path.clone(),
+            NodeSetup::Stateful(path) => path.path().to_path_buf(),
         };
         let path = path.join(RIPPLED_CONFIG);
         match fs::remove_file(path) {
@@ -142,8 +136,8 @@ impl Node {
     fn cleanup_cache(&self) -> io::Result<()> {
         let path = match &self.config {
             // TODO move to NodeConfig
-            NodeConfig::Stateless(config) => config.path.clone(),
-            NodeConfig::Stateful(path) => path.path().to_path_buf(),
+            NodeSetup::Stateless(config) => config.path.clone(),
+            NodeSetup::Stateful(path) => path.path().to_path_buf(),
         };
         let path = path.join(RIPPLED_DIR);
         if let Err(e) = fs::remove_dir_all(path) {
@@ -169,7 +163,50 @@ fn build_stateful_path() -> io::Result<PathBuf> {
     Ok(home::home_dir()
         .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "couldn't find home directory"))?
         .join(ZIGGURAT_DIR)
-        .join(STATEFUL_DIR))
+        .join(NODE_STATE_DIR))
+}
+
+fn stop_process(mut child: Child) -> Option<String> {
+    let message = match child.try_wait().ok()? {
+        None => {
+            child.kill().ok()?;
+            None
+        }
+        Some(exit_code) if exit_code.success() => {
+            Some("but with a \"success\" exit code".to_string())
+        }
+        Some(exit_code) => Some(format!("crashed with exit code {}", exit_code)),
+    };
+    child.wait().ok()?;
+    message
+}
+
+fn start_process(meta: &NodeMetaData, log_to_stdout: bool) -> Child {
+    let (stdout, stderr) = match log_to_stdout {
+        true => (Stdio::inherit(), Stdio::inherit()),
+        false => (Stdio::null(), Stdio::null()),
+    };
+    Command::new(&meta.start_command)
+        .current_dir(&meta.path)
+        .args(&meta.start_args)
+        .stdin(Stdio::null())
+        .stdout(stdout)
+        .stderr(stderr)
+        .spawn()
+        .expect("node failed to start")
+}
+
+async fn wait_for_start(addr: SocketAddr) {
+    tokio::time::timeout(CONNECTION_TIMEOUT, async move {
+        loop {
+            if let Ok(mut stream) = tokio::net::TcpStream::connect(addr).await {
+                stream.shutdown().await.unwrap();
+                break;
+            }
+        }
+    })
+    .await
+    .unwrap();
 }
 
 /// Convenience struct to better control configuration/build/start for [Node]
@@ -214,7 +251,7 @@ impl NodeBuilder {
     /// Builds and starts the new node.
     pub async fn build(self) -> Result<Node> {
         let mut node = Node {
-            config: NodeConfig::Stateless(self.config),
+            config: NodeSetup::Stateless(self.config),
             meta: self.meta,
             process: None,
         };
