@@ -19,7 +19,21 @@ use crate::{
 
 pub enum NodeSetup {
     Stateless(NewNodeConfig),
-    Stateful(TempDir),
+    Stateful(StatefulNodeConfig),
+}
+
+pub struct StatefulNodeConfig {
+    dir: TempDir,
+    log_to_stdout: bool,
+}
+
+impl NodeSetup {
+    fn log_to_stdout(&self) -> bool {
+        match self {
+            NodeSetup::Stateless(config) => config.log_to_stdout,
+            NodeSetup::Stateful(config) => config.log_to_stdout,
+        }
+    }
 }
 
 pub struct Node {
@@ -46,7 +60,11 @@ impl Node {
             "1".into(),
             "--load".into(),
         ]);
-        let process = start_process(&meta, true);
+        let config = NodeSetup::Stateful(StatefulNodeConfig {
+            dir: temp_dir,
+            log_to_stdout: true,
+        });
+        let process = start_child(&meta, &config);
         wait_for_start(SocketAddr::V4(SocketAddrV4::new(
             STATEFUL_IP,
             JSON_RPC_PORT,
@@ -54,7 +72,7 @@ impl Node {
         .await;
 
         Ok(Node {
-            config: NodeSetup::Stateful(temp_dir),
+            config,
             meta,
             process: Some(process),
         })
@@ -72,7 +90,7 @@ impl Node {
     pub fn stop(&mut self) -> io::Result<()> {
         if let Some(child) = self.process.take() {
             // Stop node process, and check for crash (needs to happen before cleanup)
-            let crashed = stop_process(child);
+            let crashed = stop_child(child);
             self.cleanup()?;
 
             if let Some(crash_msg) = crashed {
@@ -92,12 +110,7 @@ impl Node {
 
         // generate config and start child process
         self.generate_config_file()?;
-        let log_to_stdout = match &self.config {
-            // TODO move to NodeConfig
-            NodeSetup::Stateless(config) => config.log_to_stdout,
-            NodeSetup::Stateful(_) => true, // For now, stateful node logs to stdout.
-        };
-        let process = start_process(&self.meta, log_to_stdout);
+        let process = start_child(&self.meta, &self.config);
         wait_for_start(self.addr()).await;
         self.process = Some(process);
 
@@ -123,7 +136,7 @@ impl Node {
         let path = match &self.config {
             // TODO move to NodeConfig
             NodeSetup::Stateless(config) => config.path.clone(),
-            NodeSetup::Stateful(path) => path.path().to_path_buf(),
+            NodeSetup::Stateful(path) => path.dir.path().to_path_buf(),
         };
         let path = path.join(RIPPLED_CONFIG);
         match fs::remove_file(path) {
@@ -137,7 +150,7 @@ impl Node {
         let path = match &self.config {
             // TODO move to NodeConfig
             NodeSetup::Stateless(config) => config.path.clone(),
-            NodeSetup::Stateful(path) => path.path().to_path_buf(),
+            NodeSetup::Stateful(path) => path.dir.path().to_path_buf(),
         };
         let path = path.join(RIPPLED_DIR);
         if let Err(e) = fs::remove_dir_all(path) {
@@ -166,7 +179,7 @@ fn build_stateful_path() -> io::Result<PathBuf> {
         .join(NODE_STATE_DIR))
 }
 
-fn stop_process(mut child: Child) -> Option<String> {
+fn stop_child(mut child: Child) -> Option<String> {
     let message = match child.try_wait().ok()? {
         None => {
             child.kill().ok()?;
@@ -181,8 +194,8 @@ fn stop_process(mut child: Child) -> Option<String> {
     message
 }
 
-fn start_process(meta: &NodeMetaData, log_to_stdout: bool) -> Child {
-    let (stdout, stderr) = match log_to_stdout {
+fn start_child(meta: &NodeMetaData, node_setup: &NodeSetup) -> Child {
+    let (stdout, stderr) = match node_setup.log_to_stdout() {
         true => (Stdio::inherit(), Stdio::inherit()),
         false => (Stdio::null(), Stdio::null()),
     };
