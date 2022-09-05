@@ -90,17 +90,15 @@ impl Node {
     pub fn stop(&mut self) -> io::Result<()> {
         if let Some(child) = self.process.take() {
             // Stop node process, and check for crash (needs to happen before cleanup)
-            let crashed = stop_child(child);
+            let crashed = stop_child(child)?;
             self.cleanup()?;
-
-            if let Some(crash_msg) = crashed {
+            if let ChildExitCode::ErrorCode(error) = crashed {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
-                    format!("Node exited early, {}", crash_msg),
+                    format!("Node exited early, error code: {:?}", error),
                 ));
             }
         }
-
         Ok(())
     }
 
@@ -179,19 +177,18 @@ fn build_stateful_path() -> io::Result<PathBuf> {
         .join(NODE_STATE_DIR))
 }
 
-fn stop_child(mut child: Child) -> Option<String> {
-    let message = match child.try_wait().ok()? {
-        None => {
-            child.kill().ok()?;
-            None
-        }
-        Some(exit_code) if exit_code.success() => {
-            Some("but with a \"success\" exit code".to_string())
-        }
-        Some(exit_code) => Some(format!("crashed with exit code {}", exit_code)),
-    };
-    child.wait().ok()?;
-    message
+fn stop_child(mut child: Child) -> io::Result<ChildExitCode> {
+    match child.try_wait()? {
+        None => child.kill()?,
+        Some(code) => return Ok(ChildExitCode::ErrorCode(code.code())),
+    }
+    let exit = child.wait()?;
+
+    match exit.code() {
+        None => Ok(ChildExitCode::Success),
+        Some(exit) if exit == 0 => Ok(ChildExitCode::Success),
+        Some(exit) => Ok(ChildExitCode::ErrorCode(Some(exit))),
+    }
 }
 
 fn start_child(meta: &NodeMetaData, node_setup: &NodeSetup) -> Child {
@@ -220,6 +217,11 @@ async fn wait_for_start(addr: SocketAddr) {
     })
     .await
     .unwrap();
+}
+
+enum ChildExitCode {
+    Success,
+    ErrorCode(Option<i32>),
 }
 
 /// Convenience struct to better control configuration/build/start for [Node]
