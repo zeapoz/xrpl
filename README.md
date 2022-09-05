@@ -43,5 +43,5 @@ Follow the steps below to save an initial state that can be loaded later for oth
         "Account": "rNGknFCRBZguXcPqC63k6xTZnonSe6ZuWt",
         "Balance": "5000000000",
    ```
-5. Copy the node's files `cp -a ~/.ziggurat/testnet/1 ~/.ziggurat/ripple_stateful`
+5. Copy the node's files to directory referenced by constant `pub const NODE_STATE_DIR`, currently: `cp -a ~/.ziggurat/testnet/1 ~/.ziggurat/ripple_stateful`
 6. Now you can stop the test started in step 1.
