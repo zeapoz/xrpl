@@ -1,210 +1,22 @@
 use std::{
+    collections::HashSet,
     fs, io,
-    net::{IpAddr, SocketAddr, SocketAddrV4},
+    net::{Ipv4Addr, SocketAddr, SocketAddrV4},
     path::PathBuf,
     process::{Child, Command, Stdio},
 };
 
 use anyhow::Result;
 use fs_extra::dir::{copy, CopyOptions};
-use tempfile::TempDir;
 use tokio::io::AsyncWriteExt;
 
 use crate::{
-    setup::config::{
-        NewNodeConfig, NodeMetaData, RippledConfigFile, RIPPLED_CONFIG, RIPPLED_DIR, ZIGGURAT_DIR,
+    setup::{
+        build_ripple_work_path,
+        config::{NodeMetaData, RippledConfigFile, RIPPLED_CONFIG, RIPPLE_SETUP_DIR},
     },
-    tools::constants::{CONNECTION_TIMEOUT, JSON_RPC_PORT, NODE_STATE_DIR, STATEFUL_IP},
+    tools::constants::{CONNECTION_TIMEOUT, DEFAULT_PORT},
 };
-
-pub enum NodeSetup {
-    Stateless(NewNodeConfig),
-    Stateful(StatefulNodeConfig),
-}
-
-pub struct StatefulNodeConfig {
-    dir: TempDir,
-    log_to_stdout: bool,
-}
-
-impl NodeSetup {
-    fn log_to_stdout(&self) -> bool {
-        match self {
-            NodeSetup::Stateless(config) => config.log_to_stdout,
-            NodeSetup::Stateful(config) => config.log_to_stdout,
-        }
-    }
-}
-
-pub struct Node {
-    /// Fields to be written to the node's configuration file.
-    config: NodeSetup,
-    /// The node metadata read from Ziggurat's configuration file.
-    meta: NodeMetaData,
-    /// The process encapsulating the running node.
-    process: Option<Child>,
-}
-
-impl Node {
-    /// Creates a new running node with the config and database loaded from the predefined state directory.
-    /// Before the start, content is copied to a new temporary directory and loaded from there.
-    /// This is done to avoid `poisoning` the predefined state directory.
-    pub async fn stateful() -> Result<Node> {
-        let from = build_stateful_path()?;
-        let temp_dir = TempDir::new()?;
-        copy(from, &temp_dir, &CopyOptions::new())?;
-        let mut meta = NodeMetaData::new(temp_dir.path().to_path_buf().join(NODE_STATE_DIR))?;
-        meta.start_args.append(&mut vec![
-            "--valid".into(),
-            "--quorum".into(),
-            "1".into(),
-            "--load".into(),
-        ]);
-        let config = NodeSetup::Stateful(StatefulNodeConfig {
-            dir: temp_dir,
-            log_to_stdout: true,
-        });
-        let process = start_child(&meta, &config);
-        wait_for_start(SocketAddr::V4(SocketAddrV4::new(
-            STATEFUL_IP,
-            JSON_RPC_PORT,
-        )))
-        .await;
-
-        Ok(Node {
-            config,
-            meta,
-            process: Some(process),
-        })
-    }
-
-    pub fn addr(&self) -> SocketAddr {
-        // TODO move to NodeConfig
-        match &self.config {
-            NodeSetup::Stateless(config) => config.local_addr,
-            NodeSetup::Stateful(_) => SocketAddr::V4(SocketAddrV4::new(STATEFUL_IP, JSON_RPC_PORT)),
-        }
-    }
-
-    // TODO change to consume self, it's probably useless now anyway
-    pub fn stop(&mut self) -> io::Result<()> {
-        if let Some(child) = self.process.take() {
-            // Stop node process, and check for crash (needs to happen before cleanup)
-            let crashed = stop_child(child)?;
-            self.cleanup()?;
-            if let ChildExitCode::ErrorCode(error) = crashed {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    format!("Node exited early, error code: {:?}", error),
-                ));
-            }
-        }
-        Ok(())
-    }
-
-    async fn start_process(&mut self) -> Result<()> {
-        // cleanup any previous runs (node.stop won't always be reached e.g. test panics, or SIGINT)
-        self.cleanup()?;
-
-        // generate config and start child process
-        self.generate_config_file()?;
-        let process = start_child(&self.meta, &self.config);
-        wait_for_start(self.addr()).await;
-        self.process = Some(process);
-
-        Ok(())
-    }
-
-    fn generate_config_file(&self) -> Result<()> {
-        if let NodeSetup::Stateless(config) = &self.config {
-            // TODO move to NodeConfig
-            let path = config.path.join(RIPPLED_CONFIG);
-            let content = RippledConfigFile::generate(config)?;
-            fs::write(path, content)?;
-        }
-        Ok(())
-    }
-
-    fn cleanup(&self) -> io::Result<()> {
-        self.cleanup_config_file()?;
-        self.cleanup_cache()
-    }
-
-    fn cleanup_config_file(&self) -> io::Result<()> {
-        let path = match &self.config {
-            // TODO move to NodeConfig
-            NodeSetup::Stateless(config) => config.path.clone(),
-            NodeSetup::Stateful(path) => path.dir.path().to_path_buf(),
-        };
-        let path = path.join(RIPPLED_CONFIG);
-        match fs::remove_file(path) {
-            // File may not exist, so we suppress the error.
-            Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e),
-            _ => Ok(()),
-        }
-    }
-
-    fn cleanup_cache(&self) -> io::Result<()> {
-        let path = match &self.config {
-            // TODO move to NodeConfig
-            NodeSetup::Stateless(config) => config.path.clone(),
-            NodeSetup::Stateful(path) => path.dir.path().to_path_buf(),
-        };
-        let path = path.join(RIPPLED_DIR);
-        if let Err(e) = fs::remove_dir_all(path) {
-            // Directory may not exist, so we let that error through
-            if e.kind() != io::ErrorKind::NotFound {
-                return Err(e);
-            }
-        }
-        Ok(())
-    }
-}
-
-impl Drop for Node {
-    fn drop(&mut self) {
-        // We should avoid a panic.
-        if let Err(e) = self.stop() {
-            println!("Failed to stop the node: {}", e);
-        }
-    }
-}
-
-fn build_stateful_path() -> io::Result<PathBuf> {
-    Ok(home::home_dir()
-        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "couldn't find home directory"))?
-        .join(ZIGGURAT_DIR)
-        .join(NODE_STATE_DIR))
-}
-
-fn stop_child(mut child: Child) -> io::Result<ChildExitCode> {
-    match child.try_wait()? {
-        None => child.kill()?,
-        Some(code) => return Ok(ChildExitCode::ErrorCode(code.code())),
-    }
-    let exit = child.wait()?;
-
-    match exit.code() {
-        None => Ok(ChildExitCode::Success),
-        Some(exit) if exit == 0 => Ok(ChildExitCode::Success),
-        Some(exit) => Ok(ChildExitCode::ErrorCode(Some(exit))),
-    }
-}
-
-fn start_child(meta: &NodeMetaData, node_setup: &NodeSetup) -> Child {
-    let (stdout, stderr) = match node_setup.log_to_stdout() {
-        true => (Stdio::inherit(), Stdio::inherit()),
-        false => (Stdio::null(), Stdio::null()),
-    };
-    Command::new(&meta.start_command)
-        .current_dir(&meta.path)
-        .args(&meta.start_args)
-        .stdin(Stdio::null())
-        .stdout(stdout)
-        .stderr(stderr)
-        .spawn()
-        .expect("node failed to start")
-}
 
 async fn wait_for_start(addr: SocketAddr) {
     tokio::time::timeout(CONNECTION_TIMEOUT, async move {
@@ -219,58 +31,166 @@ async fn wait_for_start(addr: SocketAddr) {
     .unwrap();
 }
 
-enum ChildExitCode {
+pub enum ChildExitCode {
     Success,
     ErrorCode(Option<i32>),
 }
 
-/// Convenience struct to better control configuration/build/start for [Node]
 pub struct NodeBuilder {
-    config: NewNodeConfig,
+    conf: NodeConfig,
     meta: NodeMetaData,
 }
 
 impl NodeBuilder {
-    /// Sets up minimal configuration for the node.
-    pub fn new(path: PathBuf, ip_addr: IpAddr) -> Result<Self> {
-        let config = NewNodeConfig::new(path, ip_addr);
-        let meta = NodeMetaData::new(config.path.clone())?;
-        Ok(Self { config, meta })
+    /// Creates new [NodeBuilder]. Initial state is taken from `state` path, the node will run in `target` path.
+    pub fn new(state: Option<PathBuf>, target: PathBuf) -> Result<Self> {
+        if !target.exists() {
+            fs::create_dir_all(&target)?;
+        }
+        let mut copy_options = CopyOptions::new();
+        copy_options.content_only = true;
+        copy_options.overwrite = true;
+        let setup_path = build_ripple_work_path()?.join(RIPPLE_SETUP_DIR);
+        copy(&setup_path, &target, &copy_options)?;
+        if let Some(source) = state {
+            copy(&source, &target, &copy_options)?;
+        }
+        let conf = NodeConfig::new(target);
+        let meta = NodeMetaData::new(conf.path.clone())?;
+        Ok(Self { conf, meta })
+    }
+
+    /// Crates [Node] according to configuration and starts its process.
+    pub async fn start(self, log_to_stdout: bool) -> Result<Node> {
+        let content = RippledConfigFile::generate(&self.conf)?;
+        let path = self.conf.path.join(RIPPLED_CONFIG);
+        fs::write(path, content)?;
+        let node = self.start_node(log_to_stdout);
+        wait_for_start(node.config.local_addr).await;
+        Ok(node)
+    }
+
+    /// Sets address to bind to.
+    pub fn set_addr(mut self, addr: SocketAddr) -> Self {
+        self.conf.local_addr = addr;
+        self
+    }
+
+    /// Adds arguments to start command.
+    pub fn add_args(mut self, args: Vec<String>) -> Self {
+        args.into_iter()
+            .for_each(|arg| self.meta.start_args.push(arg.into()));
+        self
     }
 
     /// Sets initial peers for the node.
     pub fn initial_peers(mut self, addrs: Vec<SocketAddr>) -> Self {
-        self.config.initial_peers = addrs.into_iter().collect();
+        self.conf.initial_peers = addrs.into_iter().collect();
         self
     }
 
     /// Sets validator token to be placed in rippled.cfg.
     /// This will configure the node to run as a validator.
     pub fn validator_token(mut self, token: String) -> Self {
-        self.config.validator_token = Some(token);
-        self
-    }
-
-    /// Sets whether to log the node's output to Ziggurat's output stream.
-    pub fn log_to_stdout(mut self, log_to_stdout: bool) -> Self {
-        self.config.log_to_stdout = log_to_stdout;
+        self.conf.validator_token = Some(token);
         self
     }
 
     /// Sets network's id to form an isolated testnet.
     pub fn network_id(mut self, network_id: u32) -> Self {
-        self.config.network_id = Some(network_id);
+        self.conf.network_id = Some(network_id);
         self
     }
 
-    /// Builds and starts the new node.
-    pub async fn build(self) -> Result<Node> {
-        let mut node = Node {
-            config: NodeSetup::Stateless(self.config),
-            meta: self.meta,
-            process: None,
+    fn start_node(self, log_to_stdout: bool) -> Node {
+        let (stdout, stderr) = match log_to_stdout {
+            true => (Stdio::inherit(), Stdio::inherit()),
+            false => (Stdio::null(), Stdio::null()),
         };
-        node.start_process().await?;
-        Ok(node)
+        let child = Command::new(&self.meta.start_command)
+            .current_dir(&self.meta.path)
+            .args(&self.meta.start_args)
+            .stdin(Stdio::null())
+            .stdout(stdout)
+            .stderr(stderr)
+            .spawn()
+            .expect("node failed to start");
+        Node {
+            child,
+            meta: self.meta,
+            config: self.conf,
+        }
+    }
+}
+
+/// Fields to be written to the node's configuration file.
+#[derive(Debug)]
+pub struct NodeConfig {
+    /// The path of the cache directory of the node.
+    pub path: PathBuf,
+    /// The socket address of the node.
+    pub local_addr: SocketAddr,
+    /// The initial peer set of the node.
+    pub initial_peers: HashSet<SocketAddr>,
+    /// The initial max number of peer connections to allow.
+    pub max_peers: usize,
+    /// Token when run as a validator.
+    pub validator_token: Option<String>,
+    /// Network's id to form an isolated testnet.
+    pub network_id: Option<u32>,
+}
+
+impl NodeConfig {
+    pub fn new(path: PathBuf) -> Self {
+        Self {
+            path,
+            local_addr: SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, DEFAULT_PORT)),
+            initial_peers: Default::default(),
+            max_peers: 0,
+            validator_token: None,
+            network_id: None,
+        }
+    }
+}
+
+pub struct Node {
+    child: Child,
+    config: NodeConfig,
+    #[allow(dead_code)]
+    meta: NodeMetaData,
+}
+
+impl Node {
+    pub fn builder(state: Option<PathBuf>, target: PathBuf) -> NodeBuilder {
+        NodeBuilder::new(state, target)
+            .map_err(|e| format!("Unable to create builder: {:?}", e))
+            .unwrap()
+    }
+
+    pub fn stop(&mut self) -> io::Result<ChildExitCode> {
+        match self.child.try_wait()? {
+            None => self.child.kill()?,
+            Some(code) => return Ok(ChildExitCode::ErrorCode(code.code())),
+        }
+        let exit = self.child.wait()?;
+
+        match exit.code() {
+            None => Ok(ChildExitCode::Success),
+            Some(exit) if exit == 0 => Ok(ChildExitCode::Success),
+            Some(exit) => Ok(ChildExitCode::ErrorCode(Some(exit))),
+        }
+    }
+
+    pub fn addr(&self) -> SocketAddr {
+        self.config.local_addr
+    }
+}
+
+impl Drop for Node {
+    fn drop(&mut self) {
+        // We should avoid a panic.
+        if let Err(e) = self.stop() {
+            eprintln!("Failed to stop the node: {}", e);
+        }
     }
 }
