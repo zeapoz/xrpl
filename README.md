@@ -6,12 +6,13 @@ The Ziggurat implementation for XRPLF's `rippled` nodes.
 
 1. Clone this repository.
 2. Build [rippled](https://github.com/XRPLF/rippled) from source.
-3. Create the `~/.ziggurat` directory, copy the [validators configuration](https://github.com/XRPLF/rippled/blob/develop/cfg/validators-example.txt) there, and name it `validators.txt`. Also create a `config.toml` with the following contents:
+3. Create the `~/.ziggurat/ripple/setup` directories, copy the [validators configuration](https://github.com/XRPLF/rippled/blob/develop/cfg/validators-example.txt) there, and name it `validators.txt`.
+4. In the same directory create a `config.toml` with the following contents:
     ```
     # path = "<path to the directory where you built rippled>"
     # start_command = "./rippled"
     ```
-4. Run tests with `cargo +stable t -- --test-threads=1`.
+5. Run tests with `cargo +stable t -- --test-threads=1`.
 
 ### Initial state
 Follow the steps below to save an initial state that can be loaded later for other tests.
@@ -21,7 +22,7 @@ Follow the steps below to save an initial state that can be loaded later for oth
 2. Install `xrpl` python lib: `pip3 install xrpl-py`.
 
 #### Transferring XRP from the Genesis account to a new account and saving the state
-1. In one terminal run test `cargo +stable t setup::testnet::test::should_start_stop_testnet -- --ignored`.
+1. In one terminal run test `cargo +stable t setup::testnet::test::run_testnet -- --ignored`.
    The test will start a local testnet and will keep it alive for 10 minutes. Ensure that you complete the
    following steps while above test is running.
 2. Run `python3 tools/account_info.py` to monitor state of the accounts. 
@@ -43,5 +44,6 @@ Follow the steps below to save an initial state that can be loaded later for oth
         "Account": "rNGknFCRBZguXcPqC63k6xTZnonSe6ZuWt",
         "Balance": "5000000000",
    ```
-5. Copy the node's files to directory referenced by constant `pub const NODE_STATE_DIR`, currently: `cp -a ~/.ziggurat/testnet/1 ~/.ziggurat/ripple_stateful`
+5. Copy the node's files to directory referenced by constant `pub const NODE_STATE_DIR`, currently: `cp -a ~/.ziggurat/ripple/testnet/1 ~/.ziggurat/ripple/stateful`
 6. Now you can stop the test started in step 1.
+7. Remove the config file, it will be created when starting new node: `rm ~/.ziggurat/ripple/stateful/rippled.cfg`

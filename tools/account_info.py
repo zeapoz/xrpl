@@ -37,10 +37,10 @@ def get_account_info(account):
 # Gets information about genesis account. This account should exist in 'blank' testnet with
 # a balance of 100000000000000000
 while not get_account_info(GENESIS_ACCOUNT):
-    sleep(1)
+    sleep(10)
 
 # Gets information about test account. This account should not exist in 'blank' testnet and
 # this call should return an error. Once the transaction went through, the account should be
 # created with a balance of 5000000000
 while not get_account_info(TEST_ACCOUNT):
-    sleep(1)
+    sleep(10)
