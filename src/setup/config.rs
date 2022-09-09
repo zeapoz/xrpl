@@ -1,26 +1,28 @@
-use std::{
-    collections::HashSet,
-    ffi::OsString,
-    fmt::Write,
-    fs,
-    net::{IpAddr, SocketAddr},
-    path::PathBuf,
-};
+use std::{ffi::OsString, fmt::Write, fs, path::PathBuf};
 
 use anyhow::Result;
 use serde::Deserialize;
 
-// Ziggurat's configuration directory and file. Caches are written to this directory.
+use crate::setup::node::NodeConfig;
+
+/// Ziggurat's configuration directory.
 pub const ZIGGURAT_DIR: &str = ".ziggurat";
-// Configuration file with paths to start rippled.
+
+/// Ziggurat's Ripple's subdir.
+pub const RIPPLE_WORK_DIR: &str = "ripple";
+
+/// Initial setup dir for rippled.
+pub const RIPPLE_SETUP_DIR: &str = "setup";
+
+/// Directory containing saved ledger and config to be loaded after the start.
+pub const NODE_STATE_DIR: &str = "stateful";
+
+/// Configuration file with paths to start rippled.
 pub const ZIGGURAT_CONFIG: &str = "config.toml";
 
-// Rippled's configuration file name.
+/// Rippled's configuration file name.
 pub const RIPPLED_CONFIG: &str = "rippled.cfg";
 pub const RIPPLED_DIR: &str = "rippled";
-
-// The default port to start a Rippled node on.
-pub const DEFAULT_PORT: u16 = 8080;
 
 /// Convenience struct for reading Ziggurat's configuration file.
 #[derive(Deserialize)]
@@ -67,42 +69,6 @@ impl NodeMetaData {
             start_command,
             start_args,
         })
-    }
-}
-
-/// Fields to be written to the node's configuration file.
-#[derive(Debug)]
-pub struct NodeConfig {
-    /// The path of the cache directory of the node (and Ziggurat); this is `~/.ziggurat`.
-    pub path: PathBuf,
-    /// The socket address of the node.
-    pub local_addr: SocketAddr,
-    /// The initial peer set of the node.
-    pub initial_peers: HashSet<SocketAddr>,
-    /// The initial max number of peer connections to allow.
-    pub max_peers: usize,
-    /// Toggles node logging to stdout.
-    pub log_to_stdout: bool,
-    /// Token when run as a validator.
-    pub validator_token: Option<String>,
-    /// Network's id to form an isolated testnet.
-    pub network_id: Option<u32>,
-}
-
-impl NodeConfig {
-    pub fn new(path: PathBuf, ip_addr: IpAddr) -> Self {
-        // Set the port explicitly.
-        let local_addr = SocketAddr::new(ip_addr, DEFAULT_PORT);
-
-        Self {
-            path,
-            local_addr,
-            initial_peers: Default::default(),
-            max_peers: 50,
-            log_to_stdout: false,
-            validator_token: None,
-            network_id: None,
-        }
     }
 }
 

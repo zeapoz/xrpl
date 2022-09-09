@@ -1,76 +1,113 @@
 use std::{
+    collections::HashSet,
     fs, io,
-    net::{IpAddr, SocketAddr},
+    net::{Ipv4Addr, SocketAddr, SocketAddrV4},
     path::PathBuf,
     process::{Child, Command, Stdio},
-    time::Duration,
 };
 
 use anyhow::Result;
+use fs_extra::dir::{copy, CopyOptions};
 use tokio::io::AsyncWriteExt;
 
 use crate::{
-    setup::config::{NodeConfig, NodeMetaData, RippledConfigFile, RIPPLED_CONFIG, RIPPLED_DIR},
-    wait_until,
+    setup::{
+        build_ripple_work_path,
+        config::{NodeMetaData, RippledConfigFile, RIPPLED_CONFIG, RIPPLE_SETUP_DIR},
+    },
+    tools::constants::{CONNECTION_TIMEOUT, DEFAULT_PORT},
 };
 
-pub const CONNECTION_TIMEOUT: Duration = Duration::from_secs(2);
-
-pub struct Node {
-    /// Fields to be written to the node's configuration file.
-    config: NodeConfig,
-    /// The node metadata read from Ziggurat's configuration file.
-    meta: NodeMetaData,
-    /// The process encapsulating the running node.
-    process: Option<Child>,
-}
-
-impl Node {
-    pub fn addr(&self) -> SocketAddr {
-        self.config.local_addr
-    }
-
-    // TODO change to consume self, it's probably useless now anyway
-    pub fn stop(&mut self) -> io::Result<()> {
-        if let Some(mut child) = self.process.take() {
-            // Stop node process, and check for crash (needs to happen before cleanup)
-            let crashed = match child.try_wait()? {
-                None => {
-                    child.kill()?;
-                    None
-                }
-                Some(exit_code) if exit_code.success() => {
-                    Some("but with a \"success\" exit code".to_string())
-                }
-                Some(exit_code) => Some(format!("crashed with exit code {}", exit_code)),
-            };
-            child.wait()?;
-            self.cleanup()?;
-
-            if let Some(crash_msg) = crashed {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    format!("Node exited early, {}", crash_msg),
-                ));
+async fn wait_for_start(addr: SocketAddr) {
+    tokio::time::timeout(CONNECTION_TIMEOUT, async move {
+        loop {
+            if let Ok(mut stream) = tokio::net::TcpStream::connect(addr).await {
+                stream.shutdown().await.unwrap();
+                break;
             }
         }
+    })
+    .await
+    .unwrap();
+}
 
-        Ok(())
+pub enum ChildExitCode {
+    Success,
+    ErrorCode(Option<i32>),
+}
+
+pub struct NodeBuilder {
+    conf: NodeConfig,
+    meta: NodeMetaData,
+}
+
+impl NodeBuilder {
+    /// Creates new [NodeBuilder]. Initial state is taken from `state` path, the node will run in `target` path.
+    pub fn new(state: Option<PathBuf>, target: PathBuf) -> Result<Self> {
+        if !target.exists() {
+            fs::create_dir_all(&target)?;
+        }
+        let mut copy_options = CopyOptions::new();
+        copy_options.content_only = true;
+        copy_options.overwrite = true;
+        let setup_path = build_ripple_work_path()?.join(RIPPLE_SETUP_DIR);
+        copy(&setup_path, &target, &copy_options)?;
+        if let Some(source) = state {
+            copy(&source, &target, &copy_options)?;
+        }
+        let conf = NodeConfig::new(target);
+        let meta = NodeMetaData::new(conf.path.clone())?;
+        Ok(Self { conf, meta })
     }
 
-    async fn start_process(&mut self) -> Result<()> {
-        // cleanup any previous runs (node.stop won't always be reached e.g. test panics, or SIGINT)
-        self.cleanup()?;
+    /// Crates [Node] according to configuration and starts its process.
+    pub async fn start(self, log_to_stdout: bool) -> Result<Node> {
+        let content = RippledConfigFile::generate(&self.conf)?;
+        let path = self.conf.path.join(RIPPLED_CONFIG);
+        fs::write(path, content)?;
+        let node = self.start_node(log_to_stdout);
+        wait_for_start(node.config.local_addr).await;
+        Ok(node)
+    }
 
-        // TODO: set initial peers/initial actions.
-        self.generate_config_file()?;
+    /// Sets address to bind to.
+    pub fn set_addr(mut self, addr: SocketAddr) -> Self {
+        self.conf.local_addr = addr;
+        self
+    }
 
-        let (stdout, stderr) = match self.config.log_to_stdout {
+    /// Adds arguments to start command.
+    pub fn add_args(mut self, args: Vec<String>) -> Self {
+        args.into_iter()
+            .for_each(|arg| self.meta.start_args.push(arg.into()));
+        self
+    }
+
+    /// Sets initial peers for the node.
+    pub fn initial_peers(mut self, addrs: Vec<SocketAddr>) -> Self {
+        self.conf.initial_peers = addrs.into_iter().collect();
+        self
+    }
+
+    /// Sets validator token to be placed in rippled.cfg.
+    /// This will configure the node to run as a validator.
+    pub fn validator_token(mut self, token: String) -> Self {
+        self.conf.validator_token = Some(token);
+        self
+    }
+
+    /// Sets network's id to form an isolated testnet.
+    pub fn network_id(mut self, network_id: u32) -> Self {
+        self.conf.network_id = Some(network_id);
+        self
+    }
+
+    fn start_node(self, log_to_stdout: bool) -> Node {
+        let (stdout, stderr) = match log_to_stdout {
             true => (Stdio::inherit(), Stdio::inherit()),
             false => (Stdio::null(), Stdio::null()),
         };
-
-        let process = Command::new(&self.meta.start_command)
+        let child = Command::new(&self.meta.start_command)
             .current_dir(&self.meta.path)
             .args(&self.meta.start_args)
             .stdin(Stdio::null())
@@ -78,57 +115,74 @@ impl Node {
             .stderr(stderr)
             .spawn()
             .expect("node failed to start");
+        Node {
+            child,
+            meta: self.meta,
+            config: self.conf,
+        }
+    }
+}
 
-        self.wait_for_start().await;
-        self.process = Some(process);
+/// Fields to be written to the node's configuration file.
+#[derive(Debug)]
+pub struct NodeConfig {
+    /// The path of the cache directory of the node.
+    pub path: PathBuf,
+    /// The socket address of the node.
+    pub local_addr: SocketAddr,
+    /// The initial peer set of the node.
+    pub initial_peers: HashSet<SocketAddr>,
+    /// The initial max number of peer connections to allow.
+    pub max_peers: usize,
+    /// Token when run as a validator.
+    pub validator_token: Option<String>,
+    /// Network's id to form an isolated testnet.
+    pub network_id: Option<u32>,
+}
 
-        Ok(())
+impl NodeConfig {
+    pub fn new(path: PathBuf) -> Self {
+        Self {
+            path,
+            local_addr: SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, DEFAULT_PORT)),
+            initial_peers: Default::default(),
+            max_peers: 0,
+            validator_token: None,
+            network_id: None,
+        }
+    }
+}
+
+pub struct Node {
+    child: Child,
+    config: NodeConfig,
+    #[allow(dead_code)]
+    meta: NodeMetaData,
+}
+
+impl Node {
+    pub fn builder(state: Option<PathBuf>, target: PathBuf) -> NodeBuilder {
+        NodeBuilder::new(state, target)
+            .map_err(|e| format!("Unable to create builder: {:?}", e))
+            .unwrap()
     }
 
-    async fn wait_for_start(&self) {
-        wait_until!(
-            CONNECTION_TIMEOUT,
-            if let Ok(mut stream) = tokio::net::TcpStream::connect(self.addr()).await {
-                stream.shutdown().await.unwrap();
-                true
-            } else {
-                false
-            }
-        );
-    }
+    pub fn stop(&mut self) -> io::Result<ChildExitCode> {
+        match self.child.try_wait()? {
+            None => self.child.kill()?,
+            Some(code) => return Ok(ChildExitCode::ErrorCode(code.code())),
+        }
+        let exit = self.child.wait()?;
 
-    fn generate_config_file(&self) -> Result<()> {
-        let path = self.config.path.join(RIPPLED_CONFIG);
-        let content = RippledConfigFile::generate(&self.config)?;
-        fs::write(path, content)?;
-
-        Ok(())
-    }
-
-    fn cleanup(&self) -> io::Result<()> {
-        self.cleanup_config_file()?;
-        self.cleanup_cache()
-    }
-
-    fn cleanup_config_file(&self) -> io::Result<()> {
-        let path = self.config.path.join(RIPPLED_CONFIG);
-        match fs::remove_file(path) {
-            // File may not exist, so we suppress the error.
-            Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e),
-            _ => Ok(()),
+        match exit.code() {
+            None => Ok(ChildExitCode::Success),
+            Some(exit) if exit == 0 => Ok(ChildExitCode::Success),
+            Some(exit) => Ok(ChildExitCode::ErrorCode(Some(exit))),
         }
     }
 
-    fn cleanup_cache(&self) -> io::Result<()> {
-        let path = self.config.path.join(RIPPLED_DIR);
-        if let Err(e) = fs::remove_dir_all(path) {
-            // Directory may not exist, so we let that error through
-            if e.kind() != std::io::ErrorKind::NotFound {
-                return Err(e);
-            }
-        }
-
-        Ok(())
+    pub fn addr(&self) -> SocketAddr {
+        self.config.local_addr
     }
 }
 
@@ -136,58 +190,7 @@ impl Drop for Node {
     fn drop(&mut self) {
         // We should avoid a panic.
         if let Err(e) = self.stop() {
-            println!("Failed to stop the node: {}", e);
+            eprintln!("Failed to stop the node: {}", e);
         }
-    }
-}
-
-/// Convenience struct to better control configuration/build/start for [Node]
-pub struct NodeBuilder {
-    config: NodeConfig,
-    meta: NodeMetaData,
-}
-
-impl NodeBuilder {
-    /// Sets up minimal configuration for the node.
-    pub fn new(path: PathBuf, ip_addr: IpAddr) -> Result<Self> {
-        let config = NodeConfig::new(path, ip_addr);
-        let meta = NodeMetaData::new(config.path.clone())?;
-        Ok(Self { config, meta })
-    }
-
-    /// Sets initial peers for the node.
-    pub fn initial_peers(mut self, addrs: Vec<SocketAddr>) -> Self {
-        self.config.initial_peers = addrs.into_iter().collect();
-        self
-    }
-
-    /// Sets validator token to be placed in rippled.cfg.
-    /// This will configure the node to run as a validator.
-    pub fn validator_token(mut self, token: String) -> Self {
-        self.config.validator_token = Some(token);
-        self
-    }
-
-    /// Sets whether to log the node's output to Ziggurat's output stream.
-    pub fn log_to_stdout(mut self, log_to_stdout: bool) -> Self {
-        self.config.log_to_stdout = log_to_stdout;
-        self
-    }
-
-    /// Sets network's id to form an isolated testnet.
-    pub fn network_id(mut self, network_id: u32) -> Self {
-        self.config.network_id = Some(network_id);
-        self
-    }
-
-    /// Builds and starts the new node.
-    pub async fn build(self) -> Result<Node> {
-        let mut node = Node {
-            config: self.config,
-            meta: self.meta,
-            process: None,
-        };
-        node.start_process().await?;
-        Ok(node)
     }
 }

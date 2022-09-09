@@ -10,10 +10,10 @@ use std::{
 
 use crate::{
     setup::{
-        config::{DEFAULT_PORT, ZIGGURAT_CONFIG, ZIGGURAT_DIR},
+        build_ripple_work_path,
         node::{Node, NodeBuilder},
     },
-    tools::constants::TESTNET_NETWORK_ID,
+    tools::constants::{DEFAULT_PORT, TESTNET_NETWORK_ID},
 };
 
 /// Testnet's directory for nodes' configs.
@@ -31,7 +31,7 @@ const VALIDATOR_KEYS: [&str; 3] = [
 /// A struct to conveniently start and stop a small testnet.
 pub struct TestNet {
     // Setup information for each node. Used for writing configuration.
-    setups: [NodeSetup; VALIDATOR_KEYS.len()],
+    pub setups: [NodeSetup; VALIDATOR_KEYS.len()],
     // Running nodes. Used to stop the testnet.
     running: Vec<Node>,
     // Sets whether to log the node's output to Ziggurat's output stream.
@@ -87,7 +87,6 @@ impl TestNet {
                 eprintln!("Unable to stop node: {:?}", e);
             }
         });
-        self.cleanup().await?;
         Ok(())
     }
 
@@ -119,17 +118,14 @@ impl TestNet {
         setup: &NodeSetup,
         validators_contents: &str,
     ) -> anyhow::Result<Node> {
-        let path = self.path.join(suffix);
-        fs::create_dir_all(&path)?;
-        write_validators_file(&path, validators_contents).await?;
-        copy_config_file(&path).await?;
-        NodeBuilder::new(path, setup.ip)?
+        let target_path = self.path.join(suffix);
+        let builder = NodeBuilder::new(None, target_path.clone())?
             .initial_peers(self.collect_other_peers(setup))
-            .log_to_stdout(self.use_stdout)
+            .set_addr(SocketAddr::new(setup.ip, DEFAULT_PORT))
             .validator_token(setup.validator_token.clone())
-            .network_id(TESTNET_NETWORK_ID)
-            .build()
-            .await
+            .network_id(TESTNET_NETWORK_ID);
+        write_validators_file(&target_path, validators_contents).await?;
+        builder.start(self.use_stdout).await
     }
 
     // Builds a list of peers for the node. Each node has two peers (the other nodes in the testnet).
@@ -146,14 +142,6 @@ impl TestNet {
             .collect()
     }
 }
-// Copies config.toml to a node's subdirectory.
-async fn copy_config_file(target: &Path) -> io::Result<u64> {
-    let source = home::home_dir()
-        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "couldn't find home directory"))?
-        .join(ZIGGURAT_DIR) // TODO extract `home` + `.ziggurat` to separate function
-        .join(ZIGGURAT_CONFIG);
-    fs::copy(source, target.join(ZIGGURAT_CONFIG))
-}
 
 // Saves `validators.txt` file in a node's subdirectory.
 async fn write_validators_file(path: &Path, contents: &str) -> io::Result<()> {
@@ -163,20 +151,17 @@ async fn write_validators_file(path: &Path, contents: &str) -> io::Result<()> {
 
 // Convenience function to build testnet's path.
 fn build_testnet_path() -> io::Result<PathBuf> {
-    Ok(home::home_dir()
-        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "couldn't find home directory"))?
-        .join(ZIGGURAT_DIR)
-        .join(TESTNET_DIR))
+    Ok(build_ripple_work_path()?.join(TESTNET_DIR))
 }
 
 // Describes each node's setup.
-struct NodeSetup {
+pub struct NodeSetup {
     // The node's ip address.
     ip: IpAddr,
     // The node's validator key to be put in the validators.txt file.
     validator_key: String,
     // The node's validator token to be put in the rippled.cfg file.
-    validator_token: String,
+    pub validator_token: String,
 }
 
 impl NodeSetup {
@@ -195,9 +180,9 @@ mod test {
 
     use crate::setup::testnet::TestNet;
 
-    #[ignore = "convenience test to tinker with a running nodes for dev purposes"]
+    #[ignore = "used to set up a small testnet that can be used to procure node state"]
     #[tokio::test]
-    async fn should_start_stop_testnet() {
+    async fn run_testnet() {
         let mut testnet = TestNet::new().unwrap();
         testnet.use_stdout = true;
         testnet.start().await.unwrap();
