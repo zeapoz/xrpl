@@ -33,7 +33,7 @@ pub struct InnerNode {
     pub tls: Tls,
 }
 
-// An object cointaining TLS handlers.
+// An object containing TLS handlers.
 #[derive(Clone)]
 pub struct Tls {
     pub acceptor: SslAcceptor,
