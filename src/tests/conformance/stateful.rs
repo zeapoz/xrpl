@@ -1,11 +1,11 @@
 //! Contains code to start and stop a node with preloaded ledger data.
-use std::{io, path::PathBuf, time::Duration};
+use std::{io, path::PathBuf};
 
 use tempfile::TempDir;
 
 use crate::{
     setup::{build_ripple_work_path, config::NODE_STATE_DIR, node::Node, testnet::TestNet},
-    tools::constants::TESTNET_NETWORK_ID,
+    tools::{constants::TESTNET_NETWORK_ID, rpc::wait_for_state},
 };
 
 #[tokio::test]
@@ -26,8 +26,7 @@ async fn should_start_stop_stateful_node() {
         .start(false)
         .await
         .expect("Unable to start stateful node");
-
-    tokio::time::sleep(Duration::from_secs(60)).await;
+    wait_for_state("proposing".into()).await;
     node.stop().expect("Unable to stop stateful node");
 }
 

@@ -16,7 +16,7 @@ use crate::{
     protocol::codecs::binary::{BinaryMessage, Payload},
     tools::{
         config::TestConfig,
-        constants::{EXPECTED_MESSAGE_TIMEOUT, SYNTH_NODE_QUEUE_DEPTH},
+        constants::{EXPECTED_RESULT_TIMEOUT, SYNTH_NODE_QUEUE_DEPTH},
         inner_node::InnerNode,
     },
 };
@@ -83,7 +83,7 @@ impl SyntheticNode {
     }
 
     pub async fn expect_message(&mut self, check: &dyn Fn(&BinaryMessage) -> bool) -> bool {
-        timeout(EXPECTED_MESSAGE_TIMEOUT, async {
+        timeout(EXPECTED_RESULT_TIMEOUT, async {
             loop {
                 let (_, message) = self.recv_message().await;
                 if check(&message) {
