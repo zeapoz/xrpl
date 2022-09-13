@@ -1,21 +1,25 @@
 //! Contains code to start and stop a node with preloaded ledger data.
 
-use std::time::Duration;
-
 use tempfile::TempDir;
 
-use crate::{setup::stateful::build_stateful_builder, tools::rpc::wait_for_state};
+use crate::{
+    setup::node::build_stateful_builder,
+    tools::rpc::{wait_for_account_data, wait_for_state},
+};
 
 #[tokio::test]
 #[ignore = "convenience test to tinker with a running node for dev purposes"]
 async fn should_start_stop_stateful_node() {
-    let target = TempDir::new().expect("Unable to create TempDir");
+    let target = TempDir::new().expect("unable to create TempDir");
     let mut node = build_stateful_builder(target.path().to_path_buf())
-        .expect("Unable to get stateful builder")
+        .expect("unable to get stateful builder")
         .start(false)
         .await
-        .expect("Unable to start stateful node");
+        .expect("unable to start stateful node");
     wait_for_state("proposing".into()).await;
-    tokio::time::sleep(Duration::from_secs(60)).await;
-    node.stop().expect("Unable to stop stateful node");
+    let account_data = wait_for_account_data("rNGknFCRBZguXcPqC63k6xTZnonSe6ZuWt")
+        .await
+        .expect("unable to get account data");
+    assert_eq!(account_data.result.account_data.balance, "5000000000");
+    node.stop().expect("unable to stop stateful node");
 }

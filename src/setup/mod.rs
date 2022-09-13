@@ -6,7 +6,6 @@ use crate::setup::config::{RIPPLE_WORK_DIR, ZIGGURAT_DIR};
 
 pub mod config;
 pub mod node;
-pub mod stateful;
 pub mod testnet;
 
 pub fn build_ripple_work_path() -> io::Result<PathBuf> {
