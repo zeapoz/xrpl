@@ -86,7 +86,7 @@ impl RippledConfigFile {
         writeln!(&mut config_str)?;
 
         writeln!(&mut config_str, "[port_rpc_admin_local]")?;
-        writeln!(&mut config_str, "port = 5005")?;
+        writeln!(&mut config_str, "port = 5005")?; // TODO take from constant
         writeln!(&mut config_str, "ip = {}", config.local_addr.ip())?;
         writeln!(&mut config_str, "admin = {}", config.local_addr.ip())?;
         writeln!(&mut config_str, "protocol = http")?;
