@@ -130,3 +130,13 @@ The test index makes use of symbolic language in describing connection and messa
 
     The node should *NOT* request mtGET_PEER_SHARD_INFO_V2 after connection if there was no handshake.
     The test waits for the predefined amount of time, ensuring no such messages were received.
+
+### ZG-CONFORMANCE-008
+    
+    The node should respond with transaction details after receiveing TmGetObjectByHash / OtTransactions request.
+    Normally the node does not respond with transaction details if the transaction is not in its cache. In this test we first
+    query for transaction details via rpc, then via peer protocol.  
+
+    <>
+    -> TmGetObjectByHash / OtTransactions
+    <- mtTRANSACTIONS
