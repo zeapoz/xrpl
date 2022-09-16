@@ -60,6 +60,31 @@ async fn get_server_info() -> anyhow::Result<RpcResponse<ResultResponse>> {
         .await?)
 }
 
+// TODO make get_*_info generic
+pub async fn get_transaction_info(
+    transaction: String,
+) -> anyhow::Result<RpcResponse<TransactionInfoResponse>> {
+    let response = build_json_request(&build_transaction_info_request(transaction))
+        .send()
+        .await?;
+    Ok(response
+        .error_for_status()?
+        .json::<RpcResponse<TransactionInfoResponse>>()
+        .await?)
+}
+
+fn build_transaction_info_request(transaction: String) -> RpcRequest<Vec<TransactionInfoRequest>> {
+    RpcRequest {
+        id: String::from("1"),
+        method: String::from("tx"),
+        api_version: API_VERSION,
+        params: vec![TransactionInfoRequest {
+            transaction,
+            binary: false,
+        }],
+    }
+}
+
 fn build_json_request(request: &impl Serialize) -> RequestBuilder {
     Client::new()
         .post(JSON_RPC_ADDRESS)
@@ -90,6 +115,17 @@ fn build_account_info_request(account: &str) -> RpcRequest<Vec<AccountInfoReques
             strict: false,
         }],
     }
+}
+
+#[derive(Serialize)]
+struct TransactionInfoRequest {
+    transaction: String,
+    binary: bool,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TransactionInfoResponse {
+    // Empty struct as we aren't interested in content
 }
 
 #[derive(Serialize)]
@@ -136,5 +172,5 @@ pub struct AccountDataResponse {
 
     #[allow(dead_code)]
     #[serde(rename(deserialize = "PreviousTxnID"))]
-    previous_transaction: String,
+    pub previous_transaction: String,
 }

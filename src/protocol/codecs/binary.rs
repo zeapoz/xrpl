@@ -57,6 +57,7 @@ pub enum Payload {
     TmGetObjectByHash(TmGetObjectByHash),
     TmValidatorListCollection(TmValidatorListCollection),
     TmGetPeerShardInfoV2(TmGetPeerShardInfoV2),
+    TmTransactions(TmTransactions),
 }
 
 #[derive(Debug)]
@@ -209,6 +210,7 @@ impl Decoder for BinaryCodec {
                 42 => Payload::TmGetObjectByHash(Message::decode(&mut payload)?),
                 56 => Payload::TmValidatorListCollection(Message::decode(&mut payload)?),
                 61 => Payload::TmGetPeerShardInfoV2(Message::decode(&mut payload)?),
+                64 => Payload::TmTransactions(Message::decode(&mut payload)?),
                 _ => unimplemented!(),
             };
 
@@ -275,6 +277,9 @@ impl Encoder<Payload> for BinaryCodec {
                 msg.encoded_len() as u32,
                 MessageType::MtGetPeerShardInfoV2 as i32,
             ),
+            Payload::TmTransactions(msg) => {
+                (msg.encoded_len() as u32, MessageType::MtTransactions as i32)
+            }
         };
 
         let header_size = HEADER_LEN_UNCOMPRESSED;
@@ -312,6 +317,7 @@ impl Encoder<Payload> for BinaryCodec {
             Payload::TmHaveSet(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmValidatorListCollection(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmGetPeerShardInfoV2(msg) => (msg.encode(&mut bytes).unwrap(),),
+            Payload::TmTransactions(msg) => (msg.encode(&mut bytes).unwrap(),),
         };
 
         dst.put(&*bytes);
