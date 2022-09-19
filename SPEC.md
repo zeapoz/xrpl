@@ -138,5 +138,12 @@ The test index makes use of symbolic language in describing connection and messa
     query for transaction details via rpc, then via peer protocol.  
 
     <>
-    -> TmGetObjectByHash / OtTransactions
+    -> mtGET_OBJECTS with r#type == OtTransactions
     <- mtTRANSACTIONS
+
+### ZG-CONFORMANCE-009
+
+    The node should query for the transaction object after receiving a TmHaveTransactions packet.
+    <>
+    -> mtHAVE_TRANSACTIONS
+    <- TmGetObjectByHash
