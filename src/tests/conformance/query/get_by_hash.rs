@@ -4,7 +4,8 @@ use crate::{
     protocol::{
         codecs::binary::{BinaryMessage, Payload},
         proto::{
-            tm_get_object_by_hash::ObjectType, TmGetObjectByHash, TmIndexedObject, TmTransactions,
+            tm_get_object_by_hash::ObjectType, TmGetObjectByHash, TmHaveTransactions,
+            TmIndexedObject, TmTransactions,
         },
     },
     setup::node::build_stateful_builder,
@@ -69,6 +70,53 @@ async fn should_get_transaction_by_hash() {
         matches!(
             &m.payload,
             Payload::TmTransactions(TmTransactions {transactions}) if transactions.len() == 1
+        )
+    };
+    assert!(synth_node.expect_message(&check).await);
+    node.stop().expect("unable to stop stateful node");
+}
+
+#[tokio::test]
+async fn should_query_for_transactions_after_have_transactions() {
+    // ZG-CONFORMANCE-009
+    // Create stateful node.
+    let target = TempDir::new().expect("unable to create TempDir");
+    let mut node = build_stateful_builder(target.path().to_path_buf())
+        .expect("unable to get stateful builder")
+        // TODO consider moving `log_to_stdout` to builder state.
+        .start(false)
+        .await
+        .expect("unable to start stateful node");
+
+    // Wait for correct state and account data.
+    // TODO Add enum to represent node's states.
+    wait_for_state("proposing".into()).await;
+    let account_data = wait_for_account_data("rNGknFCRBZguXcPqC63k6xTZnonSe6ZuWt") // TODO make constant
+        .await
+        .expect("unable to get account data");
+    // TODO: consider moving transaction hash to some constant.
+    let tx = account_data.result.account_data.previous_transaction;
+
+    // Inform about transaction via peer protocol.
+    let mut tx_hash = [0u8; 32];
+    hex::decode_to_slice(&tx, &mut tx_hash[..]).expect("unable to decode transaction hash");
+    let payload = Payload::TmHaveTransactions(TmHaveTransactions {
+        hashes: vec![tx_hash.to_vec()],
+    });
+    let mut synth_node = SyntheticNode::new(&Default::default()).await;
+    synth_node
+        .connect(node.addr())
+        .await
+        .expect("unable to connect");
+    synth_node
+        .unicast(node.addr(), payload)
+        .expect("unable to send message");
+
+    // Check for TmGetObjectByHash query.
+    let check = |m: &BinaryMessage| {
+        matches!(
+            &m.payload,
+            Payload::TmGetObjectByHash(TmGetObjectByHash { query, objects, .. }) if objects.len() == 1  && *query && objects[0].hash.as_ref().unwrap() == &tx_hash
         )
     };
     assert!(synth_node.expect_message(&check).await);
