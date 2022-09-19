@@ -18,6 +18,7 @@ The Ziggurat implementation for XRPLF's `rippled` nodes.
 5. Run tests with `cargo +stable t -- --test-threads=1`.
 
 ### Initial state
+Specific tests require an initial node state to be set up.
 Follow the steps below to save an initial state that can be loaded later for other tests.
 
 #### Preparation (needs to be done once)
@@ -47,6 +48,13 @@ Follow the steps below to save an initial state that can be loaded later for oth
         "Account": "rNGknFCRBZguXcPqC63k6xTZnonSe6ZuWt",
         "Balance": "5000000000",
    ```
-5. Copy the node's files to directory referenced by constant `pub const NODE_STATE_DIR`, currently: `cp -a ~/.ziggurat/ripple/testnet/1 ~/.ziggurat/ripple/stateful`
+5. Copy the node's files to directory referenced by constant `pub const NODE_STATE_DIR`, currently:
+   ```
+   cp -a ~/.ziggurat/ripple/testnet/1/ ~/.ziggurat/ripple/stateful;
+   ```
 6. Now you can stop the test started in step 1.
-7. Remove the config file, it will be created when starting new node: `rm ~/.ziggurat/ripple/stateful/rippled.cfg`
+7. Perform cleanup:
+    ```
+    rm ~/.ziggurat/ripple/stateful/rippled.cfg;   # config file will be created when starting a new node
+    rm -rf ~/.ziggurat/ripple/testnet;            # not needed anymore
+    ```
