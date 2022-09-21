@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 /// Timeout when waiting for [Node](crate::setup::node::Node)'s start.
-pub const CONNECTION_TIMEOUT: Duration = Duration::from_secs(30);
+pub const CONNECTION_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Timeout when waiting for expected message / node's state.
 pub const EXPECTED_RESULT_TIMEOUT: Duration = Duration::from_secs(20);

@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[tokio::test]
-async fn handshake_when_node_receives_connection() {
+async fn c001_handshake_when_node_receives_connection() {
     // ZG-CONFORMANCE-001
 
     // crate::tools::synth_node::enable_tracing();
@@ -33,7 +33,7 @@ async fn handshake_when_node_receives_connection() {
 }
 
 #[tokio::test]
-async fn handshake_when_node_initiates_connection() {
+async fn c002_handshake_when_node_initiates_connection() {
     // ZG-CONFORMANCE-002
 
     // crate::tools::synth_node::enable_tracing();
