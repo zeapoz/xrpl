@@ -13,6 +13,7 @@ async fn node_should_query_for_shard_info_after_handshake() {
         |m: &BinaryMessage| matches!(&m.payload, Payload::TmGetPeerShardInfoV2(..));
     perform_response_test(Default::default(), &response_check).await;
 }
+
 #[tokio::test]
 #[should_panic]
 async fn node_should_not_query_for_shard_info_if_no_handshake() {

@@ -11,6 +11,7 @@ use tokio::{
     sync::{mpsc, mpsc::Receiver, oneshot},
     time::timeout,
 };
+use tracing::trace;
 
 use crate::{
     protocol::codecs::binary::{BinaryMessage, Payload},
@@ -20,6 +21,16 @@ use crate::{
         inner_node::InnerNode,
     },
 };
+
+/// Enables tracing for all [`SyntheticNode`] instances (usually scoped by test).
+pub fn enable_tracing() {
+    use tracing_subscriber::{fmt, EnvFilter};
+
+    fmt()
+        .with_test_writer()
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
+}
 
 pub struct SyntheticNode {
     inner: InnerNode,
@@ -48,6 +59,7 @@ impl SyntheticNode {
         addr: SocketAddr,
         message: Payload,
     ) -> io::Result<oneshot::Receiver<io::Result<()>>> {
+        trace!(parent: self.inner.node().span(), "unicast send msg to {addr}: {:?}", message);
         self.inner.unicast(addr, message)
     }
 
