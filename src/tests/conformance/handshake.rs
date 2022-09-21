@@ -10,7 +10,7 @@ use crate::{
 async fn handshake_when_node_receives_connection() {
     // ZG-CONFORMANCE-001
 
-    // crate::tools::synthetic_node::enable_tracing();
+    // crate::tools::synth_node::enable_tracing();
 
     // Build and start the Ripple node
     let tmp_dir = TempDir::new().expect("Can't build tmp dir");
@@ -36,7 +36,7 @@ async fn handshake_when_node_receives_connection() {
 async fn handshake_when_node_initiates_connection() {
     // ZG-CONFORMANCE-002
 
-    // crate::tools::synthetic_node::enable_tracing();
+    // crate::tools::synth_node::enable_tracing();
 
     // Start synthetic node.
     let synth_node = SyntheticNode::new(&Default::default()).await;
