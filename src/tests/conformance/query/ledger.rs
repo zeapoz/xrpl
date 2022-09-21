@@ -13,7 +13,8 @@ use crate::{
 };
 
 #[tokio::test]
-async fn should_respond_with_ledger_data_for_basic_info() {
+#[allow(non_snake_case)]
+async fn c004_t1_TM_GET_LEDGER_LiBase_get_basic_info() {
     // ZG-CONFORMANCE-004
     let payload = Payload::TmGetLedger(TmGetLedger {
         itype: TmLedgerInfoType::LiBase as i32,
@@ -29,8 +30,9 @@ async fn should_respond_with_ledger_data_for_basic_info() {
 }
 
 #[tokio::test]
-async fn should_respond_with_ledger_data_for_account_state_info() {
-    // ZG-CONFORMANCE-005
+#[allow(non_snake_case)]
+async fn c004_t2_TM_GET_LEDGER_LiAsNode_get_account_state_info() {
+    // ZG-CONFORMANCE-004
     let payload = Payload::TmGetLedger(TmGetLedger {
         itype: TmLedgerInfoType::LiAsNode as i32,
         ltype: Some(TmLedgerType::LtClosed as i32),

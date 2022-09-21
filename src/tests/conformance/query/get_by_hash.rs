@@ -16,8 +16,9 @@ use crate::{
 };
 
 #[tokio::test]
-async fn should_get_transaction_by_hash() {
-    // ZG-CONFORMANCE-008
+#[allow(non_snake_case)]
+async fn c007_TM_GET_OBJECT_BY_HASH_get_transaction_by_hash() {
+    // ZG-CONFORMANCE-007
     // Create stateful node.
     let target = TempDir::new().expect("unable to create TempDir");
     let mut node = build_stateful_builder(target.path().to_path_buf())
@@ -77,8 +78,9 @@ async fn should_get_transaction_by_hash() {
 }
 
 #[tokio::test]
-async fn should_query_for_transactions_after_have_transactions() {
-    // ZG-CONFORMANCE-009
+#[allow(non_snake_case)]
+async fn c008_TM_HAVE_TRANSACTIONS_query_for_transactions_after_have_transactions() {
+    // ZG-CONFORMANCE-008
     // Create stateful node.
     let target = TempDir::new().expect("unable to create TempDir");
     let mut node = build_stateful_builder(target.path().to_path_buf())
