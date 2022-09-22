@@ -8,7 +8,7 @@ use std::{
 
 use anyhow::Result;
 use fs_extra::dir::{copy, CopyOptions};
-use tokio::io::AsyncWriteExt;
+use tokio::{io::AsyncWriteExt, net::TcpStream, time::Duration};
 
 use crate::{
     setup::{
@@ -23,11 +23,15 @@ use crate::{
 
 async fn wait_for_start(addr: SocketAddr) {
     tokio::time::timeout(CONNECTION_TIMEOUT, async move {
+        const SLEEP: Duration = Duration::from_millis(10);
+
         loop {
-            if let Ok(mut stream) = tokio::net::TcpStream::connect(addr).await {
+            if let Ok(mut stream) = TcpStream::connect(addr).await {
                 stream.shutdown().await.unwrap();
                 break;
             }
+
+            tokio::time::sleep(SLEEP).await;
         }
     })
     .await
