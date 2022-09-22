@@ -14,6 +14,8 @@ For load testing, "reasonable load" and "heavy load" will need to be defined.
 
 The tests can be run with `cargo test` once Ziggurat is properly configured and dependencies (node instance to be tested) are satisfied. See the [README](README.md) for details.
 
+Tests are grouped into the following categories: conformance, performance, and resistance. Each test is named after the category it belongs to, in addition to what's being tested. For example, `c001_handshake_when_node_receives_connection` is the first conformance test and tests the handshake behavior on the receiving end. The full naming convention is: `id_part_t(subtest_no)_(message type)_(extra_test_desc)`.
+
 # Types of Tests
 
 ## Conformance
@@ -104,44 +106,37 @@ The test index makes use of symbolic language in describing connection and messa
     <- pong response with the same `sequence` number
 
 ### ZG-CONFORMANCE-004
-    
-    The node responds with mtLEDGER_DATA for mtGET_LEDGER with iType == LiBase.
-    
+
+    The node responds with mtLEDGER_DATA for mtGET_LEDGER with different iType types.
+    iType types used here are LiBase and LiAsNode.
+
     <>
-    -> mtGET_LEDGER with iType == LiBase
+    -> mtGET_LEDGER (iType)
     <- mtLEDGER_DATA
 
 ### ZG-CONFORMANCE-005
-
-    The node responds with mtLEDGER_DATA for mtGET_LEDGER with iType == LiAsNode.
-
-    <>
-    -> mtGET_LEDGER with iType == LiAsNode
-    <- mtLEDGER_DATA
-
-### ZG-CONFORMANCE-006
 
     The node requests mtGET_PEER_SHARD_INFO_V2 after connection and handshake.
 
     <>
     <- mtGET_PEER_SHARD_INFO_V2
 
-### ZG-CONFORMANCE-007
+### ZG-CONFORMANCE-006
 
     The node should *NOT* request mtGET_PEER_SHARD_INFO_V2 after connection if there was no handshake.
     The test waits for the predefined amount of time, ensuring no such messages were received.
 
-### ZG-CONFORMANCE-008
-    
+### ZG-CONFORMANCE-007
+
     The node should respond with transaction details after receiveing TmGetObjectByHash / OtTransactions request.
     Normally the node does not respond with transaction details if the transaction is not in its cache. In this test we first
-    query for transaction details via rpc, then via peer protocol.  
+    query for transaction details via rpc, then via peer protocol.
 
     <>
     -> mtGET_OBJECTS with r#type == OtTransactions
     <- mtTRANSACTIONS
 
-### ZG-CONFORMANCE-009
+### ZG-CONFORMANCE-008
 
     The node should query for the transaction object after receiving a TmHaveTransactions packet.
     <>

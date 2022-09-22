@@ -15,7 +15,8 @@ use crate::{
 };
 
 #[tokio::test]
-async fn should_respond_with_pong_for_ping() {
+#[allow(non_snake_case)]
+async fn c003_TM_PING_expect_pong() {
     // ZG-CONFORMANCE-003
     // Send `ping` message
     let seq = thread_rng().next_u32();
