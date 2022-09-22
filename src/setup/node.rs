@@ -22,7 +22,7 @@ use crate::{
 };
 
 async fn wait_for_start(addr: SocketAddr) {
-    tokio::time::timeout(CONNECTION_TIMEOUT, async move {
+    tokio::time::timeout(CONNECTION_TIMEOUT, async {
         const SLEEP: Duration = Duration::from_millis(10);
 
         loop {
