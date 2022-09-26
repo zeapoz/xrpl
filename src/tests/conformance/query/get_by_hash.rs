@@ -74,6 +74,8 @@ async fn c007_TM_GET_OBJECT_BY_HASH_get_transaction_by_hash() {
         )
     };
     assert!(synth_node.expect_message(&check).await);
+
+    synth_node.shut_down().await;
     node.stop().expect("unable to stop stateful node");
 }
 
@@ -122,5 +124,7 @@ async fn c008_TM_HAVE_TRANSACTIONS_query_for_transactions_after_have_transaction
         )
     };
     assert!(synth_node.expect_message(&check).await);
+
+    synth_node.shut_down().await;
     node.stop().expect("unable to stop stateful node");
 }
