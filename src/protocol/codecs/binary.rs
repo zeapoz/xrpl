@@ -56,6 +56,7 @@ pub enum Payload {
     TmHaveSet(TmHaveTransactionSet),
     TmValidation(TmValidation),
     TmGetObjectByHash(TmGetObjectByHash),
+    TmSquelch(TmSquelch),
     TmValidatorListCollection(TmValidatorListCollection),
     TmGetPeerShardInfoV2(TmGetPeerShardInfoV2),
     TmTransactions(TmTransactions),
@@ -209,6 +210,7 @@ impl Decoder for BinaryCodec {
                 35 => Payload::TmHaveSet(Message::decode(&mut payload)?),
                 41 => Payload::TmValidation(Message::decode(&mut payload)?),
                 42 => Payload::TmGetObjectByHash(Message::decode(&mut payload)?),
+                55 => Payload::TmSquelch(Message::decode(&mut payload)?),
                 56 => Payload::TmValidatorListCollection(Message::decode(&mut payload)?),
                 61 => Payload::TmGetPeerShardInfoV2(Message::decode(&mut payload)?),
                 63 => Payload::TmHaveTransactions(Message::decode(&mut payload)?),
@@ -270,6 +272,7 @@ impl Encoder<Payload> for BinaryCodec {
             Payload::TmGetObjectByHash(msg) => {
                 (msg.encoded_len() as u32, MessageType::MtGetObjects as i32)
             }
+            Payload::TmSquelch(msg) => (msg.encoded_len() as u32, MessageType::MtSquelch as i32),
             Payload::TmHaveSet(msg) => (msg.encoded_len() as u32, MessageType::MtHaveSet as i32),
             Payload::TmValidatorListCollection(msg) => (
                 msg.encoded_len() as u32,
@@ -320,6 +323,7 @@ impl Encoder<Payload> for BinaryCodec {
             Payload::TmStatusChange(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmValidation(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmGetObjectByHash(msg) => (msg.encode(&mut bytes).unwrap(),),
+            Payload::TmSquelch(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmHaveSet(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmValidatorListCollection(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmGetPeerShardInfoV2(msg) => (msg.encode(&mut bytes).unwrap(),),

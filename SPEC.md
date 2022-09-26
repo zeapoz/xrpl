@@ -142,3 +142,11 @@ The test index makes use of symbolic language in describing connection and messa
     <>
     -> mtHAVE_TRANSACTIONS
     <- TmGetObjectByHash
+
+### ZG-CONFORMANCE-009
+
+    The node should ignore the squelch message for its validator public key.
+    <>
+    <- mtPROPOSE_LEDGER with node's node_pub_key
+    -> mtSQUELCH (node_pub_key)
+    <- mtPROPOSE_LEDGER with node's node_pub_key
