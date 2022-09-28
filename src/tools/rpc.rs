@@ -5,7 +5,7 @@ use reqwest::{
     Client, RequestBuilder,
 };
 use serde::{Deserialize, Serialize};
-use tokio::time::error::Elapsed;
+use tokio::time::{error::Elapsed, sleep, timeout};
 
 use crate::tools::constants::{EXPECTED_RESULT_TIMEOUT, JSON_RPC_ADDRESS};
 
@@ -35,6 +35,19 @@ pub async fn wait_for_account_data(
                 return account_data;
             }
             tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    })
+    .await
+}
+
+pub async fn wait_for_ledger_info() -> Result<RpcResponse<LedgerInfoResponse>, Elapsed> {
+    timeout(EXPECTED_RESULT_TIMEOUT, async {
+        loop {
+            if let Ok(info) = get_ledger_info().await {
+                break info;
+            } else {
+                sleep(Duration::from_millis(250)).await;
+            }
         }
     })
     .await
@@ -71,6 +84,37 @@ pub async fn get_transaction_info(
         .error_for_status()?
         .json::<RpcResponse<TransactionInfoResponse>>()
         .await?)
+}
+
+pub async fn get_ledger_info() -> anyhow::Result<RpcResponse<LedgerInfoResponse>> {
+    let request = RpcRequest {
+        id: String::from("1"),
+        method: String::from("ledger"),
+        api_version: API_VERSION,
+        params: vec![LedgerInfoRequest {
+            ledger_index: "validated".to_string(),
+            accounts: false,
+            full: false,
+            transactions: false,
+            expand: false,
+            owner_funds: false,
+        }],
+    };
+    let response = build_json_request(&request).send().await?;
+    Ok(response
+        .error_for_status()?
+        .json::<RpcResponse<LedgerInfoResponse>>()
+        .await?)
+}
+
+#[derive(Serialize)]
+struct LedgerInfoRequest {
+    ledger_index: String,
+    accounts: bool,
+    full: bool,
+    transactions: bool,
+    expand: bool,
+    owner_funds: bool,
 }
 
 fn build_transaction_info_request(transaction: String) -> RpcRequest<Vec<TransactionInfoRequest>> {
@@ -173,4 +217,15 @@ pub struct AccountDataResponse {
     #[allow(dead_code)]
     #[serde(rename(deserialize = "PreviousTxnID"))]
     pub previous_transaction: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct LedgerInfoResponse {
+    pub ledger: LedgerResponseData,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct LedgerResponseData {
+    pub ledger_hash: String,
+    pub ledger_index: String,
 }
