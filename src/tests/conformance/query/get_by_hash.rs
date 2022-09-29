@@ -8,7 +8,7 @@ use crate::{
             TmIndexedObject, TmTransactions,
         },
     },
-    setup::node::build_stateful_builder,
+    setup::node::{Node, NodeType},
     tools::{
         rpc::{get_transaction_info, wait_for_account_data, wait_for_state},
         synth_node::SyntheticNode,
@@ -19,11 +19,11 @@ use crate::{
 #[allow(non_snake_case)]
 async fn c007_TM_GET_OBJECT_BY_HASH_get_transaction_by_hash() {
     // ZG-CONFORMANCE-007
+
     // Create stateful node.
     let target = TempDir::new().expect("unable to create TempDir");
-    let mut node = build_stateful_builder(target.path().to_path_buf())
-        .expect("unable to get stateful builder")
-        .start(false)
+    let mut node = Node::builder()
+        .start(target.path(), NodeType::Stateful, false)
         .await
         .expect("unable to start stateful node");
 
@@ -83,12 +83,12 @@ async fn c007_TM_GET_OBJECT_BY_HASH_get_transaction_by_hash() {
 #[allow(non_snake_case)]
 async fn c008_TM_HAVE_TRANSACTIONS_query_for_transactions_after_have_transactions() {
     // ZG-CONFORMANCE-008
+
     // Create stateful node.
     let target = TempDir::new().expect("unable to create TempDir");
-    let mut node = build_stateful_builder(target.path().to_path_buf())
-        .expect("unable to get stateful builder")
+    let mut node = Node::builder()
         // TODO consider moving `log_to_stdout` to builder state.
-        .start(false)
+        .start(target.path(), NodeType::Stateful, false)
         .await
         .expect("unable to start stateful node");
 

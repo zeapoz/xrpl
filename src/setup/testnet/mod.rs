@@ -11,22 +11,28 @@ use std::{
 use crate::{
     setup::{
         build_ripple_work_path,
-        node::{Node, NodeBuilder},
+        node::{Node, NodeBuilder, NodeType},
     },
-    tools::constants::{DEFAULT_PORT, TESTNET_NETWORK_ID},
+    tools::constants::{DEFAULT_PORT, TESTNET_NETWORK_ID, VALIDATORS_FILE_NAME},
 };
 
 /// Testnet's directory for nodes' configs.
 const TESTNET_DIR: &str = "testnet";
-
-/// Validators file name.
-const VALIDATORS_FILE_NAME: &str = "validators.txt";
 
 const VALIDATOR_KEYS: [&str; 3] = [
     "nHUSqn9qjEF7JJkVqvY7BFLMKdqP5KLLEjo5oB4QH43ADDndRawB",
     "nHUEsvSFTf1Snr7ZUdLxjcMW6PKcMrwwXCGZBg6xb1ePG8R4C3TS",
     "nHUuYdS49cPfRmCXPTwu7MVVFZFFmfG7y5sRttirVMhwuD7xStQp",
 ];
+
+pub fn get_validator_token(file_idx: usize) -> String {
+    match file_idx {
+        0 => include_str!("validator_token0.txt").into(),
+        1 => include_str!("validator_token1.txt").into(),
+        2 => include_str!("validator_token2.txt").into(),
+        _ => panic!("validator token file does not exist"),
+    }
+}
 
 /// A struct to conveniently start and stop a small testnet.
 pub struct TestNet {
@@ -48,17 +54,17 @@ impl TestNet {
                 NodeSetup::new(
                     "127.0.0.1".parse().unwrap(),
                     VALIDATOR_KEYS[0].into(),
-                    include_str!("token1.txt").into(),
+                    get_validator_token(0),
                 ),
                 NodeSetup::new(
                     "127.0.0.2".parse().unwrap(),
                     VALIDATOR_KEYS[1].into(),
-                    include_str!("token2.txt").into(),
+                    get_validator_token(1),
                 ),
                 NodeSetup::new(
                     "127.0.0.3".parse().unwrap(),
                     VALIDATOR_KEYS[2].into(),
-                    include_str!("token3.txt").into(),
+                    get_validator_token(2),
                 ),
             ],
             running: vec![],
@@ -71,9 +77,10 @@ impl TestNet {
     pub async fn start(&mut self) -> anyhow::Result<()> {
         self.cleanup().await?;
         let validators_contents = self.build_validators_file_contents().await?;
+
         for (i, setup) in self.setups.iter().enumerate() {
             let node = self
-                .start_node(&(i + 1).to_string(), setup, &validators_contents)
+                .start_node(&i.to_string(), setup, &validators_contents)
                 .await?;
             self.running.push(node);
         }
@@ -100,7 +107,7 @@ impl TestNet {
         Ok(config_str)
     }
 
-    // Removes ~/.ziggurat/testnet directory
+    // Removes ~/.ziggurat/ripple/testnet directory
     async fn cleanup(&self) -> io::Result<()> {
         if let Err(e) = fs::remove_dir_all(&self.path) {
             // Directory may not exist, so we let that error through
@@ -119,13 +126,18 @@ impl TestNet {
         validators_contents: &str,
     ) -> anyhow::Result<Node> {
         let target_path = self.path.join(suffix);
-        let builder = NodeBuilder::new(None, target_path.clone())?
+        if !target_path.exists() {
+            fs::create_dir_all(&target_path)?;
+        }
+
+        write_validators_file(&target_path, validators_contents).await?;
+        NodeBuilder::stateless()?
             .initial_peers(self.collect_other_peers(setup))
             .set_addr(SocketAddr::new(setup.ip, DEFAULT_PORT))
             .validator_token(setup.validator_token.clone())
-            .network_id(TESTNET_NETWORK_ID);
-        write_validators_file(&target_path, validators_contents).await?;
-        builder.start(self.use_stdout).await
+            .network_id(TESTNET_NETWORK_ID)
+            .start(&target_path, NodeType::Testnet, self.use_stdout)
+            .await
     }
 
     // Builds a list of peers for the node. Each node has two peers (the other nodes in the testnet).
