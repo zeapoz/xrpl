@@ -37,7 +37,7 @@ use crate::{
 async fn c009_TM_SQUELCH_cannot_squelch_peer_ledger_proposals() {
     // ZG-CONFORMANCE-009
 
-    // Time we shall wait for a TmProposeLedger message.
+    // Time we shall wait for a TmProposeLedger message. TODO: Use EXPECTED_RESULT_TIMEOUT constant instead
     const WAIT_MSG_TIMEOUT: Duration = Duration::from_secs(10);
     const SQUELCH_DURATION: u32 = 6 * 60; // Six minutes should be an ample time value.
     const HANDLE_REMAINING_PROPOSE_MSGS: Duration = Duration::from_millis(300);
@@ -46,7 +46,7 @@ async fn c009_TM_SQUELCH_cannot_squelch_peer_ledger_proposals() {
     let target = TempDir::new().expect("unable to create TempDir");
     let mut node = build_stateful_builder(target.path().to_path_buf())
         .expect("unable to get stateful builder")
-        .start(true)
+        .start(false)
         .await
         .expect("unable to start stateful node");
 

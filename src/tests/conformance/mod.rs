@@ -10,6 +10,7 @@ mod handshake;
 mod query;
 mod squelch;
 mod stateful;
+mod status;
 
 async fn perform_response_test(
     config: TestConfig,

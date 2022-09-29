@@ -150,3 +150,12 @@ The test index makes use of symbolic language in describing connection and messa
     <- mtPROPOSE_LEDGER with node's node_pub_key
     -> mtSQUELCH (node_pub_key)
     <- mtPROPOSE_LEDGER with node's node_pub_key
+
+### ZG-CONFORMANCE-010
+
+    The node should send TmStatusChange message containing ledger info.
+    This message should be sent without any explicit requests.
+    To ensure ledger correctness, the test asks for its information via RPC first 
+    and compares the results with the TmStatusChange payload. 
+    <>
+    <- TmStatusChange with the correct ledger hash and sequence
