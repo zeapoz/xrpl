@@ -19,7 +19,7 @@ pub async fn wait_for_state(state: String) {
                     break;
                 }
             }
-            tokio::time::sleep(Duration::from_millis(100)).await;
+            sleep(Duration::from_millis(100)).await;
         }
     })
     .await
@@ -34,7 +34,7 @@ pub async fn wait_for_account_data(
             if let Ok(account_data) = get_account_info(account).await {
                 return account_data;
             }
-            tokio::time::sleep(Duration::from_millis(100)).await;
+            sleep(Duration::from_millis(100)).await;
         }
     })
     .await
@@ -44,46 +44,37 @@ pub async fn wait_for_ledger_info() -> Result<RpcResponse<LedgerInfoResponse>, E
     timeout(EXPECTED_RESULT_TIMEOUT, async {
         loop {
             if let Ok(info) = get_ledger_info().await {
-                break info;
-            } else {
-                sleep(Duration::from_millis(250)).await;
+                return info;
             }
+            sleep(Duration::from_millis(250)).await;
         }
     })
     .await
 }
 
+async fn execute_rpc<T: for<'a> Deserialize<'a>>(body: &impl Serialize) -> anyhow::Result<T> {
+    let response = build_json_request(body).send().await?;
+    Ok(response.error_for_status()?.json::<T>().await?)
+}
+
 async fn get_account_info(account: &str) -> anyhow::Result<RpcResponse<AccountInfoResponse>> {
-    let response = build_json_request(&build_account_info_request(account))
-        .send()
-        .await?;
-    Ok(response
-        .error_for_status()?
-        .json::<RpcResponse<AccountInfoResponse>>()
-        .await?)
+    execute_rpc(&build_account_info_request(account)).await
 }
 
 async fn get_server_info() -> anyhow::Result<RpcResponse<ResultResponse>> {
-    let response = build_json_request(&build_server_info_request())
-        .send()
-        .await?;
-    Ok(response
-        .error_for_status()?
-        .json::<RpcResponse<ResultResponse>>()
-        .await?)
+    let request: RpcRequest<Option<()>> = RpcRequest {
+        id: String::from("1"),
+        method: String::from("server_info"),
+        api_version: API_VERSION,
+        params: None,
+    };
+    execute_rpc(&request).await
 }
 
-// TODO make get_*_info generic
 pub async fn get_transaction_info(
     transaction: String,
 ) -> anyhow::Result<RpcResponse<TransactionInfoResponse>> {
-    let response = build_json_request(&build_transaction_info_request(transaction))
-        .send()
-        .await?;
-    Ok(response
-        .error_for_status()?
-        .json::<RpcResponse<TransactionInfoResponse>>()
-        .await?)
+    execute_rpc(&build_transaction_info_request(transaction)).await
 }
 
 pub async fn get_ledger_info() -> anyhow::Result<RpcResponse<LedgerInfoResponse>> {
@@ -100,11 +91,7 @@ pub async fn get_ledger_info() -> anyhow::Result<RpcResponse<LedgerInfoResponse>
             owner_funds: false,
         }],
     };
-    let response = build_json_request(&request).send().await?;
-    Ok(response
-        .error_for_status()?
-        .json::<RpcResponse<LedgerInfoResponse>>()
-        .await?)
+    execute_rpc(&request).await
 }
 
 #[derive(Serialize)]
@@ -135,15 +122,6 @@ fn build_json_request(request: &impl Serialize) -> RequestBuilder {
         .header(CONTENT_TYPE, "application/json")
         .header(ACCEPT, "application/json")
         .json(request)
-}
-
-fn build_server_info_request() -> RpcRequest<Option<()>> {
-    RpcRequest {
-        id: String::from("1"),
-        method: String::from("server_info"),
-        api_version: API_VERSION,
-        params: None,
-    }
 }
 
 fn build_account_info_request(account: &str) -> RpcRequest<Vec<AccountInfoRequestParams>> {
