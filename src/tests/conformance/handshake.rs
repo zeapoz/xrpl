@@ -1,7 +1,7 @@
 use tempfile::TempDir;
 
 use crate::{
-    setup::node::Node,
+    setup::node::{Node, NodeType},
     tools::{constants::CONNECTION_TIMEOUT, synth_node::SyntheticNode},
     wait_until,
 };
@@ -13,9 +13,9 @@ async fn c001_handshake_when_node_receives_connection() {
     // crate::tools::synth_node::enable_tracing();
 
     // Build and start the Ripple node
-    let tmp_dir = TempDir::new().expect("Can't build tmp dir");
-    let mut node = Node::builder(None, tmp_dir.path().to_path_buf())
-        .start(false)
+    let target = TempDir::new().expect("Can't build tmp dir");
+    let mut node = Node::builder()
+        .start(target.path(), NodeType::Stateless, false)
         .await
         .expect("Unable to start node");
 
@@ -42,10 +42,10 @@ async fn c002_handshake_when_node_initiates_connection() {
     let synth_node = SyntheticNode::new(&Default::default()).await;
 
     // Build and start the Ripple node and set the synth node as an initial peer.
-    let tmp_dir = TempDir::new().expect("Can't build tmp dir");
-    let mut node = Node::builder(None, tmp_dir.path().to_path_buf())
+    let target = TempDir::new().expect("Can't build tmp dir");
+    let mut node = Node::builder()
         .initial_peers(vec![synth_node.listening_addr().unwrap()])
-        .start(false)
+        .start(target.path(), NodeType::Stateless, false)
         .await
         .expect("Unable to start node");
 

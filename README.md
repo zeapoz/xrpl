@@ -19,16 +19,24 @@ The Ziggurat implementation for XRPLF's `rippled` nodes.
 
 ### Initial state
 Specific tests require an initial node state to be set up.
-Follow the steps below to save an initial state that can be loaded later for other tests.
+Follow the steps below to save an initial state that can be loaded later in certain tests.
 
 #### Preparation (needs to be done once)
 1. Make sure you have python3 installed. You should be able to run `python3 --version`.
 2. Install `xrpl` python lib: `pip3 install xrpl-py`.
 
+##### Mac users
+Make sure these two `127.0.0.x` (where `x != 1`) addresses are enabled:
+```
+    sudo ifconfig lo0 alias 127.0.0.2 up;
+    sudo ifconfig lo0 alias 127.0.0.3 up;
+```
+
 #### Transferring XRP from the Genesis account to a new account and saving the state
 1. In one terminal run test `cargo +stable t setup::testnet::test::run_testnet -- --ignored`.
    The test will start a local testnet and will keep it alive for 10 minutes. Ensure that you complete the
    following steps while above test is running.
+
 2. Run `python3 tools/account_info.py` to monitor state of the accounts. 
    Wait until `ResponseStatus.SUCCESS` is reported for the genesis account. The response should include:
    ```
@@ -48,13 +56,13 @@ Follow the steps below to save an initial state that can be loaded later for oth
         "Account": "rNGknFCRBZguXcPqC63k6xTZnonSe6ZuWt",
         "Balance": "5000000000",
    ```
-5. Copy the node's files to directory referenced by constant `pub const NODE_STATE_DIR`, currently:
+5. Copy the node's files to directory referenced by constant `pub const STATEFUL_NODES_DIR`, currently:
    ```
-   cp -a ~/.ziggurat/ripple/testnet/1/ ~/.ziggurat/ripple/stateful;
+   cp -a ~/.ziggurat/ripple/testnet/ ~/.ziggurat/ripple/stateful;
    ```
 6. Now you can stop the test started in step 1.
 7. Perform cleanup:
-    ```
-    rm ~/.ziggurat/ripple/stateful/rippled.cfg;   # config file will be created when starting a new node
-    rm -rf ~/.ziggurat/ripple/testnet;            # not needed anymore
-    ```
+   ```
+   rm ~/.ziggurat/ripple/stateful/*/rippled.cfg;  # config files will be created when nodes are started
+   rm -rf ~/.ziggurat/ripple/testnet;             # not needed anymore
+   ```
