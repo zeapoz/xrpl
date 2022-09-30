@@ -45,7 +45,7 @@ async fn c009_TM_SQUELCH_cannot_squelch_peer_ledger_proposals() {
     // Create a stateful node.
     let target = TempDir::new().expect("unable to create TempDir");
     let mut node = Node::builder()
-        .start(target.path(), NodeType::Stateful, false)
+        .start(target.path(), NodeType::Stateful)
         .await
         .expect("unable to start stateful node");
 

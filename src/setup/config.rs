@@ -29,6 +29,8 @@ pub const ZIGGURAT_CONFIG: &str = "config.toml";
 pub const RIPPLED_CONFIG: &str = "rippled.cfg";
 pub const RIPPLED_DIR: &str = "rippled";
 
+const RPC_PORT: u32 = 5005;
+
 /// Convenience struct for reading Ziggurat's configuration file.
 #[derive(Deserialize)]
 struct ConfigFile {
@@ -87,7 +89,7 @@ impl RippledConfigFile {
         writeln!(&mut config_str)?;
 
         writeln!(&mut config_str, "[port_rpc_admin_local]")?;
-        writeln!(&mut config_str, "port = 5005")?; // TODO take from constant
+        writeln!(&mut config_str, "port = {}", RPC_PORT)?;
         writeln!(&mut config_str, "ip = {}", config.local_addr.ip())?;
         writeln!(&mut config_str, "admin = {}", config.local_addr.ip())?;
         writeln!(&mut config_str, "protocol = http")?;

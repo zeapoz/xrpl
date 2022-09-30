@@ -85,12 +85,7 @@ impl NodeBuilder {
     }
 
     /// Creates [Node] according to configuration and starts its process.
-    pub async fn start(
-        &mut self,
-        target: &Path,
-        node_type: NodeType,
-        log_to_stdout: bool,
-    ) -> Result<Node> {
+    pub async fn start(&mut self, target: &Path, node_type: NodeType) -> Result<Node> {
         if !target.exists() {
             fs::create_dir_all(&target)?;
         }
@@ -126,7 +121,7 @@ impl NodeBuilder {
         self.meta.start_args.push("--conf".into());
         self.meta.start_args.push(rippled_cfg_path.into());
 
-        let node = self.start_node(log_to_stdout);
+        let node = self.start_node();
         wait_for_start(node.config.local_addr).await;
 
         Ok(node)
@@ -164,11 +159,18 @@ impl NodeBuilder {
         self
     }
 
-    fn start_node(&self, log_to_stdout: bool) -> Node {
-        let (stdout, stderr) = match log_to_stdout {
+    /// Sets whether to log the node's output to Ziggurat's output stream.
+    pub fn log_to_stdout(mut self, log_to_stdout: bool) -> Self {
+        self.conf.log_to_stdout = log_to_stdout;
+        self
+    }
+
+    fn start_node(&self) -> Node {
+        let (stdout, stderr) = match self.conf.log_to_stdout {
             true => (Stdio::inherit(), Stdio::inherit()),
             false => (Stdio::null(), Stdio::null()),
         };
+
         let child = Command::new(&self.meta.start_command)
             .current_dir(&self.meta.path)
             .args(&self.meta.start_args)
@@ -177,6 +179,7 @@ impl NodeBuilder {
             .stderr(stderr)
             .spawn()
             .expect("node failed to start");
+
         Node {
             child,
             meta: self.meta.clone(),
@@ -198,6 +201,8 @@ pub struct NodeConfig {
     pub validator_token: Option<String>,
     /// Network's id to form an isolated testnet.
     pub network_id: Option<u32>,
+    /// Setting this option to true will enable node logging to stdout.
+    pub log_to_stdout: bool,
 }
 
 impl Default for NodeConfig {
@@ -208,6 +213,7 @@ impl Default for NodeConfig {
             max_peers: 0,
             validator_token: None,
             network_id: None,
+            log_to_stdout: false,
         }
     }
 }

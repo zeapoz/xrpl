@@ -19,7 +19,7 @@ async fn perform_response_test(
     // Build and start Ripple node
     let target = TempDir::new().expect("Unable to create TempDir");
     let mut node = Node::builder()
-        .start(target.path(), NodeType::Stateless, false)
+        .start(target.path(), NodeType::Stateless)
         .await
         .unwrap();
 
