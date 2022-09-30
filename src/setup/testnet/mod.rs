@@ -136,7 +136,8 @@ impl TestNet {
             .set_addr(SocketAddr::new(setup.ip, DEFAULT_PORT))
             .validator_token(setup.validator_token.clone())
             .network_id(TESTNET_NETWORK_ID)
-            .start(&target_path, NodeType::Testnet, self.use_stdout)
+            .log_to_stdout(self.use_stdout)
+            .start(&target_path, NodeType::Testnet)
             .await
     }
 

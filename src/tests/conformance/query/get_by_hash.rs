@@ -23,7 +23,7 @@ async fn c007_TM_GET_OBJECT_BY_HASH_get_transaction_by_hash() {
     // Create stateful node.
     let target = TempDir::new().expect("unable to create TempDir");
     let mut node = Node::builder()
-        .start(target.path(), NodeType::Stateful, false)
+        .start(target.path(), NodeType::Stateful)
         .await
         .expect("unable to start stateful node");
 
@@ -87,8 +87,7 @@ async fn c008_TM_HAVE_TRANSACTIONS_query_for_transactions_after_have_transaction
     // Create stateful node.
     let target = TempDir::new().expect("unable to create TempDir");
     let mut node = Node::builder()
-        // TODO consider moving `log_to_stdout` to builder state.
-        .start(target.path(), NodeType::Stateful, false)
+        .start(target.path(), NodeType::Stateful)
         .await
         .expect("unable to start stateful node");
 
