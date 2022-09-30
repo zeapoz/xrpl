@@ -13,7 +13,7 @@ async fn should_start_stop_stateful_node() {
     let target = TempDir::new().expect("unable to create TempDir");
 
     let mut node = Node::builder()
-        .start(target.path(), NodeType::Stateful, false)
+        .start(target.path(), NodeType::Stateful)
         .await
         .expect("unable to start stateful node");
     wait_for_state("proposing".into()).await;
