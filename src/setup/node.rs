@@ -2,23 +2,25 @@ use std::{
     collections::HashSet,
     fs, io,
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::{Child, Command, Stdio},
 };
 
 use anyhow::Result;
-use fs_extra::dir::{copy, CopyOptions};
+use fs_extra::{dir, file};
 use tokio::{io::AsyncWriteExt, net::TcpStream, time::Duration};
 
 use crate::{
     setup::{
         build_ripple_work_path,
         config::{
-            NodeMetaData, RippledConfigFile, NODE_STATE_DIR, RIPPLED_CONFIG, RIPPLE_SETUP_DIR,
+            NodeMetaData, RippledConfigFile, RIPPLED_CONFIG, RIPPLE_SETUP_DIR, STATEFUL_NODES_DIR,
         },
-        testnet::TestNet,
+        testnet::get_validator_token,
     },
-    tools::constants::{CONNECTION_TIMEOUT, DEFAULT_PORT, TESTNET_NETWORK_ID},
+    tools::constants::{
+        CONNECTION_TIMEOUT, DEFAULT_PORT, TESTNET_NETWORK_ID, VALIDATORS_FILE_NAME,
+    },
 };
 
 async fn wait_for_start(addr: SocketAddr) {
@@ -43,37 +45,90 @@ pub enum ChildExitCode {
     ErrorCode(Option<i32>),
 }
 
+/// Node type is used to select different startup configurations.
+pub enum NodeType {
+    /// A temporary node used to store ledger data for stateful nodes. Should not be used otherwise.
+    Testnet,
+    /// A non-validator node without any preloaded data.
+    Stateless,
+    /// A validator node with a preloaded ledger data.
+    Stateful,
+}
+
 pub struct NodeBuilder {
     conf: NodeConfig,
     meta: NodeMetaData,
 }
 
 impl NodeBuilder {
-    /// Creates new [NodeBuilder]. Initial state is taken from `state` path, the node will run in `target` path.
-    pub fn new(state: Option<PathBuf>, target: PathBuf) -> Result<Self> {
-        if !target.exists() {
-            fs::create_dir_all(&target)?;
-        }
-        let mut copy_options = CopyOptions::new();
-        copy_options.content_only = true;
-        copy_options.overwrite = true;
+    /// Creates new [NodeBuilder] which can handle stateless nodes.
+    pub fn stateless() -> anyhow::Result<Self> {
         let setup_path = build_ripple_work_path()?.join(RIPPLE_SETUP_DIR);
-        copy(&setup_path, &target, &copy_options)?;
-        if let Some(source) = state {
-            copy(&source, &target, &copy_options)?;
-        }
-        let conf = NodeConfig::new(target);
-        let meta = NodeMetaData::new(conf.path.clone())?;
+
+        let conf = NodeConfig::default();
+        let meta = NodeMetaData::new(setup_path)?;
         Ok(Self { conf, meta })
     }
 
-    /// Crates [Node] according to configuration and starts its process.
-    pub async fn start(self, log_to_stdout: bool) -> Result<Node> {
-        let content = RippledConfigFile::generate(&self.conf)?;
-        let path = self.conf.path.join(RIPPLED_CONFIG);
-        fs::write(path, content)?;
+    /// Creates new [NodeBuilder] which can handle stateful nodes.
+    pub fn stateful() -> anyhow::Result<Self> {
+        Ok(Self::stateless()
+            .expect("Failed to create a node builder")
+            .network_id(TESTNET_NETWORK_ID)
+            .validator_token(get_validator_token(0))
+            .add_args(vec![
+                "--valid".into(),
+                "--quorum".into(),
+                "1".into(),
+                "--load".into(),
+            ]))
+    }
+
+    /// Creates [Node] according to configuration and starts its process.
+    pub async fn start(
+        &mut self,
+        target: &Path,
+        node_type: NodeType,
+        log_to_stdout: bool,
+    ) -> Result<Node> {
+        if !target.exists() {
+            fs::create_dir_all(&target)?;
+        }
+
+        match node_type {
+            NodeType::Stateful => {
+                let source = get_stateful_node_path()?;
+
+                let mut copy_options = dir::CopyOptions::new();
+                copy_options.content_only = true;
+                copy_options.overwrite = true;
+                dir::copy(&source, &target, &copy_options)?;
+            }
+            NodeType::Stateless => {
+                let setup_path = build_ripple_work_path()?.join(RIPPLE_SETUP_DIR);
+                let validators_file_src = setup_path.join(VALIDATORS_FILE_NAME);
+                let validators_file_dst = target.join(VALIDATORS_FILE_NAME);
+
+                let copy_options = file::CopyOptions::new();
+                file::copy(&validators_file_src, &validators_file_dst, &copy_options)?;
+
+                self.conf.network_id = None;
+                self.conf.validator_token = None;
+                self.meta = NodeMetaData::new(setup_path)?; // Reset args
+            }
+            NodeType::Testnet => (),
+        }
+
+        let rippled_cfg = RippledConfigFile::generate(&self.conf, target)?;
+        let rippled_cfg_path = target.join(RIPPLED_CONFIG);
+        fs::write(rippled_cfg_path.clone(), rippled_cfg)?;
+
+        self.meta.start_args.push("--conf".into());
+        self.meta.start_args.push(rippled_cfg_path.into());
+
         let node = self.start_node(log_to_stdout);
         wait_for_start(node.config.local_addr).await;
+
         Ok(node)
     }
 
@@ -109,7 +164,7 @@ impl NodeBuilder {
         self
     }
 
-    fn start_node(self, log_to_stdout: bool) -> Node {
+    fn start_node(&self, log_to_stdout: bool) -> Node {
         let (stdout, stderr) = match log_to_stdout {
             true => (Stdio::inherit(), Stdio::inherit()),
             false => (Stdio::null(), Stdio::null()),
@@ -124,17 +179,15 @@ impl NodeBuilder {
             .expect("node failed to start");
         Node {
             child,
-            meta: self.meta,
-            config: self.conf,
+            meta: self.meta.clone(),
+            config: self.conf.clone(),
         }
     }
 }
 
 /// Fields to be written to the node's configuration file.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NodeConfig {
-    /// The path of the cache directory of the node.
-    pub path: PathBuf,
     /// The socket address of the node.
     pub local_addr: SocketAddr,
     /// The initial peer set of the node.
@@ -147,10 +200,9 @@ pub struct NodeConfig {
     pub network_id: Option<u32>,
 }
 
-impl NodeConfig {
-    pub fn new(path: PathBuf) -> Self {
+impl Default for NodeConfig {
+    fn default() -> Self {
         Self {
-            path,
             local_addr: SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, DEFAULT_PORT)),
             initial_peers: Default::default(),
             max_peers: 0,
@@ -168,8 +220,8 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn builder(state: Option<PathBuf>, target: PathBuf) -> NodeBuilder {
-        NodeBuilder::new(state, target)
+    pub fn builder() -> NodeBuilder {
+        NodeBuilder::stateful()
             .map_err(|e| format!("Unable to create builder: {:?}", e))
             .unwrap()
     }
@@ -202,21 +254,8 @@ impl Drop for Node {
     }
 }
 
-pub fn build_stateful_path() -> io::Result<PathBuf> {
+fn get_stateful_node_path() -> io::Result<PathBuf> {
+    // TODO support multiple nodes
     let ziggurat_path = build_ripple_work_path()?;
-    Ok(ziggurat_path.join(NODE_STATE_DIR))
-}
-
-pub fn build_stateful_builder(target: PathBuf) -> anyhow::Result<NodeBuilder> {
-    let source = build_stateful_path()?;
-    let testnet = TestNet::new()?;
-    Ok(Node::builder(Some(source), target)
-        .network_id(TESTNET_NETWORK_ID)
-        .validator_token(testnet.setups[0].validator_token.clone())
-        .add_args(vec![
-            "--valid".into(),
-            "--quorum".into(),
-            "1".into(),
-            "--load".into(),
-        ]))
+    Ok(ziggurat_path.join(STATEFUL_NODES_DIR).join("1"))
 }

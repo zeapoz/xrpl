@@ -17,3 +17,6 @@ pub const TESTNET_NETWORK_ID: u32 = 239048;
 
 /// The default port to start a Rippled node on.
 pub const DEFAULT_PORT: u16 = 8080;
+
+/// Validators file name.
+pub const VALIDATORS_FILE_NAME: &str = "validators.txt";

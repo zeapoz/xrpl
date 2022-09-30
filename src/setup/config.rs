@@ -1,9 +1,14 @@
-use std::{ffi::OsString, fmt::Write, fs, path::PathBuf};
+use std::{
+    ffi::OsString,
+    fmt::Write,
+    fs,
+    path::{Path, PathBuf},
+};
 
 use anyhow::Result;
 use serde::Deserialize;
 
-use crate::setup::node::NodeConfig;
+use crate::{setup::node::NodeConfig, tools::constants::VALIDATORS_FILE_NAME};
 
 /// Ziggurat's configuration directory.
 pub const ZIGGURAT_DIR: &str = ".ziggurat";
@@ -15,7 +20,7 @@ pub const RIPPLE_WORK_DIR: &str = "ripple";
 pub const RIPPLE_SETUP_DIR: &str = "setup";
 
 /// Directory containing saved ledger and config to be loaded after the start.
-pub const NODE_STATE_DIR: &str = "stateful";
+pub const STATEFUL_NODES_DIR: &str = "stateful";
 
 /// Configuration file with paths to start rippled.
 pub const ZIGGURAT_CONFIG: &str = "config.toml";
@@ -34,7 +39,7 @@ struct ConfigFile {
 }
 
 /// The node metadata read from Ziggurat's configuration file.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NodeMetaData {
     /// The absolute path of where to run the start command.
     pub path: PathBuf,
@@ -45,9 +50,9 @@ pub struct NodeMetaData {
 }
 
 impl NodeMetaData {
-    pub fn new(config_path: PathBuf) -> Result<NodeMetaData> {
+    pub fn new(setup_path: PathBuf) -> Result<NodeMetaData> {
         // Read Ziggurat's configuration file.
-        let path = config_path.join(ZIGGURAT_CONFIG);
+        let path = setup_path.join(ZIGGURAT_CONFIG);
         let config_string = fs::read_to_string(path)?;
         let config_file: ConfigFile = toml::from_str(&config_string)?;
 
@@ -60,10 +65,6 @@ impl NodeMetaData {
         let mut start_args = args_from(&config_file.start_command);
         let start_command = start_args.remove(0);
 
-        let joined_path = config_path.join(RIPPLED_CONFIG);
-        start_args.push("--conf".into());
-        start_args.push(joined_path.into());
-
         Ok(Self {
             path: config_file.path,
             start_command,
@@ -75,7 +76,7 @@ impl NodeMetaData {
 pub struct RippledConfigFile;
 
 impl RippledConfigFile {
-    pub fn generate(config: &NodeConfig) -> Result<String> {
+    pub fn generate(config: &NodeConfig, path: &Path) -> Result<String> {
         let mut config_str = String::new();
 
         // 1. Server
@@ -135,7 +136,7 @@ impl RippledConfigFile {
         // 3. Ripple protocol
 
         writeln!(&mut config_str, "[validators_file]")?;
-        writeln!(&mut config_str, "validators.txt")?;
+        writeln!(&mut config_str, "{}", VALIDATORS_FILE_NAME)?;
         writeln!(&mut config_str)?;
 
         // 4. HTTPS client
@@ -153,12 +154,7 @@ impl RippledConfigFile {
         writeln!(
             &mut config_str,
             "path={}",
-            config
-                .path
-                .join(RIPPLED_DIR)
-                .join("db/nudb")
-                .to_str()
-                .unwrap()
+            path.join(RIPPLED_DIR).join("db/nudb").to_str().unwrap()
         )?;
         writeln!(&mut config_str, "online_delete=512")?;
         writeln!(&mut config_str, "advisory_delete=0")?;
@@ -168,7 +164,7 @@ impl RippledConfigFile {
         writeln!(
             &mut config_str,
             "{}",
-            config.path.join(RIPPLED_DIR).join("db").to_str().unwrap()
+            path.join(RIPPLED_DIR).join("db").to_str().unwrap()
         )?;
         writeln!(&mut config_str)?;
 
@@ -178,12 +174,7 @@ impl RippledConfigFile {
         writeln!(
             &mut config_str,
             "{}",
-            config
-                .path
-                .join(RIPPLED_DIR)
-                .join("debug.log")
-                .to_str()
-                .unwrap()
+            path.join(RIPPLED_DIR).join("debug.log").to_str().unwrap()
         )?;
         writeln!(&mut config_str)?;
 
