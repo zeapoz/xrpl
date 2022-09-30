@@ -16,9 +16,9 @@ async fn should_start_stop_stateful_node() {
         .start(target.path(), NodeType::Stateful)
         .await
         .expect("unable to start stateful node");
-    wait_for_state("proposing".into()).await;
+    wait_for_state(&node.rpc_url(), "proposing".into()).await;
 
-    let account_data = wait_for_account_data("rNGknFCRBZguXcPqC63k6xTZnonSe6ZuWt")
+    let account_data = wait_for_account_data(&node.rpc_url(), "rNGknFCRBZguXcPqC63k6xTZnonSe6ZuWt")
         .await
         .expect("unable to get account data");
     assert_eq!(account_data.result.account_data.balance, "5000000000");
