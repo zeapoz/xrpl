@@ -16,7 +16,7 @@ async fn c010_TM_STATUS_CHANGE_node_should_send_ledger_information_using_status_
 
     // Create a stateful node.
     let mut node = Node::builder()
-        .start(target.path(), NodeType::Stateful, false)
+        .start(target.path(), NodeType::Stateful)
         .await
         .expect("unable to start stateful node");
 

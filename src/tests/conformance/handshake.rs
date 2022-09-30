@@ -15,7 +15,7 @@ async fn c001_handshake_when_node_receives_connection() {
     // Build and start the Ripple node
     let target = TempDir::new().expect("Can't build tmp dir");
     let mut node = Node::builder()
-        .start(target.path(), NodeType::Stateless, false)
+        .start(target.path(), NodeType::Stateless)
         .await
         .expect("Unable to start node");
 
@@ -45,7 +45,7 @@ async fn c002_handshake_when_node_initiates_connection() {
     let target = TempDir::new().expect("Can't build tmp dir");
     let mut node = Node::builder()
         .initial_peers(vec![synth_node.listening_addr().unwrap()])
-        .start(target.path(), NodeType::Stateless, false)
+        .start(target.path(), NodeType::Stateless)
         .await
         .expect("Unable to start node");
 
