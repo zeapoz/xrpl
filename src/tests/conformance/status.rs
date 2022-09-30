@@ -25,7 +25,7 @@ async fn c010_TM_STATUS_CHANGE_node_should_send_ledger_information_using_status_
     sn.connect(node.addr()).await.unwrap();
 
     // Get ledger information via RPC.
-    let info = wait_for_ledger_info()
+    let info = wait_for_ledger_info(&node.rpc_url())
         .await
         .expect("no ledger info within the specified time limit");
     let rpc_ledger_index = info

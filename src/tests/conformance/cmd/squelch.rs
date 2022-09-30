@@ -50,7 +50,7 @@ async fn c009_TM_SQUELCH_cannot_squelch_peer_ledger_proposals() {
         .expect("unable to start stateful node");
 
     // Wait for correct state and account data.
-    wait_for_state("proposing".into()).await;
+    wait_for_state(&node.rpc_url(), "proposing".into()).await;
 
     // Connect synth node.
     let mut synth_node = SyntheticNode::new(&Default::default()).await;

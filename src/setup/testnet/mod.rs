@@ -13,20 +13,26 @@ use crate::{
         build_ripple_work_path,
         node::{Node, NodeBuilder, NodeType},
     },
-    tools::constants::{DEFAULT_PORT, TESTNET_NETWORK_ID, VALIDATORS_FILE_NAME},
+    tools::constants::{
+        DEFAULT_PORT, STATEFUL_NODES_COUNT, TESTNET_NETWORK_ID, VALIDATORS_FILE_NAME,
+    },
 };
 
 /// Testnet's directory for nodes' configs.
 const TESTNET_DIR: &str = "testnet";
 
-const VALIDATOR_KEYS: [&str; 3] = [
+const VALIDATOR_KEYS: [&str; STATEFUL_NODES_COUNT] = [
     "nHUSqn9qjEF7JJkVqvY7BFLMKdqP5KLLEjo5oB4QH43ADDndRawB",
     "nHUEsvSFTf1Snr7ZUdLxjcMW6PKcMrwwXCGZBg6xb1ePG8R4C3TS",
     "nHUuYdS49cPfRmCXPTwu7MVVFZFFmfG7y5sRttirVMhwuD7xStQp",
 ];
 
-pub fn get_validator_token(file_idx: usize) -> String {
-    match file_idx {
+/// Validator IP address list
+pub const VALIDATOR_IPS: [&str; STATEFUL_NODES_COUNT] = ["127.0.0.1", "127.0.0.2", "127.0.0.3"];
+
+/// Get validator token.
+pub fn get_validator_token(stateful_node_idx: usize) -> String {
+    match stateful_node_idx {
         0 => include_str!("validator_token0.txt").into(),
         1 => include_str!("validator_token1.txt").into(),
         2 => include_str!("validator_token2.txt").into(),
@@ -52,17 +58,17 @@ impl TestNet {
         Ok(Self {
             setups: [
                 NodeSetup::new(
-                    "127.0.0.1".parse().unwrap(),
+                    VALIDATOR_IPS[0].parse().unwrap(),
                     VALIDATOR_KEYS[0].into(),
                     get_validator_token(0),
                 ),
                 NodeSetup::new(
-                    "127.0.0.2".parse().unwrap(),
+                    VALIDATOR_IPS[1].parse().unwrap(),
                     VALIDATOR_KEYS[1].into(),
                     get_validator_token(1),
                 ),
                 NodeSetup::new(
-                    "127.0.0.3".parse().unwrap(),
+                    VALIDATOR_IPS[2].parse().unwrap(),
                     VALIDATOR_KEYS[2].into(),
                     get_validator_token(2),
                 ),
