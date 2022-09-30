@@ -5,7 +5,7 @@ use crate::{
         codecs::binary::{BinaryMessage, Payload},
         proto::TmStatusChange,
     },
-    setup::node::build_stateful_builder,
+    setup::node::{Node, NodeType},
     tools::{rpc::wait_for_ledger_info, synth_node::SyntheticNode},
 };
 
@@ -15,9 +15,8 @@ async fn c010_TM_STATUS_CHANGE_node_should_send_ledger_information_using_status_
     let target = TempDir::new().expect("unable to create TempDir");
 
     // Create a stateful node.
-    let mut node = build_stateful_builder(target.path().to_path_buf())
-        .expect("unable to get stateful builder")
-        .start(false)
+    let mut node = Node::builder()
+        .start(target.path(), NodeType::Stateful, false)
         .await
         .expect("unable to start stateful node");
 

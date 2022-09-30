@@ -2,13 +2,13 @@ use tempfile::TempDir;
 
 use crate::{
     protocol::codecs::binary::BinaryMessage,
-    setup::node::Node,
+    setup::node::{Node, NodeType},
     tools::{config::TestConfig, synth_node::SyntheticNode},
 };
 
+mod cmd;
 mod handshake;
 mod query;
-mod squelch;
 mod stateful;
 mod status;
 
@@ -17,9 +17,9 @@ async fn perform_response_test(
     response_check: &dyn Fn(&BinaryMessage) -> bool,
 ) {
     // Build and start Ripple node
-    let temp = TempDir::new().expect("Unable to create TempDir");
-    let mut node = Node::builder(None, temp.path().to_path_buf())
-        .start(false)
+    let target = TempDir::new().expect("Unable to create TempDir");
+    let mut node = Node::builder()
+        .start(target.path(), NodeType::Stateless, false)
         .await
         .unwrap();
 
