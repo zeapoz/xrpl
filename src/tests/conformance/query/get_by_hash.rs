@@ -28,14 +28,14 @@ async fn c007_TM_GET_OBJECT_BY_HASH_get_transaction_by_hash() {
         .expect("unable to start stateful node");
 
     // Wait for correct state and account data.
-    wait_for_state("proposing".into()).await;
-    let account_data = wait_for_account_data("rNGknFCRBZguXcPqC63k6xTZnonSe6ZuWt") // TODO make constant
+    wait_for_state(&node.rpc_url(), "proposing".into()).await;
+    let account_data = wait_for_account_data(&node.rpc_url(), "rNGknFCRBZguXcPqC63k6xTZnonSe6ZuWt") // TODO make constant
         .await
         .expect("unable to get account data");
 
     // Get transaction info by rpc to put in cache.
     let tx = account_data.result.account_data.previous_transaction;
-    let _ = get_transaction_info(tx.clone())
+    let _ = get_transaction_info(&node.rpc_url(), tx.clone())
         .await
         .expect("unable to get transaction info");
 
@@ -93,8 +93,8 @@ async fn c008_TM_HAVE_TRANSACTIONS_query_for_transactions_after_have_transaction
 
     // Wait for correct state and account data.
     // TODO Add enum to represent node's states.
-    wait_for_state("proposing".into()).await;
-    let account_data = wait_for_account_data("rNGknFCRBZguXcPqC63k6xTZnonSe6ZuWt") // TODO make constant
+    wait_for_state(&node.rpc_url(), "proposing".into()).await;
+    let account_data = wait_for_account_data(&node.rpc_url(), "rNGknFCRBZguXcPqC63k6xTZnonSe6ZuWt") // TODO make constant
         .await
         .expect("unable to get account data");
     // TODO: consider moving transaction hash to some constant.

@@ -14,12 +14,14 @@ use crate::{
     setup::{
         build_ripple_work_path,
         config::{
-            NodeMetaData, RippledConfigFile, RIPPLED_CONFIG, RIPPLE_SETUP_DIR, STATEFUL_NODES_DIR,
+            NodeMetaData, RippledConfigFile, JSON_RPC_PORT, RIPPLED_CONFIG, RIPPLE_SETUP_DIR,
+            STATEFUL_NODES_DIR,
         },
-        testnet::get_validator_token,
+        testnet::{get_validator_token, VALIDATOR_IPS},
     },
     tools::constants::{
-        CONNECTION_TIMEOUT, DEFAULT_PORT, TESTNET_NETWORK_ID, VALIDATORS_FILE_NAME,
+        CONNECTION_TIMEOUT, DEFAULT_PORT, STATEFUL_NODES_COUNT, TESTNET_NETWORK_ID,
+        VALIDATORS_FILE_NAME,
     },
 };
 
@@ -56,8 +58,12 @@ pub enum NodeType {
 }
 
 pub struct NodeBuilder {
+    /// Node's startup configuration
     conf: NodeConfig,
+    /// Node's process metadata read from Ziggurat configuration files
     meta: NodeMetaData,
+    /// Pool of available stateful node indices which represent stateful nodes' directories
+    stateful_nodes_pool: usize,
 }
 
 impl NodeBuilder {
@@ -67,21 +73,19 @@ impl NodeBuilder {
 
         let conf = NodeConfig::default();
         let meta = NodeMetaData::new(setup_path)?;
-        Ok(Self { conf, meta })
+
+        Ok(Self {
+            conf,
+            meta,
+            stateful_nodes_pool: STATEFUL_NODES_COUNT,
+        })
     }
 
     /// Creates new [NodeBuilder] which can handle stateful nodes.
     pub fn stateful() -> anyhow::Result<Self> {
         Ok(Self::stateless()
             .expect("Failed to create a node builder")
-            .network_id(TESTNET_NETWORK_ID)
-            .validator_token(get_validator_token(0))
-            .add_args(vec![
-                "--valid".into(),
-                "--quorum".into(),
-                "1".into(),
-                "--load".into(),
-            ]))
+            .network_id(TESTNET_NETWORK_ID))
     }
 
     /// Creates [Node] according to configuration and starts its process.
@@ -90,17 +94,34 @@ impl NodeBuilder {
             fs::create_dir_all(&target)?;
         }
 
+        let setup_path = build_ripple_work_path()?.join(RIPPLE_SETUP_DIR);
+
         match node_type {
             NodeType::Stateful => {
-                let source = get_stateful_node_path()?;
+                let node_idx = if self.stateful_nodes_pool != 0 {
+                    self.stateful_nodes_pool -= 1;
+                    self.stateful_nodes_pool
+                } else {
+                    panic!("Not enough stateful nodes available");
+                };
+                let source = get_stateful_node_path(node_idx)?;
 
                 let mut copy_options = dir::CopyOptions::new();
                 copy_options.content_only = true;
                 copy_options.overwrite = true;
                 dir::copy(&source, &target, &copy_options)?;
+
+                self.conf.local_addr =
+                    SocketAddr::new(VALIDATOR_IPS[node_idx].parse().unwrap(), DEFAULT_PORT);
+                self.conf.validator_token = Some(get_validator_token(node_idx));
+                self.meta.start_args = vec![
+                    "--valid".into(),
+                    "--quorum".into(),
+                    "1".into(),
+                    "--load".into(),
+                ];
             }
             NodeType::Stateless => {
-                let setup_path = build_ripple_work_path()?.join(RIPPLE_SETUP_DIR);
                 let validators_file_src = setup_path.join(VALIDATORS_FILE_NAME);
                 let validators_file_dst = target.join(VALIDATORS_FILE_NAME);
 
@@ -109,7 +130,8 @@ impl NodeBuilder {
 
                 self.conf.network_id = None;
                 self.conf.validator_token = None;
-                self.meta = NodeMetaData::new(setup_path)?; // Reset args
+                self.conf.local_addr =
+                    SocketAddr::new(VALIDATOR_IPS[0].parse().unwrap(), DEFAULT_PORT);
             }
             NodeType::Testnet => (),
         }
@@ -124,19 +146,13 @@ impl NodeBuilder {
         let node = self.start_node();
         wait_for_start(node.config.local_addr).await;
 
+        self.meta = NodeMetaData::new(setup_path)?; // Reset args
         Ok(node)
     }
 
     /// Sets address to bind to.
     pub fn set_addr(mut self, addr: SocketAddr) -> Self {
         self.conf.local_addr = addr;
-        self
-    }
-
-    /// Adds arguments to start command.
-    pub fn add_args(mut self, args: Vec<String>) -> Self {
-        args.into_iter()
-            .for_each(|arg| self.meta.start_args.push(arg.into()));
         self
     }
 
@@ -188,7 +204,8 @@ impl NodeBuilder {
     }
 }
 
-/// Fields to be written to the node's configuration file.
+/// Startup configuration for the node.
+/// Some fields are written to the node's configuration file.
 #[derive(Debug, Clone)]
 pub struct NodeConfig {
     /// The socket address of the node.
@@ -249,6 +266,14 @@ impl Node {
     pub fn addr(&self) -> SocketAddr {
         self.config.local_addr
     }
+
+    pub fn rpc_url(&self) -> String {
+        format!(
+            "http://{addr}:{port}",
+            addr = self.config.local_addr.ip(),
+            port = JSON_RPC_PORT
+        )
+    }
 }
 
 impl Drop for Node {
@@ -260,8 +285,116 @@ impl Drop for Node {
     }
 }
 
-fn get_stateful_node_path() -> io::Result<PathBuf> {
-    // TODO support multiple nodes
+fn get_stateful_node_path(node_dir: usize) -> io::Result<PathBuf> {
     let ziggurat_path = build_ripple_work_path()?;
-    Ok(ziggurat_path.join(STATEFUL_NODES_DIR).join("1"))
+    Ok(ziggurat_path
+        .join(STATEFUL_NODES_DIR)
+        .join(node_dir.to_string()))
+}
+
+#[cfg(test)]
+mod test {
+    use tempfile::TempDir;
+    use tokio::time::sleep;
+
+    use super::*;
+
+    const STATELESS_NODE_CNT: usize = 3; // Any number should work
+
+    const SLEEP: Duration = Duration::from_millis(100);
+
+    #[tokio::test]
+    async fn run_stateless_nodes_in_parallel() {
+        let mut builder = NodeBuilder::stateless().expect("Can't build a stateless node");
+        let mut nodes = Vec::<Node>::with_capacity(STATELESS_NODE_CNT);
+
+        for _ in 0..STATELESS_NODE_CNT {
+            let target = TempDir::new().expect("Can't build tmp dir");
+
+            let node = builder
+                .start(target.path(), NodeType::Stateless)
+                .await
+                .expect("Unable to start node");
+            nodes.push(node);
+        }
+
+        sleep(SLEEP).await;
+
+        for mut node in nodes {
+            node.stop().unwrap();
+        }
+    }
+
+    #[tokio::test]
+    async fn run_stateless_nodes_sequentially() {
+        let mut builder = NodeBuilder::stateless().expect("Can't build a stateless node");
+
+        for _ in 0..STATELESS_NODE_CNT {
+            let target = TempDir::new().expect("Can't build tmp dir");
+
+            let mut node = builder
+                .start(target.path(), NodeType::Stateless)
+                .await
+                .expect("Unable to start node");
+
+            sleep(SLEEP).await;
+            node.stop().unwrap();
+        }
+    }
+
+    #[tokio::test]
+    async fn run_stateful_nodes_sequentially() {
+        let mut builder = NodeBuilder::stateful().expect("Can't build a stateful node");
+
+        for _ in 0..STATEFUL_NODES_COUNT {
+            let target = TempDir::new().expect("Can't build tmp dir");
+
+            let mut node = builder
+                .start(target.path(), NodeType::Stateful)
+                .await
+                .expect("Unable to start node");
+
+            sleep(SLEEP).await;
+            node.stop().unwrap();
+        }
+    }
+
+    #[tokio::test]
+    #[should_panic]
+    async fn run_too_many_stateful_nodes_sequentially() {
+        let mut builder = NodeBuilder::stateful().expect("Can't build a stateful node");
+
+        for _ in 0..STATEFUL_NODES_COUNT + 1 {
+            let target = TempDir::new().expect("Can't build tmp dir");
+            let mut node = builder
+                .start(target.path(), NodeType::Stateful)
+                .await
+                .expect("Unable to start node");
+
+            sleep(SLEEP).await;
+            node.stop().unwrap();
+        }
+    }
+
+    #[tokio::test]
+    async fn run_stateful_nodes_in_parallel() {
+        let mut builder = NodeBuilder::stateful().expect("Can't build a stateful node");
+        let mut nodes = Vec::<Node>::with_capacity(STATEFUL_NODES_COUNT);
+
+        for _ in 0..STATEFUL_NODES_COUNT {
+            let target = TempDir::new().expect("Can't build tmp dir");
+
+            let node = builder
+                .start(target.path(), NodeType::Stateful)
+                .await
+                .expect("Unable to start node");
+            nodes.push(node);
+        }
+
+        sleep(SLEEP).await;
+
+        for mut node in nodes {
+            node.stop().unwrap();
+        }
+    }
 }
