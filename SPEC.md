@@ -159,3 +159,39 @@ The test index makes use of symbolic language in describing connection and messa
     and compares the results with the TmStatusChange payload. 
     <>
     <- TmStatusChange with the correct ledger hash and sequence
+
+### ZG-CONFORMANCE-011
+
+    The node should relay a TM_GET_PEER_SHARD_INFO_V2 message to connected peers
+    if it contains a valid key type and relay counter is higher than 0.
+    Connection scenario:
+    Synthetic Node 1 <> Rippled <> Synthetic Node 2
+    This test checks whether Synthetic node 2 receives the TM_GET_PEER_SHARD_INFO_V2 
+    message sent from Synthetic Node 1 to the Ripple node.
+
+### ZG-CONFORMANCE-012
+
+    The node should not relay a TM_GET_PEER_SHARD_INFO_V2 message to connected peers
+    if it contains unsupported key type.
+    Connection scenario:
+    Synthetic Node 1 <> Rippled <> Synthetic Node 2
+    This test ensures that Synthetic node 2 does not receive the TM_GET_PEER_SHARD_INFO_V2 
+    message sent from Synthetic Node 1 to the Ripple node.
+
+### ZG-CONFORMANCE-013
+
+    The node should not relay a TM_GET_PEER_SHARD_INFO_V2 message to connected peers
+    if the message's relay count is equal 0.
+    Connection scenario:
+    Synthetic Node 1 <> Rippled <> Synthetic Node 2
+    This test ensures that Synthetic node 2 does not receive the TM_GET_PEER_SHARD_INFO_V2 
+    message sent from Synthetic Node 1 to the Ripple node.
+
+### ZG-CONFORMANCE-014
+
+    The node should not relay a TM_GET_PEER_SHARD_INFO_V2 message to connected peers
+    if the message's relay count is above relay limit (currently 3).
+    Connection scenario:
+    Synthetic Node 1 <> Rippled <> Synthetic Node 2
+    This test ensures that Synthetic node 2 does not receive the TM_GET_PEER_SHARD_INFO_V2 
+    message sent from Synthetic Node 1 to the Ripple node.
