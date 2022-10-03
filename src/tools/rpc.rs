@@ -7,14 +7,14 @@ use reqwest::{
 use serde::{Deserialize, Serialize};
 use tokio::time::{error::Elapsed, sleep, timeout};
 
-use crate::tools::constants::{EXPECTED_RESULT_TIMEOUT, JSON_RPC_ADDRESS};
+use crate::tools::constants::EXPECTED_RESULT_TIMEOUT;
 
 const API_VERSION: u32 = 1;
 
-pub async fn wait_for_state(state: String) {
+pub async fn wait_for_state(rpc_url: &str, state: String) {
     tokio::time::timeout(EXPECTED_RESULT_TIMEOUT, async move {
         loop {
-            if let Ok(response) = get_server_info().await {
+            if let Ok(response) = get_server_info(rpc_url).await {
                 if response.result.info.server_state == state {
                     break;
                 }
@@ -27,11 +27,12 @@ pub async fn wait_for_state(state: String) {
 }
 
 pub async fn wait_for_account_data(
+    rpc_url: &str,
     account: &str,
 ) -> Result<RpcResponse<AccountInfoResponse>, Elapsed> {
     tokio::time::timeout(EXPECTED_RESULT_TIMEOUT, async move {
         loop {
-            if let Ok(account_data) = get_account_info(account).await {
+            if let Ok(account_data) = get_account_info(rpc_url, account).await {
                 return account_data;
             }
             sleep(Duration::from_millis(100)).await;
@@ -40,10 +41,12 @@ pub async fn wait_for_account_data(
     .await
 }
 
-pub async fn wait_for_ledger_info() -> Result<RpcResponse<LedgerInfoResponse>, Elapsed> {
+pub async fn wait_for_ledger_info(
+    rpc_url: &str,
+) -> Result<RpcResponse<LedgerInfoResponse>, Elapsed> {
     timeout(EXPECTED_RESULT_TIMEOUT, async {
         loop {
-            if let Ok(info) = get_ledger_info().await {
+            if let Ok(info) = get_ledger_info(rpc_url).await {
                 return info;
             }
             sleep(Duration::from_millis(250)).await;
@@ -52,32 +55,39 @@ pub async fn wait_for_ledger_info() -> Result<RpcResponse<LedgerInfoResponse>, E
     .await
 }
 
-async fn execute_rpc<T: for<'a> Deserialize<'a>>(body: &impl Serialize) -> anyhow::Result<T> {
-    let response = build_json_request(body).send().await?;
+async fn execute_rpc<T: for<'a> Deserialize<'a>>(
+    rpc_url: &str,
+    body: &impl Serialize,
+) -> anyhow::Result<T> {
+    let response = build_json_request(rpc_url, body).send().await?;
     Ok(response.error_for_status()?.json::<T>().await?)
 }
 
-async fn get_account_info(account: &str) -> anyhow::Result<RpcResponse<AccountInfoResponse>> {
-    execute_rpc(&build_account_info_request(account)).await
+async fn get_account_info(
+    rpc_url: &str,
+    account: &str,
+) -> anyhow::Result<RpcResponse<AccountInfoResponse>> {
+    execute_rpc(rpc_url, &build_account_info_request(account)).await
 }
 
-async fn get_server_info() -> anyhow::Result<RpcResponse<ResultResponse>> {
+async fn get_server_info(rpc_url: &str) -> anyhow::Result<RpcResponse<ResultResponse>> {
     let request: RpcRequest<Option<()>> = RpcRequest {
         id: String::from("1"),
         method: String::from("server_info"),
         api_version: API_VERSION,
         params: None,
     };
-    execute_rpc(&request).await
+    execute_rpc(rpc_url, &request).await
 }
 
 pub async fn get_transaction_info(
+    rpc_url: &str,
     transaction: String,
 ) -> anyhow::Result<RpcResponse<TransactionInfoResponse>> {
-    execute_rpc(&build_transaction_info_request(transaction)).await
+    execute_rpc(rpc_url, &build_transaction_info_request(transaction)).await
 }
 
-pub async fn get_ledger_info() -> anyhow::Result<RpcResponse<LedgerInfoResponse>> {
+pub async fn get_ledger_info(rpc_url: &str) -> anyhow::Result<RpcResponse<LedgerInfoResponse>> {
     let request = RpcRequest {
         id: String::from("1"),
         method: String::from("ledger"),
@@ -91,7 +101,7 @@ pub async fn get_ledger_info() -> anyhow::Result<RpcResponse<LedgerInfoResponse>
             owner_funds: false,
         }],
     };
-    execute_rpc(&request).await
+    execute_rpc(rpc_url, &request).await
 }
 
 #[derive(Serialize)]
@@ -116,9 +126,9 @@ fn build_transaction_info_request(transaction: String) -> RpcRequest<Vec<Transac
     }
 }
 
-fn build_json_request(request: &impl Serialize) -> RequestBuilder {
+fn build_json_request(rpc_url: &str, request: &impl Serialize) -> RequestBuilder {
     Client::new()
-        .post(JSON_RPC_ADDRESS)
+        .post(rpc_url)
         .header(CONTENT_TYPE, "application/json")
         .header(ACCEPT, "application/json")
         .json(request)
