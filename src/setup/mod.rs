@@ -1,10 +1,11 @@
-//! Utilities for setting up and tearing down node Ripple node instances.
+//! Utilities for setting up and tearing down Ripple node instances.
 
 use std::{io, path::PathBuf};
 
-use crate::setup::config::{RIPPLE_WORK_DIR, ZIGGURAT_DIR};
+use crate::setup::constants::{RIPPLE_WORK_DIR, ZIGGURAT_DIR};
 
 pub mod config;
+pub mod constants;
 pub mod node;
 pub mod testnet;
 
