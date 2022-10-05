@@ -12,6 +12,14 @@ mod query;
 mod stateful;
 mod status;
 
+pub const PUBLIC_KEY_TYPES: &[u8] = &[
+    0xED, // ed25519
+    0x02, // secp256k1
+    0x03, // secp256k1 again as this type key has two correct magic bytes.
+];
+
+pub const PUBLIC_KEY_LENGTH: usize = 33; // A key consists of 1 magic byte for key type and 32 bytes for encryption bits.
+
 async fn perform_response_test(
     config: TestConfig,
     response_check: &dyn Fn(&BinaryMessage) -> bool,
