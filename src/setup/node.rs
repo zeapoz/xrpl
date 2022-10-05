@@ -10,19 +10,15 @@ use anyhow::Result;
 use fs_extra::{dir, file};
 use tokio::{io::AsyncWriteExt, net::TcpStream, time::Duration};
 
-use crate::{
-    setup::{
-        build_ripple_work_path,
-        config::{
-            NodeMetaData, RippledConfigFile, JSON_RPC_PORT, RIPPLED_CONFIG, RIPPLE_SETUP_DIR,
-            STATEFUL_NODES_DIR,
-        },
-        testnet::{get_validator_token, VALIDATOR_IPS},
+use crate::setup::{
+    build_ripple_work_path,
+    config::{NodeMetaData, RippledConfigFile},
+    constants::{
+        CONNECTION_TIMEOUT, DEFAULT_PORT, JSON_RPC_PORT, RIPPLED_CONFIG, RIPPLE_SETUP_DIR,
+        STATEFUL_NODES_COUNT, STATEFUL_NODES_DIR, TESTNET_NETWORK_ID, VALIDATORS_FILE_NAME,
+        VALIDATOR_IPS,
     },
-    tools::constants::{
-        CONNECTION_TIMEOUT, DEFAULT_PORT, STATEFUL_NODES_COUNT, TESTNET_NETWORK_ID,
-        VALIDATORS_FILE_NAME,
-    },
+    testnet::get_validator_token,
 };
 
 async fn wait_for_start(addr: SocketAddr) {

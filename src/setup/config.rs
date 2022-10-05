@@ -1,3 +1,5 @@
+//! Utilities for node configuration.
+
 use std::{
     ffi::OsString,
     fmt::Write,
@@ -8,29 +10,10 @@ use std::{
 use anyhow::Result;
 use serde::Deserialize;
 
-use crate::{setup::node::NodeConfig, tools::constants::VALIDATORS_FILE_NAME};
-
-/// Ziggurat's configuration directory.
-pub const ZIGGURAT_DIR: &str = ".ziggurat";
-
-/// Ziggurat's Ripple's subdir.
-pub const RIPPLE_WORK_DIR: &str = "ripple";
-
-/// Initial setup dir for rippled.
-pub const RIPPLE_SETUP_DIR: &str = "setup";
-
-/// Directory containing saved ledger and config to be loaded after the start.
-pub const STATEFUL_NODES_DIR: &str = "stateful";
-
-/// Configuration file with paths to start rippled.
-pub const ZIGGURAT_CONFIG: &str = "config.toml";
-
-/// Rippled's configuration file name.
-pub const RIPPLED_CONFIG: &str = "rippled.cfg";
-pub const RIPPLED_DIR: &str = "rippled";
-
-/// Rippled's JSON RPC port
-pub const JSON_RPC_PORT: u32 = 5005;
+use crate::setup::{
+    constants::{JSON_RPC_PORT, RIPPLED_DIR, VALIDATORS_FILE_NAME, ZIGGURAT_CONFIG},
+    node::NodeConfig,
+};
 
 /// Convenience struct for reading Ziggurat's configuration file.
 #[derive(Deserialize)]

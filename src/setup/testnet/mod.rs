@@ -8,14 +8,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{
-    setup::{
-        build_ripple_work_path,
-        node::{Node, NodeBuilder, NodeType},
+use crate::setup::{
+    build_ripple_work_path,
+    constants::{
+        DEFAULT_PORT, STATEFUL_NODES_COUNT, TESTNET_NETWORK_ID, VALIDATORS_FILE_NAME, VALIDATOR_IPS,
     },
-    tools::constants::{
-        DEFAULT_PORT, STATEFUL_NODES_COUNT, TESTNET_NETWORK_ID, VALIDATORS_FILE_NAME,
-    },
+    node::{Node, NodeBuilder, NodeType},
 };
 
 /// Testnet's directory for nodes' configs.
@@ -26,9 +24,6 @@ const VALIDATOR_KEYS: [&str; STATEFUL_NODES_COUNT] = [
     "nHUEsvSFTf1Snr7ZUdLxjcMW6PKcMrwwXCGZBg6xb1ePG8R4C3TS",
     "nHUuYdS49cPfRmCXPTwu7MVVFZFFmfG7y5sRttirVMhwuD7xStQp",
 ];
-
-/// Validator IP address list
-pub const VALIDATOR_IPS: [&str; STATEFUL_NODES_COUNT] = ["127.0.0.1", "127.0.0.2", "127.0.0.3"];
 
 /// Get validator token.
 pub fn get_validator_token(stateful_node_idx: usize) -> String {
