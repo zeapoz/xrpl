@@ -1,8 +1,11 @@
 use tempfile::TempDir;
 
 use crate::{
-    setup::node::{Node, NodeType},
-    tools::{constants::CONNECTION_TIMEOUT, synth_node::SyntheticNode},
+    setup::{
+        constants::CONNECTION_TIMEOUT,
+        node::{Node, NodeType},
+    },
+    tools::synth_node::SyntheticNode,
     wait_until,
 };
 
