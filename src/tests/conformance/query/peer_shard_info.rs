@@ -120,5 +120,5 @@ async fn check_relay_for_key_type(key_type: u8, relays: u32) {
     // Shutdown.
     synth_node1.shut_down().await;
     synth_node2.shut_down().await;
-    node.stop().expect("unable to stop rippled node");
+    node.stop().expect("unable to stop the rippled node");
 }

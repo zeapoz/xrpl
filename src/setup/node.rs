@@ -54,12 +54,12 @@ pub enum NodeType {
 }
 
 pub struct NodeBuilder {
-    /// Node's startup configuration
+    /// Node's startup configuration.
     conf: NodeConfig,
-    /// Node's process metadata read from Ziggurat configuration files
+    /// Node's process metadata read from Ziggurat configuration files.
     meta: NodeMetaData,
-    /// Pool of available stateful node indices which represent stateful nodes' directories
-    stateful_nodes_pool: usize,
+    /// Counter for served stateful nodes.
+    stateful_nodes_counter: usize,
 }
 
 impl NodeBuilder {
@@ -73,7 +73,7 @@ impl NodeBuilder {
         Ok(Self {
             conf,
             meta,
-            stateful_nodes_pool: STATEFUL_NODES_COUNT,
+            stateful_nodes_counter: 0,
         })
     }
 
@@ -94,12 +94,13 @@ impl NodeBuilder {
 
         match node_type {
             NodeType::Stateful => {
-                let node_idx = if self.stateful_nodes_pool != 0 {
-                    self.stateful_nodes_pool -= 1;
-                    self.stateful_nodes_pool
-                } else {
-                    panic!("Not enough stateful nodes available");
-                };
+                let node_idx = self.stateful_nodes_counter;
+                self.stateful_nodes_counter += 1;
+                assert!(
+                    self.stateful_nodes_counter <= STATEFUL_NODES_COUNT,
+                    "Not enough stateful nodes available"
+                );
+
                 let source = get_stateful_node_path(node_idx)?;
 
                 let mut copy_options = dir::CopyOptions::new();
