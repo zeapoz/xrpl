@@ -195,3 +195,10 @@ The test index makes use of symbolic language in describing connection and messa
     Synthetic Node 1 <> Rippled <> Synthetic Node 2
     This test ensures that Synthetic node 2 does not receive the TM_GET_PEER_SHARD_INFO_V2 
     message sent from Synthetic Node 1 to the Ripple node.
+
+### ZG-CONFORMANCE-015
+
+    The node should send a TmValidatorListCollection message containing at least one validator
+    with a correct public key and a non-empty manifest.
+    <>
+    <- TmValidatorListCollection with at least one validator with a correct public key and a non-empty manifest.

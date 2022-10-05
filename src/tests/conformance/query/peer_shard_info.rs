@@ -8,15 +8,9 @@ use crate::{
         proto::{TmGetPeerShardInfoV2, TmPublicKey},
     },
     setup::node::{Node, NodeType},
-    tests::conformance::perform_response_test,
+    tests::conformance::{perform_response_test, PUBLIC_KEY_LENGTH, PUBLIC_KEY_TYPES},
     tools::{config::TestConfig, synth_node::SyntheticNode},
 };
-
-const KEY_TYPES: &[u8] = &[
-    0xED, // ed25519
-    0x02, // secp256k1
-    0x03, // secp256k1 again as this type key has two correct magic bytes.
-];
 
 const INVALID_KEY: u8 = 0x42;
 const RELAY_LIMIT: u32 = 3;
@@ -44,7 +38,7 @@ async fn c006_TM_GET_PEER_SHARD_INFO_V2_node_should_not_query_for_shard_info_if_
 #[allow(non_snake_case)]
 async fn c011_TM_GET_PEER_SHARD_INFO_V2_node_should_relay_shard_info() {
     // ZG-CONFORMANCE-011
-    for key_type in KEY_TYPES {
+    for key_type in PUBLIC_KEY_TYPES {
         check_relay_for_key_type(*key_type, RELAY_LIMIT - 1).await;
     }
 }
@@ -62,7 +56,7 @@ async fn c012_TM_GET_PEER_SHARD_INFO_V2_node_should_not_relay_shard_info_with_in
 #[allow(non_snake_case)]
 async fn c013_TM_GET_PEER_SHARD_INFO_V2_node_should_not_relay_shard_info_when_relays_equals_zero() {
     // ZG-CONFORMANCE-013
-    check_relay_for_key_type(KEY_TYPES[0], 0).await;
+    check_relay_for_key_type(PUBLIC_KEY_TYPES[0], 0).await;
 }
 
 #[tokio::test]
@@ -70,7 +64,7 @@ async fn c013_TM_GET_PEER_SHARD_INFO_V2_node_should_not_relay_shard_info_when_re
 #[allow(non_snake_case)]
 async fn c014_TM_GET_PEER_SHARD_INFO_V2_node_should_not_relay_shard_info_when_relays_above_limit() {
     // ZG-CONFORMANCE-014
-    check_relay_for_key_type(KEY_TYPES[0], RELAY_LIMIT + 1).await;
+    check_relay_for_key_type(PUBLIC_KEY_TYPES[0], RELAY_LIMIT + 1).await;
 }
 
 async fn check_relay_for_key_type(key_type: u8, relays: u32) {
@@ -96,7 +90,7 @@ async fn check_relay_for_key_type(key_type: u8, relays: u32) {
 
     // Create a dummy key with the specified key type.
     let mut key = vec![key_type]; // Place the key type as the first byte.
-    key.resize(33, 0x1); // Append 32 bytes serving as a dummy public key.
+    key.resize(PUBLIC_KEY_LENGTH, 0x1); // Append 32 bytes serving as a dummy public key.
     let public_key = TmPublicKey { public_key: key };
 
     // Create payload with given key and relays.
