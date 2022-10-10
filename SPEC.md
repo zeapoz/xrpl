@@ -202,3 +202,19 @@ The test index makes use of symbolic language in describing connection and messa
     with a correct public key and a non-empty manifest.
     <>
     <- TmValidatorListCollection with at least one validator with a correct public key and a non-empty manifest.
+
+### ZG-CONFORMANCE-016
+
+    Deploy a network of three nodes: Node 1, Node 2 and Node 3.
+    Connect a synthetic node to Node 1.
+    After squelching validator keys belonging to Node 2 and Node 3,
+    Node 1 shouldn't broadcast mtPROPOSE_LEDGER messages from squelched validators to the synthetic node.
+    <> with Node1
+    <- mtPROPOSE_LEDGER with the Node 1's node_pub_key1
+    <- mtPROPOSE_LEDGER with the Node 2's node_pub_key2
+    <- mtPROPOSE_LEDGER with the Node 3's node_pub_key3
+    -> mtSQUELCH (node_pub_key2)
+    -> mtSQUELCH (node_pub_key3)
+    <- mtPROPOSE_LEDGER with the Node 1's node_pub_key1
+    <- mtPROPOSE_LEDGER with the Node 1's node_pub_key1
+    <- mtPROPOSE_LEDGER with the Node 1's node_pub_key1

@@ -301,6 +301,7 @@ mod test {
     const SLEEP: Duration = Duration::from_millis(100);
 
     #[tokio::test]
+    #[ignore = "use only when changing src/setup files"]
     async fn run_stateless_nodes_in_parallel() {
         let mut builder = NodeBuilder::stateless().expect("Can't build a stateless node");
         let mut nodes = Vec::<Node>::with_capacity(STATELESS_NODE_CNT);
@@ -323,6 +324,7 @@ mod test {
     }
 
     #[tokio::test]
+    #[ignore = "use only when changing src/setup files"]
     async fn run_stateless_nodes_sequentially() {
         let mut builder = NodeBuilder::stateless().expect("Can't build a stateless node");
 
@@ -340,6 +342,7 @@ mod test {
     }
 
     #[tokio::test]
+    #[ignore = "use only when changing src/setup files"]
     async fn run_stateful_nodes_sequentially() {
         let mut builder = NodeBuilder::stateful().expect("Can't build a stateful node");
 
@@ -357,6 +360,7 @@ mod test {
     }
 
     #[tokio::test]
+    #[ignore = "use only when changing src/setup files"]
     #[should_panic]
     async fn run_too_many_stateful_nodes_sequentially() {
         let mut builder = NodeBuilder::stateful().expect("Can't build a stateful node");
@@ -374,6 +378,7 @@ mod test {
     }
 
     #[tokio::test]
+    #[ignore = "use only when changing src/setup files"]
     async fn run_stateful_nodes_in_parallel() {
         let mut builder = NodeBuilder::stateful().expect("Can't build a stateful node");
         let mut nodes = Vec::<Node>::with_capacity(STATEFUL_NODES_COUNT);
