@@ -32,22 +32,22 @@ use crate::{
     tools::{rpc::wait_for_state, synth_node::SyntheticNode},
 };
 
+// Time we shall wait for a TmProposeLedger message.
+const WAIT_MSG_TIMEOUT: Duration = Duration::from_secs(5);
+const SQUELCH_DURATION_SECS: u32 = 6 * 60; // Six minutes should be an ample time value.
+const HANDLE_REMAINING_PROPOSE_MSGS: Duration = Duration::from_millis(300);
+
 #[tokio::test]
 #[allow(non_snake_case)]
 async fn c009_TM_SQUELCH_cannot_squelch_peer_ledger_proposals() {
     // ZG-CONFORMANCE-009
 
-    // Time we shall wait for a TmProposeLedger message.
-    const WAIT_MSG_TIMEOUT: Duration = Duration::from_secs(10);
-    const SQUELCH_DURATION: u32 = 6 * 60; // Six minutes should be an ample time value.
-    const HANDLE_REMAINING_PROPOSE_MSGS: Duration = Duration::from_millis(300);
-
     // Create a stateful node.
-    let target = TempDir::new().expect("unable to create TempDir");
+    let target = TempDir::new().expect("Couldn't create a temporary directory");
     let mut node = Node::builder()
         .start(target.path(), NodeType::Stateful)
         .await
-        .expect("unable to start stateful node");
+        .expect("Unable to start the stateful node");
 
     // Wait for correct state and account data.
     wait_for_state(&node.rpc_url(), "proposing".into()).await;
@@ -57,33 +57,16 @@ async fn c009_TM_SQUELCH_cannot_squelch_peer_ledger_proposals() {
     synth_node
         .connect(node.addr())
         .await
-        .expect("unable to connect");
+        .expect("Unable to connect");
 
     // Get a validator public key.
-    let mut validator_pub_key: Vec<u8> = Vec::new();
-    timeout(WAIT_MSG_TIMEOUT, async {
-        loop {
-            if let (
-                _,
-                BinaryMessage {
-                    payload: Payload::TmProposeLedger(TmProposeSet { node_pub_key, .. }),
-                    ..
-                },
-            ) = synth_node.recv_message().await
-            {
-                validator_pub_key = node_pub_key;
-                break;
-            }
-        }
-    })
-    .await
-    .expect("TmProposeLedger not received in time");
+    let validator_pub_key: Vec<u8> = wait_for_validator_key_in_propose_msg(&mut synth_node).await;
 
     // Squelch the validator public key belonging to our only neighbour.
     let msg = Payload::TmSquelch(TmSquelch {
         squelch: true,
         validator_pub_key: validator_pub_key.clone(),
-        squelch_duration: Some(SQUELCH_DURATION),
+        squelch_duration: Some(SQUELCH_DURATION_SECS),
     });
     synth_node.unicast(node.addr(), msg).unwrap();
 
@@ -111,5 +94,24 @@ async fn c009_TM_SQUELCH_cannot_squelch_peer_ledger_proposals() {
     .expect("TmProposeLedger not received in time");
 
     synth_node.shut_down().await;
-    node.stop().expect("unable to stop stateful node");
+    node.stop().expect("Unable to stop the stateful node");
+}
+
+async fn wait_for_validator_key_in_propose_msg(synth_node: &mut SyntheticNode) -> Vec<u8> {
+    timeout(WAIT_MSG_TIMEOUT, async {
+        loop {
+            if let (
+                _,
+                BinaryMessage {
+                    payload: Payload::TmProposeLedger(TmProposeSet { node_pub_key, .. }),
+                    ..
+                },
+            ) = synth_node.recv_message().await
+            {
+                return node_pub_key;
+            }
+        }
+    })
+    .await
+    .expect("TmProposeLedger not received in time")
 }
