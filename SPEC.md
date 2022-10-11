@@ -218,3 +218,14 @@ The test index makes use of symbolic language in describing connection and messa
     <- mtPROPOSE_LEDGER with the Node 1's node_pub_key1
     <- mtPROPOSE_LEDGER with the Node 1's node_pub_key1
     <- mtPROPOSE_LEDGER with the Node 1's node_pub_key1
+
+### ZG-CONFORMANCE-017
+    
+    The node sends mtMANIFESTS after the handshake.
+    <>
+    <- mtMANIFESTS
+    
+### ZG-CONFORMANCE-018
+
+    The node should *NOT* send mtMANIFESTS after connection if there was no handshake.
+    The test waits for the predefined amount of time, ensuring no such messages were received.
