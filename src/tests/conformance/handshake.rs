@@ -1,11 +1,13 @@
 use tempfile::TempDir;
 
 use crate::{
+    protocol::codecs::binary::BinaryMessage,
     setup::{
         constants::CONNECTION_TIMEOUT,
         node::{Node, NodeType},
     },
-    tools::synth_node::SyntheticNode,
+    tests::conformance::perform_response_test,
+    tools::{config::TestConfig, synth_node::SyntheticNode},
     wait_until,
 };
 
@@ -58,4 +60,13 @@ async fn c002_handshake_when_node_initiates_connection() {
     // Shutdown both nodes
     synth_node.shut_down().await;
     node.stop().unwrap();
+}
+
+#[tokio::test]
+#[should_panic]
+#[allow(non_snake_case)]
+async fn c006_node_should_not_send_any_messages_if_no_handshake() {
+    // ZG-CONFORMANCE-006
+    let response_check = |_: &BinaryMessage| true;
+    perform_response_test(TestConfig::default().with_handshake(false), &response_check).await;
 }
