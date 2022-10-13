@@ -6,9 +6,9 @@ use crate::{
     tools::{config::TestConfig, synth_node::SyntheticNode},
 };
 
-mod broadcast;
 mod cmd;
 mod handshake;
+mod post_handshake;
 mod query;
 mod stateful;
 mod status;
