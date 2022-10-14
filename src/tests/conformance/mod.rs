@@ -8,6 +8,7 @@ use crate::{
 
 mod cmd;
 mod handshake;
+mod post_handshake;
 mod query;
 mod stateful;
 mod status;
