@@ -29,8 +29,9 @@ pub async fn wait_for_state(rpc_url: &str, state: String) {
 pub async fn wait_for_account_data(
     rpc_url: &str,
     account: &str,
+    timeout: Duration,
 ) -> Result<RpcResponse<AccountInfoResponse>, Elapsed> {
-    tokio::time::timeout(EXPECTED_RESULT_TIMEOUT, async move {
+    tokio::time::timeout(timeout, async move {
         loop {
             if let Ok(account_data) = get_account_info(rpc_url, account).await {
                 return account_data;

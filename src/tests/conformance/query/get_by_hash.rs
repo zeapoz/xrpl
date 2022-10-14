@@ -10,6 +10,7 @@ use crate::{
     },
     setup::node::{Node, NodeType},
     tools::{
+        constants::EXPECTED_RESULT_TIMEOUT,
         rpc::{get_transaction_info, wait_for_account_data, wait_for_state},
         synth_node::SyntheticNode,
     },
@@ -29,9 +30,13 @@ async fn c007_TM_GET_OBJECT_BY_HASH_get_transaction_by_hash() {
 
     // Wait for correct state and account data.
     wait_for_state(&node.rpc_url(), "proposing".into()).await;
-    let account_data = wait_for_account_data(&node.rpc_url(), "rNGknFCRBZguXcPqC63k6xTZnonSe6ZuWt") // TODO make constant
-        .await
-        .expect("unable to get account data");
+    let account_data = wait_for_account_data(
+        &node.rpc_url(),
+        "rNGknFCRBZguXcPqC63k6xTZnonSe6ZuWt",
+        EXPECTED_RESULT_TIMEOUT,
+    ) // TODO make constant
+    .await
+    .expect("unable to get account data");
 
     // Get transaction info by rpc to put in cache.
     let tx = account_data.result.account_data.previous_transaction;
@@ -94,9 +99,13 @@ async fn c008_TM_HAVE_TRANSACTIONS_query_for_transactions_after_have_transaction
     // Wait for correct state and account data.
     // TODO Add enum to represent node's states.
     wait_for_state(&node.rpc_url(), "proposing".into()).await;
-    let account_data = wait_for_account_data(&node.rpc_url(), "rNGknFCRBZguXcPqC63k6xTZnonSe6ZuWt") // TODO make constant
-        .await
-        .expect("unable to get account data");
+    let account_data = wait_for_account_data(
+        &node.rpc_url(),
+        "rNGknFCRBZguXcPqC63k6xTZnonSe6ZuWt",
+        EXPECTED_RESULT_TIMEOUT,
+    ) // TODO make constant
+    .await
+    .expect("unable to get account data");
     // TODO: consider moving transaction hash to some constant.
     let tx = account_data.result.account_data.previous_transaction;
 
