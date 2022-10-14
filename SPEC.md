@@ -123,8 +123,8 @@ The test index makes use of symbolic language in describing connection and messa
 
 ### ZG-CONFORMANCE-006
 
-    The node should *NOT* request mtGET_PEER_SHARD_INFO_V2 after connection if there was no handshake.
-    The test waits for the predefined amount of time, ensuring no such messages were received.
+    The node should *NOT* send any messages after connection if there was no handshake.
+    The test waits for the predefined amount of time, ensuring no messages were received.
 
 ### ZG-CONFORMANCE-007
 
@@ -227,16 +227,6 @@ The test index makes use of symbolic language in describing connection and messa
     
 ### ZG-CONFORMANCE-018
 
-    The node should *NOT* send mtMANIFESTS after connection if there was no handshake.
-    The test waits for the predefined amount of time, ensuring no such messages were received.
-
-### ZG-CONFORMANCE-019
-
     The node sends mtENDPOINTS after the handshake.
     <>
     <- mtENDPOINTS
-
-### ZG-CONFORMANCE-020
-
-    The node should *NOT* send mtENDPOINTS after connection if there was no handshake.
-    The test waits for the predefined amount of time, ensuring no such messages were received.
