@@ -36,7 +36,7 @@ use crate::{
 };
 
 // Time we shall wait for a TmProposeLedger message.
-const WAIT_MSG_TIMEOUT: Duration = Duration::from_secs(5);
+const WAIT_MSG_TIMEOUT: Duration = Duration::from_secs(7);
 const SQUELCH_DURATION_SECS: u32 = 6 * 60; // Six minutes should be an ample time value.
 const HANDLE_REMAINING_PROPOSE_MSGS: Duration = Duration::from_millis(300);
 
