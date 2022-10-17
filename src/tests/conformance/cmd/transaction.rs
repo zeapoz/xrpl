@@ -5,6 +5,7 @@ use crate::{
     },
     setup::{constants::TESTNET_READY_TIMEOUT, testnet::TestNet},
     tools::{
+        constants::GENESIS_ACCOUNT,
         rpc::{submit_transaction, wait_for_account_data},
         synth_node::SyntheticNode,
     },
@@ -23,7 +24,7 @@ async fn c019_MT_TRANSACTION_node_should_broadcast_transaction_to_all_peers() {
     testnet.start().await.unwrap();
     wait_for_account_data(
         &testnet.running[NODE_IDS[0]].rpc_url(),
-        "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
+        GENESIS_ACCOUNT,
         TESTNET_READY_TIMEOUT,
     )
     .await
