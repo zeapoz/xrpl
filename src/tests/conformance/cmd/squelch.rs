@@ -10,15 +10,16 @@
 //! Squelching a connected peer which is also a validator is not possible in case when messages
 //! originate from that peer.
 //!
-//!     <- mtPROPOSE_LEDGER (validator1)
-//!     <- mtPROPOSE_LEDGER (validator2)
-//!     <- mtPROPOSE_LEDGER (validator1)
-//!     <- mtPROPOSE_LEDGER (validator2)
-//!     -> mtSQUELCH (validator1)
-//!     <-
-//!     <- mtPROPOSE_LEDGER (validator2)
-//!     <-
-//!     <- mtPROPOSE_LEDGER (validator2)
+//!     Let A be a list of node public keys 1, 2 and 3.
+//!     Let B be a list of node public keys 2 and 3.
+//!
+//!     <> with Node1
+//!     << mtPROPOSE_LEDGER (A)
+//!     -> mtSQUELCH (B)
+//!     << mtPROPOSE_LEDGER (A)
+//!
+//!     Assert: A synthetic node receives only mtPROPOSE_LEDGER messages with a key from node 1
+//!     after squelching node public keys belonging to nodes 2 and 3 (B).
 
 use tempfile::TempDir;
 use tokio::time::{sleep, timeout, Duration};

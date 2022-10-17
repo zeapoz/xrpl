@@ -73,7 +73,15 @@ The fuzz tests aim to buttress the message conformance tests with extra verifica
 
 # Test Index
 
-The test index makes use of symbolic language in describing connection and message sending directions. As a convention, Ziggurat test nodes are to the left of the connection/message arrows, and Rippled instances are to the right: `A -> B` and `A <- B`. In this way, `->` signifies "Ziggurat connects to Rippled" and `<-` signifies the opposite. Furthermore, `-> ping` signifies "Ziggurat sends a `Ping` message to Rippled" and `<- pong` signifies "Rippled sends a `Pong` message to Ziggurat". Lastly, `<>` signifies a completed handshake, in either direction.
+The test index makes use of symbolic language in describing connection and message sending directions.
+
+| Symbol | Meaning |
+|--------------|-----------|
+| `-> A` | Ziggurat's synthetic node sends a message `A` to Rippled |
+| `<- B` | Rippled sends a message `B` to Ziggurat's synthetic node |
+| `>> C` | Ziggurat's synthetic node broadcasts a message `C` to all its peers |
+| `<< D` | Rippled broadcasts a message `D` to all its peers |
+| `<>` | Signifies a completed handshake, in either direction |
 
 ## Conformance
 
@@ -139,6 +147,7 @@ The test index makes use of symbolic language in describing connection and messa
 ### ZG-CONFORMANCE-008
 
     The node should query for the transaction object after receiving a TmHaveTransactions packet.
+
     <>
     -> mtHAVE_TRANSACTIONS
     <- TmGetObjectByHash
@@ -146,10 +155,13 @@ The test index makes use of symbolic language in describing connection and messa
 ### ZG-CONFORMANCE-009
 
     The node should ignore the squelch message for its validator public key.
+
     <>
-    <- mtPROPOSE_LEDGER with node's node_pub_key
-    -> mtSQUELCH (node_pub_key)
-    <- mtPROPOSE_LEDGER with node's node_pub_key
+    <- mtPROPOSE_LEDGER (node public key 1)
+    -> mtSQUELCH (node public key 1)
+    <- mtPROPOSE_LEDGER (node public key 1)
+
+    Assert: the synthetic node has continued receiving mtPROPOSE_LEDGER messages.
 
 ### ZG-CONFORMANCE-010
 
@@ -157,6 +169,7 @@ The test index makes use of symbolic language in describing connection and messa
     This message should be sent without any explicit requests.
     To ensure ledger correctness, the test asks for its information via RPC first 
     and compares the results with the TmStatusChange payload. 
+
     <>
     <- TmStatusChange with the correct ledger hash and sequence
 
@@ -200,33 +213,36 @@ The test index makes use of symbolic language in describing connection and messa
 
     The node should send a TmValidatorListCollection message containing at least one validator
     with a correct public key and a non-empty manifest.
+
     <>
     <- TmValidatorListCollection with at least one validator with a correct public key and a non-empty manifest.
 
 ### ZG-CONFORMANCE-016
 
-    Deploy a network of three nodes: Node 1, Node 2 and Node 3.
+    Deploy a multi-node network setup with nodes 1, 2 and 3.
     Connect a synthetic node to Node 1.
-    After squelching validator keys belonging to Node 2 and Node 3,
-    Node 1 shouldn't broadcast mtPROPOSE_LEDGER messages from squelched validators to the synthetic node.
+
+    Let A be a list of node public keys 1, 2 and 3.
+    Let B be a list of node public keys 2 and 3.
+
     <> with Node1
-    <- mtPROPOSE_LEDGER with the Node 1's node_pub_key1
-    <- mtPROPOSE_LEDGER with the Node 2's node_pub_key2
-    <- mtPROPOSE_LEDGER with the Node 3's node_pub_key3
-    -> mtSQUELCH (node_pub_key2)
-    -> mtSQUELCH (node_pub_key3)
-    <- mtPROPOSE_LEDGER with the Node 1's node_pub_key1
-    <- mtPROPOSE_LEDGER with the Node 1's node_pub_key1
-    <- mtPROPOSE_LEDGER with the Node 1's node_pub_key1
+    << mtPROPOSE_LEDGER (A)
+    -> mtSQUELCH (B)
+    << mtPROPOSE_LEDGER (A)
+
+    Assert: A synthetic node receives only mtPROPOSE_LEDGER messages with a key from node 1
+    after squelching node public keys belonging to nodes 2 and 3 (B).
 
 ### ZG-CONFORMANCE-017
-    
+
     The node sends mtMANIFESTS after the handshake.
+
     <>
     <- mtMANIFESTS
-    
+
 ### ZG-CONFORMANCE-018
 
     The node sends mtENDPOINTS after the handshake.
+
     <>
     <- mtENDPOINTS
