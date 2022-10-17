@@ -40,7 +40,7 @@ pub struct TestNet {
     // Setup information for each node. Used for writing configuration.
     pub setups: [NodeSetup; VALIDATOR_KEYS.len()],
     // Running nodes. Used to stop the testnet.
-    running: Vec<Node>,
+    pub running: Vec<Node>,
     // Sets whether to log the node's output to Ziggurat's output stream.
     use_stdout: bool,
     // Path under which all nodes will be built

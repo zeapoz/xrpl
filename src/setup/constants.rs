@@ -39,3 +39,6 @@ pub const TESTNET_NETWORK_ID: u32 = 239048;
 
 /// Timeout when waiting for [Node](crate::setup::node::Node)'s start.
 pub const CONNECTION_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// Timeout when waiting for [TestNet](crate::setup::testnet::TestNet) to start.
+pub const TESTNET_READY_TIMEOUT: Duration = Duration::from_secs(60);
