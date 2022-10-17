@@ -230,3 +230,11 @@ The test index makes use of symbolic language in describing connection and messa
     The node sends mtENDPOINTS after the handshake.
     <>
     <- mtENDPOINTS
+
+### ZG-CONFORMANCE-019
+
+    Nodes in the testnet should relay a mtTRANSACTION message to connected peers.
+    Connection scenario:
+    RPC call > Rippled 1 <> Rippled 2 <> Synthetic Node 
+    This test checks whether the synthetic node receives the mtTRANSACTION 
+    message containing details from the RPC call.    
