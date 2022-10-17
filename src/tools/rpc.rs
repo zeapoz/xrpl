@@ -178,11 +178,10 @@ struct SubmitTransactionRequest {
 }
 
 #[derive(Debug, Deserialize)]
-#[allow(unused)]
 pub struct SubmitTransactionResponse {
-    accepted: bool,
-    applied: bool,
-    broadcast: bool,
+    pub accepted: bool,
+    pub applied: bool,
+    pub broadcast: bool,
 }
 
 #[derive(Serialize)]
