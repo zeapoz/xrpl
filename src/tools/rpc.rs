@@ -105,6 +105,15 @@ pub async fn get_ledger_info(rpc_url: &str) -> anyhow::Result<RpcResponse<Ledger
     execute_rpc(rpc_url, &request).await
 }
 
+pub async fn submit_transaction(
+    rpc_url: &str,
+    tx_blob: String,
+    fail_hard: bool,
+) -> anyhow::Result<RpcResponse<SubmitTransactionResponse>> {
+    let request = build_submit_transaction_request(tx_blob, fail_hard);
+    execute_rpc(rpc_url, &request).await
+}
+
 #[derive(Serialize)]
 struct LedgerInfoRequest {
     ledger_index: String,
@@ -124,6 +133,18 @@ fn build_transaction_info_request(transaction: String) -> RpcRequest<Vec<Transac
             transaction,
             binary: false,
         }],
+    }
+}
+
+fn build_submit_transaction_request(
+    tx_blob: String,
+    fail_hard: bool,
+) -> RpcRequest<Vec<SubmitTransactionRequest>> {
+    RpcRequest {
+        id: String::from("1"),
+        method: String::from("submit"),
+        api_version: API_VERSION,
+        params: vec![SubmitTransactionRequest { tx_blob, fail_hard }],
     }
 }
 
@@ -148,6 +169,20 @@ fn build_account_info_request(account: &str) -> RpcRequest<Vec<AccountInfoReques
             strict: false,
         }],
     }
+}
+
+#[derive(Serialize)]
+struct SubmitTransactionRequest {
+    tx_blob: String,
+    fail_hard: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[allow(unused)]
+pub struct SubmitTransactionResponse {
+    accepted: bool,
+    applied: bool,
+    broadcast: bool,
 }
 
 #[derive(Serialize)]
