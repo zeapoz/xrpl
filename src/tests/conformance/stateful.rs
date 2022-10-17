@@ -4,7 +4,10 @@ use tempfile::TempDir;
 
 use crate::{
     setup::node::{Node, NodeType},
-    tools::rpc::{wait_for_account_data, wait_for_state},
+    tools::{
+        constants::EXPECTED_RESULT_TIMEOUT,
+        rpc::{wait_for_account_data, wait_for_state},
+    },
 };
 
 #[tokio::test]
@@ -18,9 +21,13 @@ async fn should_start_stop_stateful_node() {
         .expect("unable to start stateful node");
     wait_for_state(&node.rpc_url(), "proposing".into()).await;
 
-    let account_data = wait_for_account_data(&node.rpc_url(), "rNGknFCRBZguXcPqC63k6xTZnonSe6ZuWt")
-        .await
-        .expect("unable to get account data");
+    let account_data = wait_for_account_data(
+        &node.rpc_url(),
+        "rNGknFCRBZguXcPqC63k6xTZnonSe6ZuWt",
+        EXPECTED_RESULT_TIMEOUT,
+    )
+    .await
+    .expect("unable to get account data");
     assert_eq!(account_data.result.account_data.balance, "5000000000");
 
     node.stop().expect("unable to stop stateful node");
