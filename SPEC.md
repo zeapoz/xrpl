@@ -257,7 +257,14 @@ The test index makes use of symbolic language in describing connection and messa
 
 ### ZG-CONFORMANCE-020
 
-    Nodes in the testnet should broadcast a mtHAVE message to connected peers after a transaction.
+    Nodes in the testnet should broadcast a mtHAVE_SET message to connected peers after a transaction.
     Connection scenario:
     Submit transaction via RPC call > Rippled 1 <> Rippled 2 <> Synthetic Node
-    This test checks whether the synthetic node receives the mtHAVE message.
+    This test checks whether the synthetic node receives the mtHAVE_SET message.
+
+### ZG-CONFORMANCE-021
+
+    The node sends mtVALIDATION after the handshake.
+
+    <>
+    <- mtVALIDATION
