@@ -1,6 +1,6 @@
 use crate::{
     protocol::codecs::binary::{BinaryMessage, Payload},
-    tests::conformance::perform_response_test,
+    tests::conformance::perform_expected_message_test,
 };
 
 #[tokio::test]
@@ -15,5 +15,5 @@ async fn c017_TM_MANIFEST_node_should_send_manifest_after_handshake() {
         }
         false
     };
-    perform_response_test(Default::default(), &check).await;
+    perform_expected_message_test(Default::default(), &check).await;
 }

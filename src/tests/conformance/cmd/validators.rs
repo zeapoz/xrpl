@@ -2,7 +2,7 @@ use serde::Deserialize;
 
 use crate::{
     protocol::codecs::binary::{BinaryMessage, Payload},
-    tests::conformance::{perform_response_test, PUBLIC_KEY_LENGTH, PUBLIC_KEY_TYPES},
+    tests::conformance::{perform_expected_message_test, PUBLIC_KEY_LENGTH, PUBLIC_KEY_TYPES},
 };
 
 #[derive(Deserialize)]
@@ -52,5 +52,5 @@ async fn c015_TM_VALIDATOR_LIST_COLLECTION_node_should_send_validator_list() {
         }
         false
     };
-    perform_response_test(Default::default(), &check).await;
+    perform_expected_message_test(Default::default(), &check).await;
 }
