@@ -1,6 +1,6 @@
 use crate::{
     protocol::codecs::binary::{BinaryMessage, Payload},
-    tests::conformance::perform_response_test,
+    tests::conformance::perform_expected_message_test,
 };
 
 #[tokio::test]
@@ -10,5 +10,5 @@ async fn c021_TM_VALIDATION_node_should_send_validation_after_handshake() {
 
     // Check for a TmValidation message.
     let check = |m: &BinaryMessage| matches!(&m.payload, Payload::TmValidation(..));
-    perform_response_test(Default::default(), &check).await;
+    perform_expected_message_test(Default::default(), &check).await;
 }

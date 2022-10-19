@@ -1,6 +1,6 @@
 use crate::{
     protocol::codecs::binary::{BinaryMessage, Payload},
-    tests::conformance::perform_response_test,
+    tests::conformance::perform_expected_message_test,
 };
 
 #[tokio::test]
@@ -10,5 +10,5 @@ async fn c018_TM_ENDPOINTS_node_should_send_endpoints_after_handshake() {
 
     // Check for a TmEndpoints message.
     let check = |m: &BinaryMessage| matches!(&m.payload, Payload::TmEndpoints(..));
-    perform_response_test(Default::default(), &check).await;
+    perform_expected_message_test(Default::default(), &check).await;
 }

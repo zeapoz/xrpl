@@ -10,7 +10,7 @@ use crate::{
         codecs::binary::{BinaryMessage, Payload},
         proto::{tm_ping::PingType, TmPing},
     },
-    tests::conformance::perform_response_test,
+    tests::conformance::perform_expected_message_test,
     tools::config::TestConfig,
 };
 
@@ -39,5 +39,6 @@ async fn c003_TM_PING_expect_pong() {
         )
     };
     // Wait for reply
-    perform_response_test(TestConfig::default().with_initial_message(payload), &check).await;
+    perform_expected_message_test(TestConfig::default().with_initial_message(payload), &check)
+        .await;
 }
