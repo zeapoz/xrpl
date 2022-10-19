@@ -33,7 +33,13 @@ pub const PUBLIC_KEY_LENGTH: usize = 33; // A key consists of 1 magic byte for k
 // A transaction blob representing a signed transaction. Extracted by executing `tools/transfer.py` and listening with `tcpdump -A -i lo dst port 5005 or src port 5005`.
 pub const TRANSACTION_BLOB: &str = "12000022000000002400000001201B0000001E61400000012A05F20068400000000000000A73210330E7FC9D56BB25D6893BA3F317AE5BCF33B3291BD63DB32654A313222F7FD020744630440220297389244D36AF12115296F409C446D9A5D808880DC7FF323AA207ED529CE6C802207AAC5D2A96CB102CBDE85D2A4BA814253CA133AC9277041CAE2E1A349FB233FF8114B5F762798A53D543A014CAF8B297CFF8F2F937E883149193D6AED0CBBC25790ADE05D020C9C6D9201DCF";
 
-async fn perform_response_test(
+/// Performs a check for the required message.
+/// Scenario:
+/// 1. Start a stateless rippled node.
+/// 2. Connect a SyntheticNode to the rippled node.
+/// 3. Optional: send a message to the rippled node (configured via [TestConfig]).
+/// 4. Assert that the SyntheticNode received the required message.
+async fn perform_expected_message_test(
     config: TestConfig,
     response_check: &dyn Fn(&BinaryMessage) -> bool,
 ) {

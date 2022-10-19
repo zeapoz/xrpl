@@ -8,7 +8,7 @@ use crate::{
         codecs::binary::{BinaryMessage, Payload},
         proto::{TmGetLedger, TmLedgerInfoType, TmLedgerType},
     },
-    tests::conformance::perform_response_test,
+    tests::conformance::perform_expected_message_test,
     tools::config::TestConfig,
 };
 
@@ -50,5 +50,6 @@ async fn c004_t2_TM_GET_LEDGER_LiAsNode_get_account_state_info() {
 
 async fn check_for_ledger_data_response(payload: Payload) {
     let check = |m: &BinaryMessage| matches!(&m.payload, Payload::TmLedgerData(..));
-    perform_response_test(TestConfig::default().with_initial_message(payload), &check).await;
+    perform_expected_message_test(TestConfig::default().with_initial_message(payload), &check)
+        .await;
 }
