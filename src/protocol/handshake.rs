@@ -112,7 +112,9 @@ impl Handshake for InnerNode {
                 request.extend_from_slice(b"Connect-As: Peer\r\n");
                 request.extend_from_slice(format!("Public-Key: {}\r\n", base58_pk).as_bytes());
                 request.extend_from_slice(format!("Session-Signature: {}\r\n", sig).as_bytes());
-                request.extend_from_slice(b"X-Protocol-Ctl: txrr=1\r\n");
+                // txrr - enables transaction relay
+                // ledgerreplay - enables ledger replay
+                request.extend_from_slice(b"X-Protocol-Ctl: txrr=1;ledgerreplay=1\r\n");
                 request.extend_from_slice(b"\r\n");
                 let request = Bytes::from(request);
 
