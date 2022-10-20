@@ -268,3 +268,14 @@ The test index makes use of symbolic language in describing connection and messa
 
     <>
     <- mtVALIDATION
+
+### ZG-CONFORMANCE-022
+
+    The node should respond with mtREPLAY_DELTA_RESPONSE to mtREPLAY_DELTA_REQ.
+    During this test a feature 'ledgerReplay' is enabled. This requires two actions:
+    1. Enabling the feature in the config file (option `[ledger_replay]` set to `1`).
+    2. Adding `ledgerreplay=1` to the `X-Protocol-Ctl` header during the handshake.
+
+    <>
+    -> mtREPLAY_DELTA_REQ
+    <- mtREPLAY_DELTA_RESPONSE
