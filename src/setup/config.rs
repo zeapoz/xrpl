@@ -102,6 +102,10 @@ impl RippledConfigFile {
         writeln!(&mut config_str, "tx_enable = 1")?;
         writeln!(&mut config_str)?;
 
+        writeln!(&mut config_str, "[ledger_replay]")?;
+        writeln!(&mut config_str, "1")?;
+        writeln!(&mut config_str)?;
+
         writeln!(&mut config_str, "[ips_fixed]")?;
         for addr in &config.initial_peers {
             writeln!(&mut config_str, "{} {}", addr.ip(), addr.port())?;

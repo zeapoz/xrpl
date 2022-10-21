@@ -58,6 +58,8 @@ pub enum Payload {
     TmGetObjectByHash(TmGetObjectByHash),
     TmSquelch(TmSquelch),
     TmValidatorListCollection(TmValidatorListCollection),
+    TmReplayDeltaRequest(TmReplayDeltaRequest),
+    TmReplayDeltaResponse(TmReplayDeltaResponse),
     TmGetPeerShardInfoV2(TmGetPeerShardInfoV2),
     TmTransactions(TmTransactions),
 }
@@ -212,6 +214,8 @@ impl Decoder for BinaryCodec {
                 42 => Payload::TmGetObjectByHash(Message::decode(&mut payload)?),
                 55 => Payload::TmSquelch(Message::decode(&mut payload)?),
                 56 => Payload::TmValidatorListCollection(Message::decode(&mut payload)?),
+                59 => Payload::TmReplayDeltaRequest(Message::decode(&mut payload)?),
+                60 => Payload::TmReplayDeltaResponse(Message::decode(&mut payload)?),
                 61 => Payload::TmGetPeerShardInfoV2(Message::decode(&mut payload)?),
                 63 => Payload::TmHaveTransactions(Message::decode(&mut payload)?),
                 64 => Payload::TmTransactions(Message::decode(&mut payload)?),
@@ -278,6 +282,14 @@ impl Encoder<Payload> for BinaryCodec {
                 msg.encoded_len() as u32,
                 MessageType::MtValidatorlistcollection as i32,
             ),
+            Payload::TmReplayDeltaRequest(msg) => (
+                msg.encoded_len() as u32,
+                MessageType::MtReplayDeltaReq as i32,
+            ),
+            Payload::TmReplayDeltaResponse(msg) => (
+                msg.encoded_len() as u32,
+                MessageType::MtReplayDeltaResponse as i32,
+            ),
             Payload::TmGetPeerShardInfoV2(msg) => (
                 msg.encoded_len() as u32,
                 MessageType::MtGetPeerShardInfoV2 as i32,
@@ -326,6 +338,8 @@ impl Encoder<Payload> for BinaryCodec {
             Payload::TmSquelch(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmHaveSet(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmValidatorListCollection(msg) => (msg.encode(&mut bytes).unwrap(),),
+            Payload::TmReplayDeltaRequest(msg) => (msg.encode(&mut bytes).unwrap(),),
+            Payload::TmReplayDeltaResponse(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmGetPeerShardInfoV2(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmTransactions(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmHaveTransactions(msg) => (msg.encode(&mut bytes).unwrap(),),
