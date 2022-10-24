@@ -9,7 +9,7 @@ use crate::{
     },
     setup::node::{Node, NodeType},
     tests::conformance::{PUBLIC_KEY_LENGTH, PUBLIC_KEY_TYPES},
-    tools::synth_node::SyntheticNode,
+    tools::{rpc::wait_for_state, synth_node::SyntheticNode},
 };
 
 const INVALID_KEY: u8 = 0x42;
@@ -95,5 +95,49 @@ async fn check_relay_for_key_type(key_type: u8, relays: u32) {
     // Shutdown.
     synth_node1.shut_down().await;
     synth_node2.shut_down().await;
+    node.stop().expect("unable to stop the rippled node");
+}
+
+#[tokio::test]
+#[allow(non_snake_case)]
+async fn c023_TM_PEER_SHARD_INFO_V2_node_should_respond_with_shard_info_if_sharding_enabled() {
+    // ZG-CONFORMANCE-023
+
+    // Create a rippled node.
+    let target = TempDir::new().expect("unable to create TempDir");
+    let mut node = Node::builder()
+        .enable_sharding(true)
+        .start(target.path(), NodeType::Stateful)
+        .await
+        .expect("unable to start the rippled node");
+    wait_for_state(&node.rpc_url(), "proposing".into()).await;
+
+    // Create a synthetic node and connect it to rippled.
+    let mut synth_node = SyntheticNode::new(&Default::default()).await;
+    synth_node
+        .connect(node.addr())
+        .await
+        .expect("unable to connect");
+
+    // Create a payload with a valid key.
+    let mut public_key = vec![PUBLIC_KEY_TYPES[0]]; // Place the key type as the first byte.
+    public_key.resize(PUBLIC_KEY_LENGTH, 0x1); // Append 32 bytes serving as a dummy public key.
+    let payload = Payload::TmGetPeerShardInfoV2(TmGetPeerShardInfoV2 {
+        peer_chain: vec![TmPublicKey { public_key }],
+        relays: 1,
+    });
+
+    // Send a message from the synthetic node.
+    synth_node
+        .unicast(node.addr(), payload)
+        .expect("unable to send message");
+
+    // Ensure that the synthetic node receives TmPeerShardInfoV2.
+    // This should happen when rippled is configured to use history sharding.
+    let check = |m: &BinaryMessage| matches!(&m.payload, Payload::TmPeerShardInfoV2(..));
+    assert!(synth_node.expect_message(&check).await);
+
+    // Shutdown.
+    synth_node.shut_down().await;
     node.stop().expect("unable to stop the rippled node");
 }
