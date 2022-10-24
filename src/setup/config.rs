@@ -129,6 +129,20 @@ impl RippledConfigFile {
         writeln!(&mut config_str, "{}", VALIDATORS_FILE_NAME)?;
         writeln!(&mut config_str)?;
 
+        if config.enable_sharding {
+            writeln!(&mut config_str, "[shard_db]")?;
+            writeln!(
+                &mut config_str,
+                "path={}",
+                path.join(RIPPLED_DIR)
+                    .join("db/shard/nudb")
+                    .to_str()
+                    .unwrap()
+            )?;
+            writeln!(&mut config_str, "max_historical_shards=12")?;
+            writeln!(&mut config_str)?;
+        }
+
         // 4. HTTPS client
 
         writeln!(&mut config_str, "[ssl_verify]")?;

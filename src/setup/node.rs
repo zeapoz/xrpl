@@ -137,6 +137,10 @@ impl NodeBuilder {
         let rippled_cfg_path = target.join(RIPPLED_CONFIG);
         fs::write(rippled_cfg_path.clone(), rippled_cfg)?;
 
+        if self.conf.enable_sharding {
+            self.meta.start_args.push("--nodetoshard".into());
+        }
+
         self.meta.start_args.push("--conf".into());
         self.meta.start_args.push(rippled_cfg_path.into());
 
@@ -145,6 +149,12 @@ impl NodeBuilder {
 
         self.meta = NodeMetaData::new(setup_path)?; // Reset args
         Ok(node)
+    }
+
+    /// Enables history sharding.
+    pub fn enable_sharding(mut self, enabled: bool) -> Self {
+        self.conf.enable_sharding = enabled;
+        self
     }
 
     /// Sets address to bind to.
@@ -217,6 +227,8 @@ pub struct NodeConfig {
     pub network_id: Option<u32>,
     /// Setting this option to true will enable node logging to stdout.
     pub log_to_stdout: bool,
+    /// Setting this option to true will enable history sharding.
+    pub enable_sharding: bool,
 }
 
 impl Default for NodeConfig {
@@ -228,6 +240,7 @@ impl Default for NodeConfig {
             validator_token: None,
             network_id: None,
             log_to_stdout: false,
+            enable_sharding: false,
         }
     }
 }
