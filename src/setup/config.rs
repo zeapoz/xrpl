@@ -139,7 +139,9 @@ impl RippledConfigFile {
                     .to_str()
                     .unwrap()
             )?;
-            writeln!(&mut config_str, "max_historical_shards=12")?;
+            // For our test it's sufficient to hold the smallest possible number of shards.
+            // More information about sharding config: https://xrpl.org/configure-history-sharding.html
+            writeln!(&mut config_str, "max_historical_shards=1")?;
             writeln!(&mut config_str)?;
         }
 
