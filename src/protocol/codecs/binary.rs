@@ -61,6 +61,7 @@ pub enum Payload {
     TmReplayDeltaRequest(TmReplayDeltaRequest),
     TmReplayDeltaResponse(TmReplayDeltaResponse),
     TmGetPeerShardInfoV2(TmGetPeerShardInfoV2),
+    TmPeerShardInfoV2(TmPeerShardInfoV2),
     TmTransactions(TmTransactions),
 }
 
@@ -217,6 +218,7 @@ impl Decoder for BinaryCodec {
                 59 => Payload::TmReplayDeltaRequest(Message::decode(&mut payload)?),
                 60 => Payload::TmReplayDeltaResponse(Message::decode(&mut payload)?),
                 61 => Payload::TmGetPeerShardInfoV2(Message::decode(&mut payload)?),
+                62 => Payload::TmPeerShardInfoV2(Message::decode(&mut payload)?),
                 63 => Payload::TmHaveTransactions(Message::decode(&mut payload)?),
                 64 => Payload::TmTransactions(Message::decode(&mut payload)?),
                 _ => unimplemented!(),
@@ -294,6 +296,10 @@ impl Encoder<Payload> for BinaryCodec {
                 msg.encoded_len() as u32,
                 MessageType::MtGetPeerShardInfoV2 as i32,
             ),
+            Payload::TmPeerShardInfoV2(msg) => (
+                msg.encoded_len() as u32,
+                MessageType::MtPeerShardInfoV2 as i32,
+            ),
             Payload::TmHaveTransactions(msg) => (
                 msg.encoded_len() as u32,
                 MessageType::MtHaveTransactions as i32,
@@ -341,6 +347,7 @@ impl Encoder<Payload> for BinaryCodec {
             Payload::TmReplayDeltaRequest(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmReplayDeltaResponse(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmGetPeerShardInfoV2(msg) => (msg.encode(&mut bytes).unwrap(),),
+            Payload::TmPeerShardInfoV2(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmTransactions(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmHaveTransactions(msg) => (msg.encode(&mut bytes).unwrap(),),
         };
