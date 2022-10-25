@@ -279,3 +279,12 @@ The test index makes use of symbolic language in describing connection and messa
     <>
     -> mtREPLAY_DELTA_REQ
     <- mtREPLAY_DELTA_RESPONSE
+
+### ZG-CONFORMANCE-023
+
+    The node should respond with mtPEER_SHARD_INFO_V2 to mtGET_PEER_SHARD_INFO_V2 when
+    sharding is enabled.
+
+    <>
+    -> mtGET_PEER_SHARD_INFO_V2
+    <- mtPEER_SHARD_INFO_V2
