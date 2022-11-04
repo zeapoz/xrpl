@@ -42,3 +42,12 @@ pub const CONNECTION_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Timeout when waiting for [TestNet](crate::setup::testnet::TestNet) to start.
 pub const TESTNET_READY_TIMEOUT: Duration = Duration::from_secs(60);
+
+/// Rippled cryptographic seed. Used for clustering.
+pub const RIPPLED_NODE_SEED: &str = "shH6WH5TB8SychcABC1V5LqqfJR3B";
+
+/// Public key used for handshake in [SyntheticNode](crate::tools::synth_node::SyntheticNode).
+pub const SYNTHETIC_NODE_PUBLIC_KEY: &str = "n9K8BSMKPK1PozRhcsoFr2BGTvRTUHra6reFd3n7quG8D2PP6fHG";
+
+/// Private key used for signing messages in [SyntheticNode](crate::tools::synth_node::SyntheticNode).
+pub const SYNTHETIC_NODE_PRIVATE_KEY: &str = "pabEKa3CtSNR1VatkL9xqmYm6BpvYyWX3dXS3matz2pKKz37guy";
