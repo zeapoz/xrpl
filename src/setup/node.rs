@@ -87,7 +87,7 @@ impl NodeBuilder {
     /// Creates [Node] according to configuration and starts its process.
     pub async fn start(&mut self, target: &Path, node_type: NodeType) -> Result<Node> {
         if !target.exists() {
-            fs::create_dir_all(&target)?;
+            fs::create_dir_all(target)?;
         }
 
         let setup_path = build_ripple_work_path()?.join(RIPPLE_SETUP_DIR);
@@ -106,7 +106,7 @@ impl NodeBuilder {
                 let mut copy_options = dir::CopyOptions::new();
                 copy_options.content_only = true;
                 copy_options.overwrite = true;
-                dir::copy(&source, &target, &copy_options)?;
+                dir::copy(&source, target, &copy_options)?;
 
                 self.conf.local_addr =
                     SocketAddr::new(VALIDATOR_IPS[node_idx].parse().unwrap(), DEFAULT_PORT);
