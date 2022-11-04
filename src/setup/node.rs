@@ -157,6 +157,12 @@ impl NodeBuilder {
         self
     }
 
+    /// Enables clustering.
+    pub fn enable_cluster(mut self, enabled: bool) -> Self {
+        self.conf.enable_cluster = enabled;
+        self
+    }
+
     /// Sets address to bind to.
     pub fn set_addr(mut self, addr: SocketAddr) -> Self {
         self.conf.local_addr = addr;
@@ -229,6 +235,8 @@ pub struct NodeConfig {
     pub log_to_stdout: bool,
     /// Setting this option to true will enable history sharding.
     pub enable_sharding: bool,
+    /// Setting this option to true will enable clustering.
+    pub enable_cluster: bool,
 }
 
 impl Default for NodeConfig {
@@ -241,6 +249,7 @@ impl Default for NodeConfig {
             network_id: None,
             log_to_stdout: false,
             enable_sharding: false,
+            enable_cluster: false,
         }
     }
 }

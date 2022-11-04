@@ -11,7 +11,10 @@ use anyhow::Result;
 use serde::Deserialize;
 
 use crate::setup::{
-    constants::{JSON_RPC_PORT, RIPPLED_DIR, VALIDATORS_FILE_NAME, ZIGGURAT_CONFIG},
+    constants::{
+        JSON_RPC_PORT, RIPPLED_DIR, RIPPLED_NODE_SEED, SYNTHETIC_NODE_PUBLIC_KEY,
+        VALIDATORS_FILE_NAME, ZIGGURAT_CONFIG,
+    },
     node::NodeConfig,
 };
 
@@ -124,6 +127,15 @@ impl RippledConfigFile {
         writeln!(&mut config_str)?;
 
         // 3. Ripple protocol
+        if config.enable_cluster {
+            writeln!(&mut config_str, "[node_seed]")?;
+            writeln!(&mut config_str, "{}", RIPPLED_NODE_SEED)?;
+            writeln!(&mut config_str)?;
+
+            writeln!(&mut config_str, "[cluster_nodes]")?;
+            writeln!(&mut config_str, "{}", SYNTHETIC_NODE_PUBLIC_KEY)?;
+            writeln!(&mut config_str)?;
+        }
 
         writeln!(&mut config_str, "[validators_file]")?;
         writeln!(&mut config_str, "{}", VALIDATORS_FILE_NAME)?;
