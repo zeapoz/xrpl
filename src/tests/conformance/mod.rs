@@ -28,6 +28,7 @@ pub const PUBLIC_KEY_TYPES: &[u8] = &[
     0x03, // secp256k1 again as this type key has two correct magic bytes.
 ];
 
+// TODO replace with PUBLIC_KEY_SIZE from secp256k1
 pub const PUBLIC_KEY_LENGTH: usize = 33; // A key consists of 1 magic byte for key type and 32 bytes for encryption bits.
 
 // A transaction blob representing a signed transaction. Extracted by executing `tools/transfer.py` and listening with `tcpdump -A -i lo dst port 5005 or src port 5005`.
