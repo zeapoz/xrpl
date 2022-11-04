@@ -19,8 +19,13 @@ use crate::{
 async fn c024_TM_CLUSTER_node_should_connect_to_other_nodes_in_cluster() {
     // ZG-CONFORMANCE-024
 
-    // SyntheticNode listening ip. Needed for rippled config.
+    // Start a synthetic node configured to use known keys so that rippled knows who it's talking to.
     let synth_node_ip = "127.0.0.2".parse().unwrap();
+    let mut test_config = TestConfig::default();
+    test_config.pea2pea_config.listener_ip = Some(IpAddr::V4(synth_node_ip));
+    test_config.pea2pea_config.desired_listening_port = Some(DEFAULT_PORT);
+    test_config.synth_node_config.generate_new_keys = false;
+    let mut synth_node = SyntheticNode::new(&test_config).await;
 
     // Start a rippled node with enabled clustering.
     let target = TempDir::new().expect("unable to create TempDir");
@@ -33,13 +38,6 @@ async fn c024_TM_CLUSTER_node_should_connect_to_other_nodes_in_cluster() {
         .start(target.path(), NodeType::Stateless)
         .await
         .expect("unable to start rippled node");
-
-    // Start a synthetic node configured to use known keys so that rippled knows who it's talking to.
-    let mut test_config = TestConfig::default();
-    test_config.pea2pea_config.listener_ip = Some(IpAddr::V4(synth_node_ip));
-    test_config.pea2pea_config.desired_listening_port = Some(DEFAULT_PORT);
-    test_config.synth_node_config.generate_new_keys = false;
-    let mut synth_node = SyntheticNode::new(&test_config).await;
 
     // Check for a TmCluster message.
     let check = |m: &BinaryMessage| {
