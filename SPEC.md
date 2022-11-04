@@ -288,3 +288,11 @@ The test index makes use of symbolic language in describing connection and messa
     <>
     -> mtGET_PEER_SHARD_INFO_V2
     <- mtPEER_SHARD_INFO_V2
+
+
+### ZG-CONFORMANCE-024
+
+    The node should connect with other nodes in its cluster and exchange public keys.
+
+    <-
+    <- mtClUSTER with public keys
