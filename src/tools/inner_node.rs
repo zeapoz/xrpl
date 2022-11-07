@@ -6,11 +6,15 @@ use std::{
 
 use openssl::ssl::{SslAcceptor, SslConnector, SslMethod, SslVerifyMode};
 use pea2pea::{Node, Pea2Pea};
-use secp256k1::{PublicKey, Secp256k1, SecretKey};
+use secp256k1::{
+    constants::{PUBLIC_KEY_SIZE, SECRET_KEY_SIZE},
+    PublicKey, Secp256k1, SecretKey,
+};
 use tokio::sync::mpsc::Sender;
 
 use crate::{
     protocol::codecs::binary::BinaryMessage,
+    setup::constants::{SYNTHETIC_NODE_PRIVATE_KEY, SYNTHETIC_NODE_PUBLIC_KEY},
     tools::{config::TestConfig, tls_cert},
 };
 
@@ -48,7 +52,11 @@ impl InnerNode {
         // generate the keypair and prepare the crypto engine
 
         let engine = Secp256k1::new();
-        let (private_key, public_key) = engine.generate_keypair(&mut secp256k1::rand::thread_rng());
+        let (private_key, public_key) = if config.synth_node_config.generate_new_keys {
+            engine.generate_keypair(&mut secp256k1::rand::thread_rng())
+        } else {
+            decode_predefined_keys().expect("invalid predefined keys")
+        };
         let crypto = Arc::new(Crypto {
             engine,
             private_key,
@@ -99,4 +107,27 @@ impl InnerNode {
     pub async fn shut_down(&self) {
         self.node.shut_down().await
     }
+}
+
+fn decode_to_vec(base58str: &str, size: usize) -> bs58::decode::Result<Vec<u8>> {
+    let mut bytes = bs58::decode(base58str)
+        .with_alphabet(bs58::Alphabet::RIPPLE)
+        .into_vec()?;
+    // Remove the first byte as it's an extra byte added before serialization to distinguish
+    // hashes of different things (i.e. public/private keys, accounts, transactions and so on).
+    bytes.remove(0);
+    bytes.truncate(size);
+    Ok(bytes)
+}
+
+fn decode_predefined_keys() -> Result<(SecretKey, PublicKey), secp256k1::Error> {
+    let bytes = decode_to_vec(SYNTHETIC_NODE_PRIVATE_KEY, SECRET_KEY_SIZE)
+        .expect("unable to decode the private key");
+    let private_key = SecretKey::from_slice(bytes.as_slice())?;
+
+    let bytes = decode_to_vec(SYNTHETIC_NODE_PUBLIC_KEY, PUBLIC_KEY_SIZE)
+        .expect("unable to decode the public key");
+    let public_key = PublicKey::from_slice(bytes.as_slice())?;
+
+    Ok((private_key, public_key))
 }

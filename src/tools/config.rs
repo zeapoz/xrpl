@@ -40,6 +40,8 @@ pub struct SyntheticNodeTestConfig {
     pub do_handshake: bool,
     /// Initial message to be sent to real node
     pub initial_message: Option<Payload>,
+    /// Whether or not to generate new keys for a handshake.
+    pub generate_new_keys: bool,
 }
 
 impl Default for SyntheticNodeTestConfig {
@@ -47,6 +49,7 @@ impl Default for SyntheticNodeTestConfig {
         Self {
             do_handshake: true,
             initial_message: None,
+            generate_new_keys: true,
         }
     }
 }
