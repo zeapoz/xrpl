@@ -46,6 +46,7 @@ pub struct Header {
 pub enum Payload {
     TmManifests(TmManifests),
     TmPing(TmPing),
+    TmCluster(TmCluster),
     TmEndpoints(TmEndpoints),
     TmTransaction(TmTransaction),
     TmGetLedger(TmGetLedger),
@@ -204,6 +205,7 @@ impl Decoder for BinaryCodec {
             let payload = match header.message_type {
                 2 => Payload::TmManifests(Message::decode(&mut payload)?),
                 3 => Payload::TmPing(Message::decode(&mut payload)?),
+                5 => Payload::TmCluster(Message::decode(&mut payload)?),
                 15 => Payload::TmEndpoints(Message::decode(&mut payload)?),
                 30 => Payload::TmTransaction(Message::decode(&mut payload)?),
                 31 => Payload::TmGetLedger(Message::decode(&mut payload)?),
@@ -253,6 +255,7 @@ impl Encoder<Payload> for BinaryCodec {
                 (msg.encoded_len() as u32, MessageType::MtManifests as i32)
             }
             Payload::TmPing(msg) => (msg.encoded_len() as u32, MessageType::MtPing as i32),
+            Payload::TmCluster(msg) => (msg.encoded_len() as u32, MessageType::MtCluster as i32),
             Payload::TmEndpoints(msg) => {
                 (msg.encoded_len() as u32, MessageType::MtEndpoints as i32)
             }
@@ -333,6 +336,7 @@ impl Encoder<Payload> for BinaryCodec {
         match message {
             Payload::TmManifests(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmPing(msg) => (msg.encode(&mut bytes).unwrap(),),
+            Payload::TmCluster(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmEndpoints(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmTransaction(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmGetLedger(msg) => (msg.encode(&mut bytes).unwrap(),),

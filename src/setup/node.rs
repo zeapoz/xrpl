@@ -87,7 +87,7 @@ impl NodeBuilder {
     /// Creates [Node] according to configuration and starts its process.
     pub async fn start(&mut self, target: &Path, node_type: NodeType) -> Result<Node> {
         if !target.exists() {
-            fs::create_dir_all(&target)?;
+            fs::create_dir_all(target)?;
         }
 
         let setup_path = build_ripple_work_path()?.join(RIPPLE_SETUP_DIR);
@@ -106,7 +106,7 @@ impl NodeBuilder {
                 let mut copy_options = dir::CopyOptions::new();
                 copy_options.content_only = true;
                 copy_options.overwrite = true;
-                dir::copy(&source, &target, &copy_options)?;
+                dir::copy(&source, target, &copy_options)?;
 
                 self.conf.local_addr =
                     SocketAddr::new(VALIDATOR_IPS[node_idx].parse().unwrap(), DEFAULT_PORT);
@@ -154,6 +154,12 @@ impl NodeBuilder {
     /// Enables history sharding.
     pub fn enable_sharding(mut self, enabled: bool) -> Self {
         self.conf.enable_sharding = enabled;
+        self
+    }
+
+    /// Enables clustering.
+    pub fn enable_cluster(mut self, enabled: bool) -> Self {
+        self.conf.enable_cluster = enabled;
         self
     }
 
@@ -229,6 +235,8 @@ pub struct NodeConfig {
     pub log_to_stdout: bool,
     /// Setting this option to true will enable history sharding.
     pub enable_sharding: bool,
+    /// Setting this option to true will enable clustering.
+    pub enable_cluster: bool,
 }
 
 impl Default for NodeConfig {
@@ -241,6 +249,7 @@ impl Default for NodeConfig {
             network_id: None,
             log_to_stdout: false,
             enable_sharding: false,
+            enable_cluster: false,
         }
     }
 }
