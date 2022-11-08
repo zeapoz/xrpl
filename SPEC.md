@@ -75,13 +75,13 @@ The fuzz tests aim to buttress the message conformance tests with extra verifica
 
 The test index makes use of symbolic language in describing connection and message sending directions.
 
-| Symbol | Meaning |
-|--------------|-----------|
-| `-> A` | Ziggurat's synthetic node sends a message `A` to Rippled |
-| `<- B` | Rippled sends a message `B` to Ziggurat's synthetic node |
+| Symbol | Meaning                                                             |
+|--------|---------------------------------------------------------------------|
+| `-> A` | Ziggurat's synthetic node sends a message `A` to Rippled            |
+| `<- B` | Rippled sends a message `B` to Ziggurat's synthetic node            |
 | `>> C` | Ziggurat's synthetic node broadcasts a message `C` to all its peers |
-| `<< D` | Rippled broadcasts a message `D` to all its peers |
-| `<>` | Signifies a completed handshake, in either direction |
+| `<< D` | Rippled broadcasts a message `D` to all its peers                   |
+| `<>`   | Signifies a completed handshake, in either direction                |
 
 ## Conformance
 
@@ -136,7 +136,7 @@ The test index makes use of symbolic language in describing connection and messa
 
 ### ZG-CONFORMANCE-007
 
-    The node should respond with transaction details after receiveing TmGetObjectByHash / OtTransactions request.
+    The node should respond with transaction details after receiveing mtGET_OBJECTS / OtTransactions request.
     Normally the node does not respond with transaction details if the transaction is not in its cache. In this test we first
     query for transaction details via rpc, then via peer protocol.
 
@@ -146,11 +146,11 @@ The test index makes use of symbolic language in describing connection and messa
 
 ### ZG-CONFORMANCE-008
 
-    The node should query for the transaction object after receiving a TmHaveTransactions packet.
+    The node should query for the transaction object after receiving a mtHAVE_TRANSACTIONS packet.
 
     <>
     -> mtHAVE_TRANSACTIONS
-    <- TmGetObjectByHash
+    <- mtGET_OBJECTS
 
 ### ZG-CONFORMANCE-009
 
@@ -165,57 +165,57 @@ The test index makes use of symbolic language in describing connection and messa
 
 ### ZG-CONFORMANCE-010
 
-    The node should send TmStatusChange message containing ledger info.
+    The node should send mtSTATUS_CHANGE message containing ledger info.
     This message should be sent without any explicit requests.
     To ensure ledger correctness, the test asks for its information via RPC first 
-    and compares the results with the TmStatusChange payload. 
+    and compares the results with the mtSTATUS_CHANGE payload. 
 
     <>
-    <- TmStatusChange with the correct ledger hash and sequence
+    <- mtSTATUS_CHANGE with the correct ledger hash and sequence
 
 ### ZG-CONFORMANCE-011
 
-    The node should relay a TM_GET_PEER_SHARD_INFO_V2 message to connected peers
+    The node should relay a mtGET_PEER_SHARD_INFO_V2 message to connected peers
     if it contains a valid key type and relay counter is higher than 0.
     Connection scenario:
     Synthetic Node 1 <> Rippled <> Synthetic Node 2
-    This test checks whether Synthetic node 2 receives the TM_GET_PEER_SHARD_INFO_V2 
+    This test checks whether Synthetic node 2 receives the mtGET_PEER_SHARD_INFO_V2 
     message sent from Synthetic Node 1 to the Ripple node.
 
 ### ZG-CONFORMANCE-012
 
-    The node should not relay a TM_GET_PEER_SHARD_INFO_V2 message to connected peers
+    The node should not relay a mtGET_PEER_SHARD_INFO_V2 message to connected peers
     if it contains unsupported key type.
     Connection scenario:
     Synthetic Node 1 <> Rippled <> Synthetic Node 2
-    This test ensures that Synthetic node 2 does not receive the TM_GET_PEER_SHARD_INFO_V2 
+    This test ensures that Synthetic node 2 does not receive the mtGET_PEER_SHARD_INFO_V2 
     message sent from Synthetic Node 1 to the Ripple node.
 
 ### ZG-CONFORMANCE-013
 
-    The node should not relay a TM_GET_PEER_SHARD_INFO_V2 message to connected peers
+    The node should not relay a mtGET_PEER_SHARD_INFO_V2 message to connected peers
     if the message's relay count is equal 0.
     Connection scenario:
     Synthetic Node 1 <> Rippled <> Synthetic Node 2
-    This test ensures that Synthetic node 2 does not receive the TM_GET_PEER_SHARD_INFO_V2 
+    This test ensures that Synthetic node 2 does not receive the mtGET_PEER_SHARD_INFO_V2 
     message sent from Synthetic Node 1 to the Ripple node.
 
 ### ZG-CONFORMANCE-014
 
-    The node should not relay a TM_GET_PEER_SHARD_INFO_V2 message to connected peers
+    The node should not relay a mtGET_PEER_SHARD_INFO_V2 message to connected peers
     if the message's relay count is above relay limit (currently 3).
     Connection scenario:
     Synthetic Node 1 <> Rippled <> Synthetic Node 2
-    This test ensures that Synthetic node 2 does not receive the TM_GET_PEER_SHARD_INFO_V2 
+    This test ensures that Synthetic node 2 does not receive the mtGET_PEER_SHARD_INFO_V2 
     message sent from Synthetic Node 1 to the Ripple node.
 
 ### ZG-CONFORMANCE-015
 
-    The node should send a TmValidatorListCollection message containing at least one validator
+    The node should send a mtVALIDATORLISTCOLLECTION message containing at least one validator
     with a correct public key and a non-empty manifest.
 
     <>
-    <- TmValidatorListCollection with at least one validator with a correct public key and a non-empty manifest.
+    <- mtVALIDATORLISTCOLLECTION with at least one validator with a correct public key and a non-empty manifest.
 
 ### ZG-CONFORMANCE-016
 
