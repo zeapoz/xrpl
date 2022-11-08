@@ -1,8 +1,9 @@
+use secp256k1::constants::PUBLIC_KEY_SIZE;
 use serde::Deserialize;
 
 use crate::{
     protocol::codecs::binary::{BinaryMessage, Payload},
-    tests::conformance::{perform_expected_message_test, PUBLIC_KEY_LENGTH, PUBLIC_KEY_TYPES},
+    tests::conformance::{perform_expected_message_test, PUBLIC_KEY_TYPES},
 };
 
 #[derive(Deserialize)]
@@ -37,7 +38,7 @@ async fn c015_TM_VALIDATOR_LIST_COLLECTION_node_should_send_validator_list() {
                 for validator in &validator_list.validators {
                     let key = hex::decode(&validator.validation_public_key)
                         .expect("unable to decode a public key");
-                    if key.len() != PUBLIC_KEY_LENGTH {
+                    if key.len() != PUBLIC_KEY_SIZE {
                         panic!("invalid public key length: {}", key.len());
                     }
                     if !PUBLIC_KEY_TYPES.contains(&key[0]) {

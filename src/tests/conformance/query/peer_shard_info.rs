@@ -1,5 +1,6 @@
 //! Contains test with peer shard info queries.
 
+use secp256k1::constants::PUBLIC_KEY_SIZE;
 use tempfile::TempDir;
 
 use crate::{
@@ -8,7 +9,7 @@ use crate::{
         proto::{TmGetPeerShardInfoV2, TmPublicKey},
     },
     setup::node::{Node, NodeType},
-    tests::conformance::{PUBLIC_KEY_LENGTH, PUBLIC_KEY_TYPES},
+    tests::conformance::PUBLIC_KEY_TYPES,
     tools::{rpc::wait_for_state, synth_node::SyntheticNode},
 };
 
@@ -71,7 +72,7 @@ async fn check_relay_for_key_type(key_type: u8, relays: u32) {
 
     // Create a dummy key with the specified key type.
     let mut key = vec![key_type]; // Place the key type as the first byte.
-    key.resize(PUBLIC_KEY_LENGTH, 0x1); // Append 32 bytes serving as a dummy public key.
+    key.resize(PUBLIC_KEY_SIZE, 0x1); // Append 32 bytes serving as a dummy public key.
     let public_key = TmPublicKey { public_key: key };
 
     // Create payload with given key and relays.
@@ -121,7 +122,7 @@ async fn c023_TM_PEER_SHARD_INFO_V2_node_should_respond_with_shard_info_if_shard
 
     // Create a payload with a valid key.
     let mut public_key = vec![PUBLIC_KEY_TYPES[0]]; // Place the key type as the first byte.
-    public_key.resize(PUBLIC_KEY_LENGTH, 0x1); // Append 32 bytes serving as a dummy public key.
+    public_key.resize(PUBLIC_KEY_SIZE, 0x1); // Append 32 bytes serving as a dummy public key.
     let payload = Payload::TmGetPeerShardInfoV2(TmGetPeerShardInfoV2 {
         peer_chain: vec![TmPublicKey { public_key }],
         relays: 1,
