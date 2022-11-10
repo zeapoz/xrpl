@@ -59,6 +59,8 @@ pub enum Payload {
     TmGetObjectByHash(TmGetObjectByHash),
     TmSquelch(TmSquelch),
     TmValidatorListCollection(TmValidatorListCollection),
+    TmProofPathRequest(TmProofPathRequest),
+    TmProofPathResponse(TmProofPathResponse),
     TmReplayDeltaRequest(TmReplayDeltaRequest),
     TmReplayDeltaResponse(TmReplayDeltaResponse),
     TmGetPeerShardInfoV2(TmGetPeerShardInfoV2),
@@ -217,6 +219,8 @@ impl Decoder for BinaryCodec {
                 42 => Payload::TmGetObjectByHash(Message::decode(&mut payload)?),
                 55 => Payload::TmSquelch(Message::decode(&mut payload)?),
                 56 => Payload::TmValidatorListCollection(Message::decode(&mut payload)?),
+                57 => Payload::TmProofPathRequest(Message::decode(&mut payload)?),
+                58 => Payload::TmProofPathResponse(Message::decode(&mut payload)?),
                 59 => Payload::TmReplayDeltaRequest(Message::decode(&mut payload)?),
                 60 => Payload::TmReplayDeltaResponse(Message::decode(&mut payload)?),
                 61 => Payload::TmGetPeerShardInfoV2(Message::decode(&mut payload)?),
@@ -287,6 +291,13 @@ impl Encoder<Payload> for BinaryCodec {
                 msg.encoded_len() as u32,
                 MessageType::MtValidatorlistcollection as i32,
             ),
+            Payload::TmProofPathRequest(msg) => {
+                (msg.encoded_len() as u32, MessageType::MtProofPathReq as i32)
+            }
+            Payload::TmProofPathResponse(msg) => (
+                msg.encoded_len() as u32,
+                MessageType::MtProofPathResponse as i32,
+            ),
             Payload::TmReplayDeltaRequest(msg) => (
                 msg.encoded_len() as u32,
                 MessageType::MtReplayDeltaReq as i32,
@@ -348,6 +359,8 @@ impl Encoder<Payload> for BinaryCodec {
             Payload::TmSquelch(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmHaveSet(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmValidatorListCollection(msg) => (msg.encode(&mut bytes).unwrap(),),
+            Payload::TmProofPathResponse(msg) => (msg.encode(&mut bytes).unwrap(),),
+            Payload::TmProofPathRequest(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmReplayDeltaRequest(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmReplayDeltaResponse(msg) => (msg.encode(&mut bytes).unwrap(),),
             Payload::TmGetPeerShardInfoV2(msg) => (msg.encode(&mut bytes).unwrap(),),

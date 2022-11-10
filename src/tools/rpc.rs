@@ -95,7 +95,7 @@ pub async fn get_ledger_info(rpc_url: &str) -> anyhow::Result<RpcResponse<Ledger
         api_version: API_VERSION,
         params: vec![LedgerInfoRequest {
             ledger_index: "validated".to_string(),
-            accounts: false,
+            accounts: true,
             full: false,
             transactions: false,
             expand: false,
@@ -251,4 +251,6 @@ pub struct LedgerInfoResponse {
 pub struct LedgerResponseData {
     pub ledger_hash: String,
     pub ledger_index: String,
+    #[serde(rename = "accountState")]
+    pub account_state: Vec<String>,
 }
