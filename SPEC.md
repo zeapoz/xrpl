@@ -295,3 +295,11 @@ The test index makes use of symbolic language in describing connection and messa
 
     <-
     <- mtCLUSTER with public keys
+
+### ZG-CONFORMANCE-025
+
+    The node should respond with mtPROOF_PATH_RESPONSE to mtPROOF_PATH_REQ.
+
+    <>
+    -> mtPROOF_PATH_REQ
+    <- mtPROOF_PATH_RESPONSE
