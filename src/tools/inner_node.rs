@@ -25,6 +25,7 @@ pub struct InnerNode {
     pub(crate) sender: Sender<(SocketAddr, BinaryMessage)>,
     pub crypto: Arc<Crypto>,
     pub tls: Tls,
+    pub user_agent: String,
 }
 
 // An object containing TLS handlers.
@@ -87,6 +88,7 @@ impl InnerNode {
                 acceptor,
                 connector,
             },
+            user_agent: config.synth_node_config.user_agent.clone(),
         }
     }
 

@@ -106,7 +106,8 @@ impl Handshake for InnerNode {
                 // prepare the HTTP request message
                 let mut request = Vec::new();
                 request.extend_from_slice(b"GET / HTTP/1.1\r\n");
-                request.extend_from_slice(b"User-Agent: rippled-1.9.1\r\n");
+                request
+                    .extend_from_slice(format!("User-Agent: {}\r\n", self.user_agent).as_bytes());
                 request.extend_from_slice(b"Connection: Upgrade\r\n");
                 request.extend_from_slice(b"Upgrade: XRPL/2.0, XRPL/2.1, XRPL/2.2\r\n"); // TODO: which ones should we handle?
                 request.extend_from_slice(b"Connect-As: Peer\r\n");

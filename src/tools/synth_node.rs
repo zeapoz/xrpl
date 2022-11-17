@@ -33,7 +33,7 @@ pub fn enable_tracing() {
 }
 
 pub struct SyntheticNode {
-    inner: InnerNode,
+    pub inner: InnerNode,
     receiver: Receiver<(SocketAddr, BinaryMessage)>,
 }
 
