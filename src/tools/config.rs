@@ -42,6 +42,8 @@ pub struct SyntheticNodeTestConfig {
     pub initial_message: Option<Payload>,
     /// Whether or not to generate new keys for a handshake.
     pub generate_new_keys: bool,
+    /// 'User-Agent:' header to be set during a handshake.
+    pub user_agent: String,
 }
 
 impl Default for SyntheticNodeTestConfig {
@@ -50,6 +52,7 @@ impl Default for SyntheticNodeTestConfig {
             do_handshake: true,
             initial_message: None,
             generate_new_keys: true,
+            user_agent: "rippled-1.9.1".into(),
         }
     }
 }
