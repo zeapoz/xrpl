@@ -303,3 +303,12 @@ The test index makes use of symbolic language in describing connection and messa
     <>
     -> mtPROOF_PATH_REQ
     <- mtPROOF_PATH_RESPONSE
+
+## Resistance
+
+### ZG-RESISTANCE-001
+
+    The node rejects a handshake when the 'User-Agent' header is too long (8192 bytes in this test).
+    The node should be able to accept connections after such a request.
+    This test attempts a handshake with a long 'User-Agent' header and ensures that the connection
+    is rejected. Then, it attempts a normal connection and ensures that the connection is established.
