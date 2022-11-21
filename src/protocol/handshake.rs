@@ -106,8 +106,7 @@ impl Handshake for InnerNode {
                 // prepare the HTTP request message
                 let mut request = Vec::new();
                 request.extend_from_slice(b"GET / HTTP/1.1\r\n");
-                request
-                    .extend_from_slice(format!("User-Agent: {}\r\n", self.user_agent).as_bytes());
+                request.extend_from_slice(format!("User-Agent: {}\r\n", self.ident).as_bytes());
                 request.extend_from_slice(b"Connection: Upgrade\r\n");
                 request.extend_from_slice(b"Upgrade: XRPL/2.0, XRPL/2.1, XRPL/2.2\r\n"); // TODO: which ones should we handle?
                 request.extend_from_slice(b"Connect-As: Peer\r\n");
@@ -169,7 +168,7 @@ impl Handshake for InnerNode {
                 response.extend_from_slice(b"Connection: Upgrade\r\n");
                 response.extend_from_slice(b"Upgrade: XRPL/2.2\r\n");
                 response.extend_from_slice(b"Connect-As: Peer\r\n");
-                response.extend_from_slice(b"Server: rippled-1.9.1\r\n");
+                response.extend_from_slice(format!("Server: {}\r\n", self.ident).as_bytes());
                 response.extend_from_slice(format!("Public-Key: {}\r\n", base58_pk).as_bytes());
                 response.extend_from_slice(format!("Session-Signature: {}\r\n", sig).as_bytes());
                 response.extend_from_slice(b"X-Protocol-Ctl: txrr=1\r\n");

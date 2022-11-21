@@ -19,7 +19,7 @@ async fn r001_HANDSHAKE_reject_if_user_agent_too_long() {
 
     // Start the first synthetic node with a 'User-Agent' header that's too long.
     let mut test_config = TestConfig::default();
-    test_config.synth_node_config.user_agent = format!("{:8192}", 0);
+    test_config.synth_node_config.ident = format!("{:8192}", 0);
     let synth_node1 = SyntheticNode::new(&test_config).await;
     // Ensure this connection was rejected by the node.
     assert!(synth_node1.connect(node.addr()).await.is_err());
