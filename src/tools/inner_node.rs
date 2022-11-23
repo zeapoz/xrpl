@@ -6,7 +6,6 @@ use std::{
 
 use openssl::ssl::{SslAcceptor, SslConnector, SslMethod, SslVerifyMode};
 use pea2pea::{Node, Pea2Pea};
-use rand::{thread_rng, Rng};
 use secp256k1::{
     constants::{PUBLIC_KEY_SIZE, SECRET_KEY_SIZE},
     PublicKey, Secp256k1, SecretKey,
@@ -27,29 +26,8 @@ pub struct InnerNode {
     pub crypto: Arc<Crypto>,
     pub tls: Tls,
     pub ident: String,
-    pub handshake_errors: Option<HandshakeErrors>,
-}
-
-/// Potential errors to introduce into a handshake.
-#[derive(Clone)]
-pub struct HandshakeErrors {
-    /// Will flip random bit in a random byte of shared value used for session signing.
-    pub shared_value_bit_flip: bool,
-    /// Will flip random bit in a random byte of the public key.
-    pub public_key_bit_flip: bool,
-}
-
-impl HandshakeErrors {
-    pub fn introduce(&self, shared_value: &mut Vec<u8>, public_key: &mut [u8; PUBLIC_KEY_SIZE]) {
-        if self.public_key_bit_flip {
-            public_key[thread_rng().gen_range(0..PUBLIC_KEY_SIZE)] ^=
-                2_u8.pow(thread_rng().gen_range(0..8));
-        }
-        if self.shared_value_bit_flip {
-            let len = shared_value.len();
-            shared_value[thread_rng().gen_range(0..len)] ^= 2_u8.pow(thread_rng().gen_range(0..8));
-        }
-    }
+    pub handshake_bit_flip_shared_val: bool,
+    pub handshake_bit_flip_pub_key: bool,
 }
 
 // An object containing TLS handlers.
@@ -113,7 +91,9 @@ impl InnerNode {
                 connector,
             },
             ident: config.synth_node_config.ident.clone(),
-            handshake_errors: config.synth_node_config.handshake_errors.clone(),
+
+            handshake_bit_flip_shared_val: config.synth_node_config.handshake_bit_flip_shared_val,
+            handshake_bit_flip_pub_key: config.synth_node_config.handshake_bit_flip_pub_key,
         }
     }
 
