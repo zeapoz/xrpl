@@ -1,8 +1,8 @@
 use std::net::{IpAddr, Ipv4Addr};
 
-use crate::protocol::codecs::binary::Payload;
 #[cfg(doc)]
 use crate::tools::synth_node::SyntheticNode;
+use crate::{protocol::codecs::binary::Payload, tools::inner_node::HandshakeErrors};
 
 /// Test configuration. Contains setup options for [SyntheticNode] and [pea2pea::Config].
 pub struct TestConfig {
@@ -44,6 +44,8 @@ pub struct SyntheticNodeTestConfig {
     pub generate_new_keys: bool,
     /// Identification header to be set during a handshake. Either 'User-Agent' or 'Server' depending on connection side.
     pub ident: String,
+    /// Errors to be introduced while handshaking. If `None` then do a handshake without errors.
+    pub handshake_errors: Option<HandshakeErrors>,
 }
 
 impl Default for SyntheticNodeTestConfig {
@@ -53,6 +55,7 @@ impl Default for SyntheticNodeTestConfig {
             initial_message: None,
             generate_new_keys: true,
             ident: "rippled-1.9.1".into(),
+            handshake_errors: None,
         }
     }
 }
