@@ -14,7 +14,10 @@ use tokio::{
 use tracing::trace;
 
 use crate::{
-    protocol::codecs::binary::{BinaryMessage, Payload},
+    protocol::{
+        codecs::binary::{BinaryMessage, Payload},
+        writing::MessageOrBytes,
+    },
     tools::{
         config::TestConfig,
         constants::{EXPECTED_RESULT_TIMEOUT, SYNTH_NODE_QUEUE_DEPTH},
@@ -60,7 +63,16 @@ impl SyntheticNode {
         message: Payload,
     ) -> io::Result<oneshot::Receiver<io::Result<()>>> {
         trace!(parent: self.inner.node().span(), "unicast send msg to {addr}: {:?}", message);
-        self.inner.unicast(addr, message)
+        self.inner.unicast(addr, MessageOrBytes::Payload(message))
+    }
+
+    pub fn unicast_bytes(
+        &self,
+        addr: SocketAddr,
+        bytes: Vec<u8>,
+    ) -> io::Result<oneshot::Receiver<io::Result<()>>> {
+        trace!(parent: self.inner.node().span(), "unicast send msg to {addr}: {:?}", bytes);
+        self.inner.unicast(addr, MessageOrBytes::Bytes(bytes))
     }
 
     /// Reads a message from the inbound (internal) queue of the node.
