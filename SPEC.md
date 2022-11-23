@@ -313,3 +313,14 @@ The test index makes use of symbolic language in describing connection and messa
     The node should be able to accept connections after such a request.
     These tests attempt a handshake with long 'User-Agent'/'Server' headers and ensures that the connection
     is rejected. Then, it attempts a normal connection and ensures that the connection is established.
+
+### ZG-RESISTANCE-002
+
+    The node rejects various random bytes post-handshake.
+    The test sends random bytes of variable length (between 1 and 65536) 20 times in a row.
+    The random values are generated using rand_chacha for performance benefits and ease of use.
+
+    <>
+    -> random bytes
+    
+    Assert: The node is disconnected after sending random bytes

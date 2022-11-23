@@ -1,3 +1,4 @@
+pub mod fuzzing;
 pub mod protocol;
 pub mod setup;
 pub mod tools;
