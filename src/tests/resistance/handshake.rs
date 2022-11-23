@@ -1,3 +1,7 @@
+use pea2pea::{
+    ConnectionSide,
+    ConnectionSide::{Initiator, Responder},
+};
 use tempfile::TempDir;
 use tokio::time::sleep;
 
@@ -7,6 +11,7 @@ use crate::{
         node::{Node, NodeType},
     },
     tools::{config::TestConfig, synth_node::SyntheticNode},
+    wait_until,
 };
 
 #[allow(non_snake_case)]
@@ -15,7 +20,7 @@ async fn r001_t1_HANDSHAKE_reject_if_user_agent_too_long() {
     // ZG-RESISTANCE-001
 
     // Build and start the Ripple node.
-    let target = TempDir::new().expect("Couldn't create a temporary directory");
+    let target = TempDir::new().expect("couldn't create a temporary directory");
     let mut node = Node::builder()
         .start(target.path(), NodeType::Stateless)
         .await
@@ -57,7 +62,7 @@ async fn r001_t2_HANDSHAKE_reject_if_server_too_long() {
     let synth_node2 = SyntheticNode::new(&Default::default()).await;
 
     // Build and start the Ripple node. Configure its peers such that it connects to the synthetic node above.
-    let target = TempDir::new().expect("Couldn't create a temporary directory");
+    let target = TempDir::new().expect("couldn't create a temporary directory");
     let mut node = Node::builder()
         .initial_peers(vec![
             synth_node1.listening_addr().unwrap(),
@@ -79,5 +84,62 @@ async fn r001_t2_HANDSHAKE_reject_if_server_too_long() {
     // Shutdown all nodes.
     synth_node1.shut_down().await;
     synth_node2.shut_down().await;
+    node.stop().unwrap();
+}
+
+#[allow(non_snake_case)]
+#[tokio::test]
+async fn r003_t1_HANDSHAKE_reject_if_public_key_has_bit_flipped() {
+    // ZG-RESISTANCE-003
+
+    // Prepare config for a synthetic node. Flip bit in the public_key.
+    let mut test_config = TestConfig::default();
+    test_config.synth_node_config.handshake_bit_flip_pub_key = true;
+    run_and_assert_handshake_failure(&test_config, Responder).await;
+    run_and_assert_handshake_failure(&test_config, Initiator).await;
+}
+
+#[allow(non_snake_case)]
+#[tokio::test]
+async fn r003_t2_HANDSHAKE_reject_if_shared_value_has_bit_flipped() {
+    // ZG-RESISTANCE-003
+
+    // Prepare config for a synthetic node. Flip bit in the shared_value.
+    let mut test_config = TestConfig::default();
+    test_config.synth_node_config.handshake_bit_flip_shared_val = true;
+    run_and_assert_handshake_failure(&test_config, Responder).await;
+    run_and_assert_handshake_failure(&test_config, Initiator).await;
+}
+
+async fn run_and_assert_handshake_failure(config: &TestConfig, connection_side: ConnectionSide) {
+    // Start a SyntheticNode with the required config.
+    let synth_node = SyntheticNode::new(config).await;
+
+    // Build and start the Ripple node.
+    let target = TempDir::new().expect("couldn't create a temporary directory");
+    let initial_peers = match connection_side {
+        Initiator => vec![],
+        Responder => vec![synth_node.listening_addr().unwrap()],
+    };
+    let mut node = Node::builder()
+        .initial_peers(initial_peers)
+        .start(target.path(), NodeType::Stateless)
+        .await
+        .expect("unable to start the node");
+
+    // Try to connect to rippled if Initiator side.
+    if connection_side == Initiator {
+        assert!(synth_node.connect(node.addr()).await.is_ok());
+    }
+    // Sleep for some time. This is needed either for:
+    // 1. Rippled to connect to the synth node (for Responder side) and reject the handshake,
+    // 2. Rippled to drop connection after an unsuccessful handshake (for Initiator side)
+    wait_until!(
+        CONNECTION_TIMEOUT,
+        !synth_node.is_connected_ip(node.addr().ip())
+    );
+
+    // Shutdown all nodes.
+    synth_node.shut_down().await;
     node.stop().unwrap();
 }

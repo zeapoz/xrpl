@@ -5,6 +5,7 @@ use bytes::Bytes;
 use futures_util::{sink::SinkExt, TryStreamExt};
 use openssl::ssl::Ssl;
 use pea2pea::{protocols::Handshake, Connection, ConnectionSide, Pea2Pea};
+use rand::{thread_rng, Rng};
 use sha2::{Digest, Sha512};
 use tokio_openssl::SslStream;
 use tokio_util::codec::Framed;
@@ -100,9 +101,13 @@ impl Handshake for InnerNode {
 
                 let public_key = &mut self.crypto.public_key.serialize().clone();
                 // introduce intentional errors into handshake if needed
-                if let Some(errors) = &self.handshake_errors {
-                    errors.introduce(&mut shared_value, public_key);
+                if self.handshake_bit_flip_shared_val {
+                    randomly_flip_bit(&mut shared_value);
                 }
+                if self.handshake_bit_flip_pub_key {
+                    randomly_flip_bit(public_key.as_mut_slice());
+                }
+
                 // base58-encode the public key and create the session signature
                 let base58_pk = encode_base58(NodeType::Public, public_key);
                 let sig = create_session_signature(&self.crypto, &shared_value);
@@ -163,8 +168,11 @@ impl Handshake for InnerNode {
 
                 let public_key = &mut self.crypto.public_key.serialize().clone();
                 // introduce intentional errors into handshake if needed
-                if let Some(errors) = &self.handshake_errors {
-                    errors.introduce(&mut shared_value, public_key);
+                if self.handshake_bit_flip_shared_val {
+                    randomly_flip_bit(&mut shared_value);
+                }
+                if self.handshake_bit_flip_pub_key {
+                    randomly_flip_bit(public_key.as_mut_slice());
                 }
                 // base58-encode the public key and create the session signature
                 let base58_pk = encode_base58(NodeType::Public, public_key);
@@ -196,4 +204,9 @@ impl Handshake for InnerNode {
 
         Ok(conn)
     }
+}
+
+fn randomly_flip_bit(arr: &mut [u8]) {
+    let idx = thread_rng().gen_range(0..arr.len());
+    arr[idx] ^= 1 << thread_rng().gen_range(0..8);
 }
