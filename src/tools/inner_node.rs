@@ -26,6 +26,8 @@ pub struct InnerNode {
     pub crypto: Arc<Crypto>,
     pub tls: Tls,
     pub ident: String,
+    pub handshake_bit_flip_shared_val: bool,
+    pub handshake_bit_flip_pub_key: bool,
 }
 
 // An object containing TLS handlers.
@@ -89,6 +91,9 @@ impl InnerNode {
                 connector,
             },
             ident: config.synth_node_config.ident.clone(),
+
+            handshake_bit_flip_shared_val: config.synth_node_config.handshake_bit_flip_shared_val,
+            handshake_bit_flip_pub_key: config.synth_node_config.handshake_bit_flip_pub_key,
         }
     }
 

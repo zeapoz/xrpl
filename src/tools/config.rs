@@ -44,6 +44,10 @@ pub struct SyntheticNodeTestConfig {
     pub generate_new_keys: bool,
     /// Identification header to be set during a handshake. Either 'User-Agent' or 'Server' depending on connection side.
     pub ident: String,
+    /// Will flip random bit in a random byte of shared value used for session signing.
+    pub handshake_bit_flip_shared_val: bool,
+    /// Will flip random bit in a random byte of the public key.
+    pub handshake_bit_flip_pub_key: bool,
 }
 
 impl Default for SyntheticNodeTestConfig {
@@ -53,6 +57,8 @@ impl Default for SyntheticNodeTestConfig {
             initial_message: None,
             generate_new_keys: true,
             ident: "rippled-1.9.1".into(),
+            handshake_bit_flip_shared_val: false,
+            handshake_bit_flip_pub_key: false,
         }
     }
 }
