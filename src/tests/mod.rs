@@ -1,3 +1,3 @@
 mod conformance;
-mod resistance;
 mod performance;
+mod resistance;
