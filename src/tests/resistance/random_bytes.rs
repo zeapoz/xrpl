@@ -10,7 +10,7 @@ use crate::{
 };
 
 const ITERATIONS: usize = 20;
-const DISCONNECT_TIMEOUT: Duration = Duration::from_millis(50);
+const DISCONNECT_TIMEOUT: Duration = Duration::from_millis(100);
 
 #[tokio::test]
 async fn r002_node_must_disconnect_when_receiving_random_bytes() {
