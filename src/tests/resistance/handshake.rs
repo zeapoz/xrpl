@@ -3,7 +3,6 @@ use pea2pea::{
     ConnectionSide::{Initiator, Responder},
 };
 use tempfile::TempDir;
-use tokio::time::sleep;
 
 use crate::{
     setup::{
@@ -72,14 +71,14 @@ async fn r001_t2_HANDSHAKE_reject_if_server_too_long() {
         .await
         .expect("unable to start the node");
 
-    // Wait for as long as is usually needed.
-    sleep(CONNECTION_TIMEOUT).await;
+    // Ensure the connection to the second synthetic node was successful.
+    wait_until!(
+        CONNECTION_TIMEOUT,
+        synth_node2.is_connected_ip(node.addr().ip())
+    );
 
     // Ensure the connection to the first synthetic node was rejected by the node.
     assert!(!synth_node1.is_connected_ip(node.addr().ip()));
-
-    // Ensure the connection to the second synthetic node was successful.
-    assert!(synth_node2.is_connected_ip(node.addr().ip()));
 
     // Shutdown all nodes.
     synth_node1.shut_down().await;
