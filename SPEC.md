@@ -324,3 +324,11 @@ The test index makes use of symbolic language in describing connection and messa
     -> random bytes
     
     Assert: The node is disconnected after sending random bytes
+
+### ZG-RESISTANCE-003
+
+    The node rejects the handshake when there is a bit flip in either a public_key or a shared_value (which later results in
+    an invalid session signature). This should happen for both types of connection: Initiator and Responder.
+    These tests attempt handshakes with intentionally broken public_key and signature and assert whether
+    rippled dropped connection after some short time.
+

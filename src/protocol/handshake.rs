@@ -5,6 +5,7 @@ use bytes::Bytes;
 use futures_util::{sink::SinkExt, TryStreamExt};
 use openssl::ssl::Ssl;
 use pea2pea::{protocols::Handshake, Connection, ConnectionSide, Pea2Pea};
+use rand::{thread_rng, Rng};
 use sha2::{Digest, Sha512};
 use tokio_openssl::SslStream;
 use tokio_util::codec::Framed;
@@ -96,11 +97,19 @@ impl Handshake for InnerNode {
                 })?;
 
                 // get the shared value based on the TLS handshake
-                let shared_value = get_shared_value(&tls_stream)?;
+                let mut shared_value = get_shared_value(&tls_stream)?;
+
+                let public_key = &mut self.crypto.public_key.serialize().clone();
+                // introduce intentional errors into handshake if needed
+                if self.handshake_bit_flip_shared_val {
+                    randomly_flip_bit(&mut shared_value);
+                }
+                if self.handshake_bit_flip_pub_key {
+                    randomly_flip_bit(public_key.as_mut_slice());
+                }
 
                 // base58-encode the public key and create the session signature
-                let base58_pk =
-                    encode_base58(NodeType::Public, &self.crypto.public_key.serialize()[..]);
+                let base58_pk = encode_base58(NodeType::Public, public_key);
                 let sig = create_session_signature(&self.crypto, &shared_value);
 
                 // prepare the HTTP request message
@@ -145,7 +154,7 @@ impl Handshake for InnerNode {
                 })?;
 
                 // get the shared value based on the TLS handshake
-                let shared_value = get_shared_value(&tls_stream)?;
+                let mut shared_value = get_shared_value(&tls_stream)?;
 
                 // use the HTTP codec to read/write the (post-TLS) handshake messages
                 let codec = HttpCodec::new(self.node().span().clone(), HttpMsg::Request);
@@ -157,9 +166,16 @@ impl Handshake for InnerNode {
                     warn!(parent: self.node().span(), "trailing bytes in the handshake request from {}: {:?}", addr, request_body);
                 }
 
+                let public_key = &mut self.crypto.public_key.serialize().clone();
+                // introduce intentional errors into handshake if needed
+                if self.handshake_bit_flip_shared_val {
+                    randomly_flip_bit(&mut shared_value);
+                }
+                if self.handshake_bit_flip_pub_key {
+                    randomly_flip_bit(public_key.as_mut_slice());
+                }
                 // base58-encode the public key and create the session signature
-                let base58_pk =
-                    encode_base58(NodeType::Public, &self.crypto.public_key.serialize()[..]);
+                let base58_pk = encode_base58(NodeType::Public, public_key);
                 let sig = create_session_signature(&self.crypto, &shared_value);
 
                 // prepare the response
@@ -188,4 +204,9 @@ impl Handshake for InnerNode {
 
         Ok(conn)
     }
+}
+
+fn randomly_flip_bit(arr: &mut [u8]) {
+    let idx = thread_rng().gen_range(0..arr.len());
+    arr[idx] ^= 1 << thread_rng().gen_range(0..8);
 }
