@@ -1,16 +1,14 @@
-use std::{net::SocketAddr};
-use std::time::Duration;
-use tempfile::TempDir;
+use std::{net::SocketAddr, time::Duration};
+
 use rand::{thread_rng, RngCore};
+use tempfile::TempDir;
 
 use crate::{
     protocol::{
-        codecs::binary::{Payload},
+        codecs::binary::Payload,
         proto::{tm_ping::PingType, TmPing},
     },
-    setup::{
-        node::{Node, NodeType},
-    },
+    setup::node::{Node, NodeType},
     tools::{
         config::TestConfig,
         metrics::{
@@ -97,9 +95,7 @@ async fn p001_t1_PING_PONG_throughput() {
     //
     // *NOTE* run with `cargo test --release tests::performance::ping_pong -- --nocapture`
 
-    let synth_counts = vec![
-        1, 10, 15, 20, 30, 50, 75, 100,
-    ];
+    let synth_counts = vec![1, 10, 15, 20, 30, 50, 75, 100];
 
     let mut table = RequestsTable::default();
 
@@ -174,7 +170,10 @@ async fn simulate_peer(node_addr: SocketAddr) {
 
         // There is a need to read messages in a loop as we can read message that is not ping reply.
         while !matched {
-            match synth_node.recv_message_timeout(Duration::from_secs(10)).await {
+            match synth_node
+                .recv_message_timeout(Duration::from_secs(10))
+                .await
+            {
                 Ok(m) => {
                     if matches!(
                         &m.payload,
