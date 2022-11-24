@@ -2,7 +2,7 @@ use tempfile::TempDir;
 
 use crate::{
     protocol::{
-        codecs::binary::{BinaryMessage, Payload},
+        codecs::message::{BinaryMessage, Payload},
         proto::TmStatusChange,
     },
     setup::node::{Node, NodeType},

@@ -2,7 +2,7 @@ use tempfile::TempDir;
 
 use crate::{
     protocol::{
-        codecs::binary::{BinaryMessage, Payload},
+        codecs::message::{BinaryMessage, Payload},
         proto::{
             tm_get_object_by_hash::ObjectType, TmGetObjectByHash, TmHaveTransactions,
             TmIndexedObject, TmTransactions,

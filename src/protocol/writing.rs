@@ -5,11 +5,11 @@ use pea2pea::{protocols::Writing, ConnectionSide, Pea2Pea};
 use tokio_util::codec::Encoder;
 
 use crate::{
-    protocol::codecs::binary::{BinaryCodec, Payload},
+    protocol::codecs::message::{MessageCodec, Payload},
     tools::inner_node::InnerNode,
 };
 
-impl Encoder<Vec<u8>> for BinaryCodec {
+impl Encoder<Vec<u8>> for MessageCodec {
     type Error = io::Error;
 
     fn encode(&mut self, message: Vec<u8>, dst: &mut BytesMut) -> Result<(), Self::Error> {
@@ -19,7 +19,7 @@ impl Encoder<Vec<u8>> for BinaryCodec {
     }
 }
 
-impl Encoder<MessageOrBytes> for BinaryCodec {
+impl Encoder<MessageOrBytes> for MessageCodec {
     type Error = io::Error;
 
     fn encode(&mut self, message: MessageOrBytes, dst: &mut BytesMut) -> Result<(), Self::Error> {
@@ -37,7 +37,7 @@ pub enum MessageOrBytes {
 
 impl Writing for InnerNode {
     type Message = MessageOrBytes;
-    type Codec = BinaryCodec;
+    type Codec = MessageCodec;
 
     fn codec(&self, _addr: SocketAddr, _side: ConnectionSide) -> Self::Codec {
         Self::Codec::new(self.node().span().clone())

@@ -13,7 +13,7 @@ use secp256k1::{
 use tokio::sync::mpsc::Sender;
 
 use crate::{
-    protocol::codecs::binary::BinaryMessage,
+    protocol::codecs::message::BinaryMessage,
     setup::constants::{SYNTHETIC_NODE_PRIVATE_KEY, SYNTHETIC_NODE_PUBLIC_KEY},
     tools::{config::TestConfig, tls_cert},
 };

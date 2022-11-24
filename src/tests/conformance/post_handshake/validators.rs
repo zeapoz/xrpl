@@ -2,7 +2,7 @@ use secp256k1::constants::PUBLIC_KEY_SIZE;
 use serde::Deserialize;
 
 use crate::{
-    protocol::codecs::binary::{BinaryMessage, Payload},
+    protocol::codecs::message::{BinaryMessage, Payload},
     tests::conformance::{perform_expected_message_test, PUBLIC_KEY_TYPES},
 };
 

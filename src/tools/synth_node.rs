@@ -15,7 +15,7 @@ use tracing::trace;
 
 use crate::{
     protocol::{
-        codecs::binary::{BinaryMessage, Payload},
+        codecs::message::{BinaryMessage, Payload},
         writing::MessageOrBytes,
     },
     tools::{
