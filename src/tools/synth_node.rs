@@ -1,12 +1,14 @@
 use std::{
     io,
     net::{IpAddr, SocketAddr},
+    time::Duration,
 };
 
 use pea2pea::{
     protocols::{Handshake, Reading, Writing},
     Pea2Pea,
 };
+
 use tokio::{
     sync::{mpsc, mpsc::Receiver, oneshot},
     time::timeout,
@@ -82,6 +84,22 @@ impl SyntheticNode {
         match self.receiver.recv().await {
             Some(message) => message,
             None => panic!("all senders dropped!"),
+        }
+    }
+
+    /// Reads a message from the inbound (internal) queue of the node. If there is no message
+    /// by the given time there is an error returned indicating if timeout occured.
+    pub async fn recv_message_timeout(&mut self, duration: Duration) -> Result<BinaryMessage, bool> {
+        let mut mess = None;
+        if timeout(duration, async {
+            mess = Some(self.recv_message().await);
+        })
+            .await
+            .is_ok() {
+            Ok(mess.unwrap().1)
+        }
+        else {
+            Err(true)
         }
     }
 
