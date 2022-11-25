@@ -75,13 +75,13 @@ pub struct BinaryMessage {
     pub payload: Payload,
 }
 
-pub struct BinaryCodec {
+pub struct MessageCodec {
     current_msg_header: Option<Header>,
     // The associated node's span.
     span: Span,
 }
 
-impl BinaryCodec {
+impl MessageCodec {
     pub fn new(span: Span) -> Self {
         Self {
             current_msg_header: None,
@@ -90,7 +90,7 @@ impl BinaryCodec {
     }
 }
 
-impl Decoder for BinaryCodec {
+impl Decoder for MessageCodec {
     type Item = BinaryMessage;
     type Error = io::Error;
 
@@ -251,7 +251,7 @@ fn pack(dst: &mut [u8], size: u32) {
     dst[3] = (size & 0xff) as u8;
 }
 
-impl Encoder<Payload> for BinaryCodec {
+impl Encoder<Payload> for MessageCodec {
     type Error = io::Error;
 
     // Based on Ripple's `Message::Message` (ripple/overlay/impl/Message.cpp)
@@ -400,7 +400,7 @@ mod tests {
             \xad\"~\xb2\xdd\xb93\xf7V\xa1Zc\xe2D\xf8\x8bf\xd3"[..],
         );
 
-        let mut codec = BinaryCodec::new(Span::none());
+        let mut codec = MessageCodec::new(Span::none());
         let msg = codec.decode(&mut raw.clone()).unwrap().unwrap();
 
         let mut encoded = BytesMut::new();

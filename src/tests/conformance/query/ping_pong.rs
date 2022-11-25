@@ -7,7 +7,7 @@ use rand::{thread_rng, RngCore};
 
 use crate::{
     protocol::{
-        codecs::binary::{BinaryMessage, Payload},
+        codecs::message::{BinaryMessage, Payload},
         proto::{tm_ping::PingType, TmPing},
     },
     tests::conformance::perform_expected_message_test,

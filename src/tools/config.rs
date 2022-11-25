@@ -1,6 +1,6 @@
 use std::net::{IpAddr, Ipv4Addr};
 
-use crate::protocol::codecs::binary::Payload;
+use crate::protocol::codecs::message::Payload;
 #[cfg(doc)]
 use crate::tools::synth_node::SyntheticNode;
 
