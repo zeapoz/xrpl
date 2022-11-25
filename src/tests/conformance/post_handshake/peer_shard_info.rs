@@ -1,5 +1,5 @@
 use crate::{
-    protocol::codecs::binary::{BinaryMessage, Payload},
+    protocol::codecs::message::{BinaryMessage, Payload},
     tests::conformance::perform_expected_message_test,
 };
 
