@@ -312,9 +312,9 @@ The test index makes use of symbolic language in describing connection and messa
     1. Establish a node and synthetic peers.
     2. Begin simulation.
     3. Introspect node health and responsiveness through peers (latency, throughput). This could be done using `Ping`/`Pong` messages.
-    There can be different errors during testing: broken pipes to signal established but suddenly lost connections, 
-    InvalidData errors to indicate that connection couldn,t be established at all or timeout erros to indicate 
-    connections where expected data has not been received.
+    There can be different errors during testing: broken pipes to signal established but suddenly lost connections,
+    InvalidData errors to indicate that connection couldn't be established at all or timeout errors to indicate
+    that data has not been received in timely manner.
 
 ## Resistance
 
