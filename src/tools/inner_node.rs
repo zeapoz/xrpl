@@ -13,7 +13,7 @@ use secp256k1::{
 use tokio::sync::mpsc::Sender;
 
 use crate::{
-    protocol::codecs::binary::BinaryMessage,
+    protocol::codecs::message::BinaryMessage,
     setup::constants::{SYNTHETIC_NODE_PRIVATE_KEY, SYNTHETIC_NODE_PUBLIC_KEY},
     tools::{config::TestConfig, tls_cert},
 };
@@ -25,8 +25,17 @@ pub struct InnerNode {
     pub(crate) sender: Sender<(SocketAddr, BinaryMessage)>,
     pub crypto: Arc<Crypto>,
     pub tls: Tls,
+    pub config: HandshakeConfig,
+}
+
+// Contains configuration for resistance testing.
+#[derive(Clone, Default)]
+pub struct HandshakeConfig {
+    // Either 'User-Agent' or 'Server' header (depending on the connection side).
     pub ident: String,
+    // Whether to flip a random bit in shared_value later used for session signing.
     pub handshake_bit_flip_shared_val: bool,
+    // Whether to flip a random bit in public_key.
     pub handshake_bit_flip_pub_key: bool,
 }
 
@@ -90,10 +99,13 @@ impl InnerNode {
                 acceptor,
                 connector,
             },
-            ident: config.synth_node_config.ident.clone(),
-
-            handshake_bit_flip_shared_val: config.synth_node_config.handshake_bit_flip_shared_val,
-            handshake_bit_flip_pub_key: config.synth_node_config.handshake_bit_flip_pub_key,
+            config: HandshakeConfig {
+                ident: config.synth_node_config.ident.clone(),
+                handshake_bit_flip_shared_val: config
+                    .synth_node_config
+                    .handshake_bit_flip_shared_val,
+                handshake_bit_flip_pub_key: config.synth_node_config.handshake_bit_flip_pub_key,
+            },
         }
     }
 
