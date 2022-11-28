@@ -1,4 +1,7 @@
-use std::{net::SocketAddr, time::Duration};
+use std::{
+    net::SocketAddr,
+    time::{Duration, Instant},
+};
 
 use rand::{thread_rng, RngCore};
 use tempfile::TempDir;
@@ -142,7 +145,7 @@ async fn p001_t1_PING_PONG_throughput() {
     node.stop().unwrap();
 
     // Display results table
-    println!("{}", table);
+    println!("\r\n{}", table);
 }
 
 async fn simulate_peer(node_addr: SocketAddr) {
@@ -150,10 +153,11 @@ async fn simulate_peer(node_addr: SocketAddr) {
     let mut synth_node = SyntheticNode::new(&config).await;
 
     synth_node.connect(node_addr).await.unwrap();
+    let mut seq;
 
     for _ in 0..PINGS {
         // Generate unique sequence for each ping
-        let seq = thread_rng().next_u32();
+        seq = thread_rng().next_u32();
 
         let payload = Payload::TmPing(TmPing {
             r#type: PingType::PtPing as i32,
@@ -165,7 +169,7 @@ async fn simulate_peer(node_addr: SocketAddr) {
         // Send Ping
         synth_node.unicast(node_addr, payload).unwrap();
 
-        let now = tokio::time::Instant::now();
+        let now = Instant::now();
         let mut matched = false;
 
         // There is a need to read messages in a loop as we can read message that is not ping reply.

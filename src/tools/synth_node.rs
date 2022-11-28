@@ -93,15 +93,13 @@ impl SyntheticNode {
         duration: Duration,
     ) -> Result<BinaryMessage, bool> {
         let mut mess = None;
-        let res = timeout(duration, async {
+        match timeout(duration, async {
             mess = Some(self.recv_message().await);
         })
         .await
-        .is_ok();
-        if res {
-            Ok(mess.unwrap().1)
-        } else {
-            Err(true)
+        {
+            Ok(_) => Ok(mess.unwrap().1),
+            Err(_) => Err(true),
         }
     }
 
