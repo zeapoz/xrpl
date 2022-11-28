@@ -1,4 +1,5 @@
 use std::{
+    io::ErrorKind,
     net::SocketAddr,
     time::{Duration, Instant},
 };
@@ -98,7 +99,7 @@ async fn p001_t1_PING_PONG_throughput() {
     //
     // *NOTE* run with `cargo test --release tests::performance::ping_pong -- --nocapture`
 
-    let synth_counts = vec![1, 10, 15, 20, 30, 50, 75, 100];
+    let synth_counts = vec![1, 10, 15, 20, 30, 50];
 
     let mut table = RequestsTable::default();
 
@@ -180,7 +181,7 @@ async fn simulate_peer(node_addr: SocketAddr) {
             {
                 Ok(m) => {
                     if matches!(
-                        &m.payload,
+                        &m.1.payload,
                         Payload::TmPing(TmPing {
                         r#type: r_type,
                         seq: Some(s),
@@ -190,8 +191,15 @@ async fn simulate_peer(node_addr: SocketAddr) {
                         metrics::histogram!(METRIC_LATENCY, duration_as_ms(now.elapsed()));
                         matched = true;
                     }
-                } // We can panic here as not receiving any message means that connection is dead.
-                Err(e) => panic!("Error receiving message - timeout?: {:?}", e),
+                }
+                Err(e) => match e.kind() {
+                    ErrorKind::TimedOut => {
+                        break;
+                    }
+                    _ => {
+                        panic!("Unexpected error: {:?}", e);
+                    }
+                },
             }
         }
     }
