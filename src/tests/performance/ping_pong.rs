@@ -5,7 +5,7 @@ use tempfile::TempDir;
 
 use crate::{
     protocol::{
-        codecs::binary::Payload,
+        codecs::message::Payload,
         proto::{tm_ping::PingType, TmPing},
     },
     setup::node::{Node, NodeType},
