@@ -1,7 +1,7 @@
 use tempfile::TempDir;
 
 use crate::{
-    protocol::codecs::binary::BinaryMessage,
+    protocol::codecs::message::BinaryMessage,
     setup::{
         constants::TESTNET_READY_TIMEOUT,
         node::{Node, NodeType},

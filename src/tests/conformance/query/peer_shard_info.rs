@@ -5,7 +5,7 @@ use tempfile::TempDir;
 
 use crate::{
     protocol::{
-        codecs::binary::{BinaryMessage, Payload},
+        codecs::message::{BinaryMessage, Payload},
         proto::{TmGetPeerShardInfoV2, TmPublicKey},
     },
     setup::node::{Node, NodeType},

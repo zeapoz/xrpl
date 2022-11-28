@@ -26,7 +26,7 @@ use tokio::time::{sleep, timeout, Duration};
 
 use crate::{
     protocol::{
-        codecs::binary::{BinaryMessage, Payload},
+        codecs::message::{BinaryMessage, Payload},
         proto::{TmProposeSet, TmSquelch},
     },
     setup::{

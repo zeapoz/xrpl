@@ -1,6 +1,6 @@
 use crate::{
     protocol::{
-        codecs::binary::{BinaryMessage, Payload},
+        codecs::message::{BinaryMessage, Payload},
         proto::TransactionStatus::TsCurrent,
     },
     tests::conformance::{perform_testnet_transaction_check, TRANSACTION_BLOB},
