@@ -91,15 +91,16 @@ impl SyntheticNode {
     pub async fn recv_message_timeout(
         &mut self,
         duration: Duration,
-    ) -> Result<BinaryMessage, bool> {
-        let mut mess = None;
-        match timeout(duration, async {
-            mess = Some(self.recv_message().await);
-        })
-        .await
-        {
-            Ok(_) => Ok(mess.unwrap().1),
-            Err(_) => Err(true),
+    ) -> io::Result<(SocketAddr, BinaryMessage)> {
+        match timeout(duration, self.recv_message()).await {
+            Ok(message) => Ok(message),
+            Err(_e) => Err(std::io::Error::new(
+                std::io::ErrorKind::TimedOut,
+                format!(
+                    "could not read message after {0:.3}s",
+                    duration.as_secs_f64()
+                ),
+            )),
         }
     }
 
