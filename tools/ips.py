@@ -1,3 +1,13 @@
+# Tools for creating virtual linux dummy devices that can be addressed, addresses those devices with
+# hardware address, ip address and sets the link up. Moreover, it generates list of valid addresses (where
+# ip/ipconfig command invocation completed successfully) and writes that list to the Rust file.
+#
+# Only Linux is supported! Script need to be run with sudo.
+#
+# User can tweak settings using command line.
+# Just run python ips.py --help for more information about parameters.
+
+
 import argparse
 import ipaddress
 import os
