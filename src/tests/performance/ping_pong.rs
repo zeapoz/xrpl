@@ -1,6 +1,7 @@
 use std::{
     io::ErrorKind,
-    net::SocketAddr,
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    str::FromStr,
     time::{Duration, Instant},
 };
 
@@ -15,6 +16,7 @@ use crate::{
     setup::node::{Node, NodeType},
     tools::{
         config::TestConfig,
+        ips::IPS,
         metrics::{
             recorder::TestMetrics,
             tables::{duration_as_ms, RequestStats, RequestsTable},
@@ -23,8 +25,10 @@ use crate::{
     },
 };
 
-const PINGS: u16 = 50;
+const MAX_PEERS: usize = 100;
+const PINGS: u16 = 1000;
 const METRIC_LATENCY: &str = "ping_perf_latency";
+const CONNECTION_PORT: u16 = 31337;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 #[allow(non_snake_case)]
@@ -40,11 +44,9 @@ async fn p001_t1_PING_PONG_throughput() {
     //       of the results table. This is because the results will rely on the machine
     //       running the test.
     //
-    // rippled: Currently seems to perform a bit below the expectations. Default config for rippled sets max_peers
-    //          to 0 which means no limit. As stated in src/ripple/peerfinder/impl/Tuning.h defaultMaxPeers = 21 so
-    //          rippled should response fine at least to 21 peers.
-    //          As it was in zcash, tests can produce different error messages during run to indicate what is
-    //          going on with the current connection.
+    // rippled: Currently seems to perform quite well. There is one important condition - connections
+    //          must be established with different source IPs. When connections come from single IP
+    //          the performance drops significantly.
     //          There are possible several error messages during the test:
     //          `Result::unwrap()` on an `Err` value: Kind(InvalidData) - when connect to node failed
     //          `Result::unwrap()` on an `Err` value: Os { code: 32, kind: BrokenPipe, message: "Broken pipe" }' - communication with
@@ -55,52 +57,47 @@ async fn p001_t1_PING_PONG_throughput() {
     //          connections cannot be established and other ones are closed during the test. However, amount of nodes and ping count
     //          does not affect the latency and rippled responses have similar std time.
     //
-    // Example test result (with percentile latencies) - 50 pings per node:
+    // Example test result (with percentile latencies) - 1000 pings per node with max_peers set to 100:
     // ┌─────────┬────────────┬────────────┬────────────┬────────────────┬────────────┬────────────┬────────────┬────────────┬────────────┬────────────────┬────────────┬──────────────┐
     // │  peers  │  requests  │  min (ms)  │  max (ms)  │  std dev (ms)  │  10% (ms)  │  50% (ms)  │  75% (ms)  │  90% (ms)  │  99% (ms)  │  completion %  │  time (s)  │  requests/s  │
     // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-    // │       1 │         50 │          0 │         40 │              6 │          0 │          0 │          0 │          0 │         40 │         100.00 │       0.17 │       298.37 │
+    // │       1 │       1000 │          0 │         49 │              3 │          0 │          0 │          0 │          0 │          0 │         100.00 │       0.59 │      1698.56 │
     // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-    // │      10 │         50 │          0 │         49 │              6 │          0 │          0 │          0 │          0 │         46 │         100.00 │       2.10 │       237.73 │
+    // │      10 │       1000 │          0 │         58 │              2 │          0 │          0 │          0 │          0 │          0 │         100.00 │       2.02 │      4961.28 │
     // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-    // │      15 │         50 │          0 │         49 │              6 │          0 │          0 │          0 │          0 │         45 │         100.00 │       2.93 │       256.17 │
+    // │      15 │       1000 │          0 │         59 │              6 │          0 │          0 │          0 │          0 │         43 │         100.00 │       2.82 │      5328.07 │
     // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-    // │      20 │         50 │          0 │         49 │              4 │          0 │          0 │          0 │          0 │          9 │          79.80 │      13.82 │        57.74 │
+    // │      20 │       1000 │          0 │         60 │              4 │          0 │          0 │          0 │          0 │          0 │         100.00 │       4.22 │      4743.56 │
     // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-    // │      30 │         50 │          0 │        302 │             14 │          0 │          0 │          0 │          0 │         47 │          45.67 │      15.82 │        43.30 │
+    // │      30 │       1000 │          0 │         59 │              7 │          0 │          0 │          0 │          0 │         49 │         100.00 │       6.94 │      4319.85 │
     // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-    // │      50 │         50 │          0 │         54 │              7 │          0 │          0 │          0 │          0 │         43 │          33.48 │      20.24 │        41.35 │
-    // └─────────┴────────────┴────────────┴────────────┴────────────────┴────────────┴────────────┴────────────┴────────────┴────────────┴────────────────┴────────────┴──────────────┘
-    //
-    // Example test result (with percentile latencies) - 150 pings per node:
-    // ┌─────────┬────────────┬────────────┬────────────┬────────────────┬────────────┬────────────┬────────────┬────────────┬────────────┬────────────────┬────────────┬──────────────┐
-    // │  peers  │  requests  │  min (ms)  │  max (ms)  │  std dev (ms)  │  10% (ms)  │  50% (ms)  │  75% (ms)  │  90% (ms)  │  99% (ms)  │  completion %  │  time (s)  │  requests/s  │
+    // │      50 │       1000 │          0 │        369 │              8 │          0 │          0 │          0 │          0 │         47 │         100.00 │      11.20 │      4463.01 │
     // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-    // │       1 │        150 │          0 │         47 │              4 │          0 │          0 │          0 │          0 │         47 │         100.00 │       0.32 │       464.77 │
-    // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-    // │      10 │        150 │          0 │         58 │              4 │          0 │          0 │          0 │          0 │          0 │         100.00 │       2.26 │       664.91 │
-    // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-    // │      15 │        150 │          0 │         49 │              8 │          0 │          0 │          0 │          0 │         49 │          14.84 │      12.08 │        27.64 │
-    // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-    // │      20 │        150 │          0 │         41 │              5 │          0 │          0 │          0 │          0 │         41 │          16.13 │      13.04 │        37.12 │
-    // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-    // │      30 │        150 │          0 │         23 │              2 │          0 │          0 │          0 │          0 │         11 │          13.24 │      15.40 │        38.70 │
-    // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-    // │      50 │        150 │          0 │         36 │              2 │          0 │          0 │          0 │          0 │          1 │           9.59 │      18.67 │        38.52 │
+    // │     100 │       1000 │          0 │       3130 │             48 │          0 │          0 │          0 │          1 │         44 │          71.01 │     137.67 │       515.81 │
     // └─────────┴────────────┴────────────┴────────────┴────────────────┴────────────┴────────────┴────────────┴────────────┴────────────┴────────────────┴────────────┴──────────────┘
     //
     // *NOTE* run with `cargo test --release tests::performance::ping_pong -- --nocapture`
+    // Before running test generate dummy devices with different ips using toos/ips.py
 
-    let synth_counts = vec![1, 10, 15, 20, 30, 50];
+    let synth_counts = vec![1, 10, 15, 20, 30, 50, 100];
 
     let mut table = RequestsTable::default();
 
     let target = TempDir::new().expect("Unable to create TempDir");
     let mut node = Node::builder()
+        .max_peers(MAX_PEERS)
         .start(target.path(), NodeType::Stateless)
         .await
         .unwrap();
     let node_addr = node.addr();
+
+    // This is "the hack" but is needed to perform next tests if IPS table is not empty. The
+    // standard TIME_WAIT is 60s before we can use the same addr and port again.
+    // So we're taking already used IPs and each thread in each iteration will use different IP.
+    // If the table is empty or too small, the thread itself will notice it and will use the
+    // local IP.
+    // It can be removed once pea2pea will offer REUSE_ADDR options.
+    let mut ip_idx = 0;
 
     for synth_count in synth_counts {
         // setup metrics recorder
@@ -111,7 +108,8 @@ async fn p001_t1_PING_PONG_throughput() {
         let mut synth_handles = Vec::with_capacity(synth_count);
         let test_start = tokio::time::Instant::now();
         for _ in 0..synth_count {
-            synth_handles.push(tokio::spawn(simulate_peer(node_addr)));
+            synth_handles.push(tokio::spawn(simulate_peer(node_addr, ip_idx)));
+            ip_idx += 1;
         }
 
         // wait for peers to complete
@@ -141,8 +139,20 @@ async fn p001_t1_PING_PONG_throughput() {
     println!("\r\n{}", table);
 }
 
-async fn simulate_peer(node_addr: SocketAddr) {
-    let config = TestConfig::default();
+async fn simulate_peer(node_addr: SocketAddr, thread_num: usize) {
+    let mut config = TestConfig::default();
+
+    // If there is address for our thread in the pool we can use it.
+    // Otherwise we'll not set bound_addr and use local IP addr (127.0.0.1).
+    if IPS.len() > thread_num {
+        // We can safely use the same port as every thread will use different IP.
+        let source_addr = SocketAddr::new(
+            IpAddr::V4(Ipv4Addr::from_str(IPS[thread_num]).unwrap()),
+            CONNECTION_PORT,
+        );
+        config.pea2pea_config.bound_addr = Some(source_addr);
+    }
+
     let mut synth_node = SyntheticNode::new(&config).await;
 
     synth_node.connect(node_addr).await.unwrap();
