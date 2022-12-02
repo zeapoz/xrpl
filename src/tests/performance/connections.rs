@@ -274,15 +274,15 @@ async fn p002_connections_load() {
     }
 }
 
-async fn simulate_peer(node_addr: SocketAddr, handshake_complete: Sender<()>, thread_num: usize) {
+async fn simulate_peer(node_addr: SocketAddr, handshake_complete: Sender<()>, peer_id: usize) {
     let mut config = TestConfig::default();
 
     // If there is address for our thread in the pool we can use it.
     // Otherwise we'll not set bound_addr and use local IP addr (127.0.0.1).
-    if IPS.len() > thread_num {
+    if IPS.len() > peer_id {
         // We can safely use the same port as every thread will use different IP.
         let source_addr = SocketAddr::new(
-            IpAddr::V4(Ipv4Addr::from_str(IPS[thread_num]).unwrap()),
+            IpAddr::V4(Ipv4Addr::from_str(IPS[peer_id]).unwrap()),
             CONNECTION_PORT,
         );
         config.pea2pea_config.bound_addr = Some(source_addr);
