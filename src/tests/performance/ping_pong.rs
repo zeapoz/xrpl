@@ -1,6 +1,8 @@
 use std::{
     io::ErrorKind,
-    net::SocketAddr,
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    str::FromStr,
+    thread,
     time::{Duration, Instant},
 };
 
@@ -15,6 +17,7 @@ use crate::{
     setup::node::{Node, NodeType},
     tools::{
         config::TestConfig,
+        ips::IPS,
         metrics::{
             recorder::TestMetrics,
             tables::{duration_as_ms, RequestStats, RequestsTable},
@@ -23,8 +26,9 @@ use crate::{
     },
 };
 
-const PINGS: u16 = 50;
+const PINGS: u16 = 1000;
 const METRIC_LATENCY: &str = "ping_perf_latency";
+const CONNECTION_PORT: u16 = 31337;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 #[allow(non_snake_case)]
@@ -91,16 +95,25 @@ async fn p001_t1_PING_PONG_throughput() {
     //
     // *NOTE* run with `cargo test --release tests::performance::ping_pong -- --nocapture`
 
-    let synth_counts = vec![1, 10, 15, 20, 30, 50];
+    let synth_counts = vec![1, 10, 15, 20, 30, 50, 100];
 
     let mut table = RequestsTable::default();
 
     let target = TempDir::new().expect("Unable to create TempDir");
     let mut node = Node::builder()
+        .max_peers(100)
         .start(target.path(), NodeType::Stateless)
         .await
         .unwrap();
     let node_addr = node.addr();
+
+    // This is "the hack" but is needed to perform next tests if IPS table is not empty. The
+    // standard TIME_WAIT is 60s before we can use the same addr and port again.
+    // So we're taking already used IPs and each thread in each iteration will use different IP.
+    // If the table is empty or too small, the thread itself will notice it and will use the
+    // local IP.
+    // It can be removed once pea2pea will offer REUSE_ADDR options.
+    let mut used = 0;
 
     for synth_count in synth_counts {
         // setup metrics recorder
@@ -110,9 +123,11 @@ async fn p001_t1_PING_PONG_throughput() {
 
         let mut synth_handles = Vec::with_capacity(synth_count);
         let test_start = tokio::time::Instant::now();
-        for _ in 0..synth_count {
-            synth_handles.push(tokio::spawn(simulate_peer(node_addr)));
+        for i in 0..synth_count {
+            synth_handles.push(tokio::spawn(simulate_peer(node_addr, i + used)));
         }
+
+        used += synth_count;
 
         // wait for peers to complete
         for handle in synth_handles {
@@ -141,8 +156,21 @@ async fn p001_t1_PING_PONG_throughput() {
     println!("\r\n{}", table);
 }
 
-async fn simulate_peer(node_addr: SocketAddr) {
-    let config = TestConfig::default();
+async fn simulate_peer(node_addr: SocketAddr, thread_num: usize) {
+    let mut config = TestConfig::default();
+
+    // If there is address for our thread in the pool we can use it.
+    // Otherwise we'll not set bound_addr and use local IP addr (127.0.0.1).
+    if IPS.len() > thread_num {
+        // We can safely use the same port as every thread will use different IP.
+        let source_addr = SocketAddr::new(
+            IpAddr::V4(Ipv4Addr::from_str(IPS[thread_num]).unwrap()),
+            CONNECTION_PORT,
+        );
+        println!("Setting source address to {}", source_addr);
+        config.pea2pea_config.bound_addr = Some(source_addr);
+    }
+
     let mut synth_node = SyntheticNode::new(&config).await;
 
     synth_node.connect(node_addr).await.unwrap();
