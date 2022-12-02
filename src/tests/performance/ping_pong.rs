@@ -97,7 +97,7 @@ async fn p001_t1_PING_PONG_throughput() {
     // If the table is empty or too small, the thread itself will notice it and will use the
     // local IP.
     // It can be removed once pea2pea will offer REUSE_ADDR options.
-    let mut used = 0;
+    let mut ip_idx = 0;
 
     for synth_count in synth_counts {
         // setup metrics recorder
@@ -107,11 +107,10 @@ async fn p001_t1_PING_PONG_throughput() {
 
         let mut synth_handles = Vec::with_capacity(synth_count);
         let test_start = tokio::time::Instant::now();
-        for i in 0..synth_count {
-            synth_handles.push(tokio::spawn(simulate_peer(node_addr, i + used)));
+        for _ in 0..synth_count {
+            synth_handles.push(tokio::spawn(simulate_peer(node_addr, ip_idx)));
+            ip_idx += 1;
         }
-
-        used += synth_count;
 
         // wait for peers to complete
         for handle in synth_handles {
