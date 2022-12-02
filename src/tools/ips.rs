@@ -5,5 +5,4 @@
 /// Reference to a static array of IP addresses (represented as str).
 /// If array is empty generate new addresses using eg.:
 /// python3 tools/ips.py --subnet 1.1.1.0/28 --file src/tools/ips.rs --dev_prefix test_dev
-pub const IPS: &'static [&'static str] = &[
-];
+pub const IPS: &[&str] = &[];
