@@ -69,11 +69,11 @@ async fn p002_connections_load() {
     //  2. Initiate connections from `M > N` peer nodes
     //  3. Expect only `N` to be active at a time
     //
-    // Seems rippled not perform like the above way. max_peers is not a limit for connection
-    // number which is set (hardcoded?) to about 20 at the time. max_peer seems to make difference
-    // if any connections will be terminated. Need to investigate in the next commit.
+    // Currently test fails as in many situations we've some terminated connections.
+    // Moreover, seems that rippled manages connection better, when they're from same IP.
+    // Still need to investigate why more connections are accepted than max_peers set?
     //
-    // Sample results:
+    // Sample results when every synth node is connected from different IP:
     // ┌─────────────┬─────────┬──────────────┬──────────────┬──────────────┬──────────────┬──────────────┬────────────┐
     // │             │         │  connection  │  connection  │  connection  │  connection  │  connection  │            │
     // │  max peers  │  peers  │  accepted    │  rejected    │  terminated  │  error       │  timed out   │  time (s)  │
@@ -129,6 +129,26 @@ async fn p002_connections_load() {
     // │         100 │      50 │           50 │            0 │           28 │            0 │            0 │      10.25 │
     // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
     // │         100 │     100 │          100 │            0 │           96 │            0 │            0 │      19.42 │
+    // └─────────────┴─────────┴──────────────┴──────────────┴──────────────┴──────────────┴──────────────┴────────────┘
+    //
+    // Sample result when all synth nodes are connected from the same IP:
+    // ┌─────────────┬─────────┬──────────────┬──────────────┬──────────────┬──────────────┬──────────────┬────────────┐
+    // │             │         │  connection  │  connection  │  connection  │  connection  │  connection  │            │
+    // │  max peers  │  peers  │  accepted    │  rejected    │  terminated  │  error       │  timed out   │  time (s)  │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │         100 │       1 │            1 │            0 │            0 │            0 │            0 │       0.37 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │         100 │       5 │            5 │            0 │            0 │            0 │            0 │       1.06 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │         100 │      10 │           10 │            0 │            0 │            0 │            0 │       2.07 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │         100 │      20 │           19 │            1 │            0 │            0 │            0 │       3.73 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │         100 │      30 │           21 │            9 │            0 │            0 │            0 │       6.02 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │         100 │      50 │           21 │           29 │            0 │            0 │            0 │       9.26 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │         100 │     100 │           21 │           79 │            7 │            0 │            0 │      19.41 │
     // └─────────────┴─────────┴──────────────┴──────────────┴──────────────┴──────────────┴──────────────┴────────────┘
 
     // maximum time allowed for a single iteration of the test
@@ -226,12 +246,32 @@ async fn p002_connections_load() {
         all_stats.push(stats);
     }
 
-    // TODO: assertions with expected test results.
-
     node.stop().expect("unable to stop the node");
 
     // Display results table
     println!("\r\n{}", fmt_table(Table::new(&all_stats)));
+
+    // Check that results are okay
+    for stats in all_stats.iter() {
+        // No connection should be terminated.
+        assert_eq!(stats.terminated, 0, "Stats: {:?}", stats);
+
+        // We expect to have `MAX_PEERS` connections. This is only true if
+        // `stats.terminated == 0`.
+        assert_eq!(stats.accepted, MAX_PEERS, "Stats: {:?}", stats);
+
+        // The rest of the peers should be rejected.
+        assert_eq!(
+            stats.rejected,
+            stats.peers - MAX_PEERS,
+            "Stats: {:?}",
+            stats
+        );
+
+        // And no connection timeouts or errors
+        assert_eq!(stats.timed_out, 0, "Stats: {:?}", stats);
+        assert_eq!(stats.conn_error, 0, "Stats: {:?}", stats);
+    }
 }
 
 async fn simulate_peer(node_addr: SocketAddr, handshake_complete: Sender<()>, thread_num: usize) {
