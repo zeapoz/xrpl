@@ -135,7 +135,7 @@ async fn p002_connections_load() {
     const MAX_ITER_TIME: Duration = Duration::from_secs(25);
 
     /// maximum peers to configure node with
-    const MAX_PEERS: u16 = 20;
+    const MAX_PEERS: u16 = 100;
 
     let synth_counts = vec![1u16, 5, 10, 20, 30, 50, 100];
 
