@@ -1,5 +1,6 @@
 use std::{
-    net::SocketAddr,
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    str::FromStr,
     time::{Duration, Instant},
 };
 
@@ -11,6 +12,7 @@ use crate::{
     setup::node::{Node, NodeType},
     tools::{
         config::TestConfig,
+        ips::IPS,
         metrics::{
             recorder::TestMetrics,
             tables::{fmt_table, table_float_display},
@@ -50,6 +52,8 @@ impl Stats {
     }
 }
 
+const CONNECTION_PORT: u16 = 31337;
+
 const METRIC_ACCEPTED: &str = "perf_conn_accepted";
 const METRIC_TERMINATED: &str = "perf_conn_terminated";
 const METRIC_REJECTED: &str = "perf_conn_rejected";
@@ -65,35 +69,95 @@ async fn p002_connections_load() {
     //  2. Initiate connections from `M > N` peer nodes
     //  3. Expect only `N` to be active at a time
     //
-    // Seems rippled not perform like the above way. max_peers is not a limit for connection
-    // number which is set (hardcoded?) to about 20 at the time. max_peer seems to make difference
-    // if any connections will be terminated. Need to investigate in the next commit.
+    // Currently test fails as in many situations we've some terminated connections.
+    // Moreover, seems that rippled manages connection better, when they're from same IP.
+    // Still need to investigate why more connections are accepted than max_peers set?
     //
-    // Sample result:
+    // Sample results when every synth node is connected from different IP:
     // ┌─────────────┬─────────┬──────────────┬──────────────┬──────────────┬──────────────┬──────────────┬────────────┐
     // │             │         │  connection  │  connection  │  connection  │  connection  │  connection  │            │
     // │  max peers  │  peers  │  accepted    │  rejected    │  terminated  │  error       │  timed out   │  time (s)  │
     // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
-    // │          50 │       1 │            1 │            0 │            0 │            0 │            0 │       0.20 │
+    // │          20 │       1 │            1 │            0 │            0 │            0 │            0 │       0.50 │
     // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
-    // │          50 │       5 │            5 │            0 │            0 │            0 │            0 │       0.74 │
+    // │          20 │       5 │            5 │            0 │            0 │            0 │            0 │       0.91 │
     // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
-    // │          50 │      10 │           10 │            0 │            0 │            0 │            0 │       1.83 │
+    // │          20 │      10 │           10 │            0 │            4 │            0 │            0 │       2.08 │
     // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
-    // │          50 │      20 │           19 │            1 │            0 │            0 │            0 │       3.86 │
+    // │          20 │      20 │           20 │            0 │           17 │            0 │            0 │       3.98 │
     // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
-    // │          50 │      30 │           21 │            9 │           14 │            0 │            0 │       5.81 │
+    // │          20 │      30 │           30 │            0 │           24 │            0 │            0 │       5.84 │
     // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
-    // │          50 │      50 │           20 │           30 │           19 │            0 │            0 │       9.53 │
+    // │          20 │      50 │           50 │            0 │           47 │            0 │            0 │       9.96 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │          20 │     100 │           99 │            1 │           94 │            0 │            0 │      18.92 │
+    // └─────────────┴─────────┴──────────────┴──────────────┴──────────────┴──────────────┴──────────────┴────────────┘
+    //
+    // ┌─────────────┬─────────┬──────────────┬──────────────┬──────────────┬──────────────┬──────────────┬────────────┐
+    // │             │         │  connection  │  connection  │  connection  │  connection  │  connection  │            │
+    // │  max peers  │  peers  │  accepted    │  rejected    │  terminated  │  error       │  timed out   │  time (s)  │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │          50 │       1 │            1 │            0 │            0 │            0 │            0 │       0.34 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │          50 │       5 │            5 │            0 │            0 │            0 │            0 │       0.70 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │          50 │      10 │           10 │            0 │            0 │            0 │            0 │       2.05 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │          50 │      20 │           20 │            0 │            0 │            0 │            0 │       3.97 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │          50 │      30 │           29 │            1 │           24 │            0 │            0 │       5.63 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │          50 │      50 │           50 │            0 │           46 │            0 │            0 │       9.39 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │          50 │     100 │          100 │            0 │           96 │            0 │            0 │      19.89 │
+    // └─────────────┴─────────┴──────────────┴──────────────┴──────────────┴──────────────┴──────────────┴────────────┘
+    //
+    // ┌─────────────┬─────────┬──────────────┬──────────────┬──────────────┬──────────────┬──────────────┬────────────┐
+    // │             │         │  connection  │  connection  │  connection  │  connection  │  connection  │            │
+    // │  max peers  │  peers  │  accepted    │  rejected    │  terminated  │  error       │  timed out   │  time (s)  │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │         100 │       1 │            1 │            0 │            0 │            0 │            0 │       0.12 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │         100 │       5 │            5 │            0 │            0 │            0 │            0 │       0.70 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │         100 │      10 │           10 │            0 │            0 │            0 │            0 │       1.88 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │         100 │      20 │           20 │            0 │            0 │            0 │            0 │       4.21 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │         100 │      30 │           30 │            0 │            0 │            0 │            0 │       5.98 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │         100 │      50 │           50 │            0 │           28 │            0 │            0 │      10.25 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │         100 │     100 │          100 │            0 │           96 │            0 │            0 │      19.42 │
+    // └─────────────┴─────────┴──────────────┴──────────────┴──────────────┴──────────────┴──────────────┴────────────┘
+    //
+    // Sample result when all synth nodes are connected from the same IP:
+    // ┌─────────────┬─────────┬──────────────┬──────────────┬──────────────┬──────────────┬──────────────┬────────────┐
+    // │             │         │  connection  │  connection  │  connection  │  connection  │  connection  │            │
+    // │  max peers  │  peers  │  accepted    │  rejected    │  terminated  │  error       │  timed out   │  time (s)  │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │         100 │       1 │            1 │            0 │            0 │            0 │            0 │       0.37 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │         100 │       5 │            5 │            0 │            0 │            0 │            0 │       1.06 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │         100 │      10 │           10 │            0 │            0 │            0 │            0 │       2.07 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │         100 │      20 │           19 │            1 │            0 │            0 │            0 │       3.73 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │         100 │      30 │           21 │            9 │            0 │            0 │            0 │       6.02 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │         100 │      50 │           21 │           29 │            0 │            0 │            0 │       9.26 │
+    // ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
+    // │         100 │     100 │           21 │           79 │            7 │            0 │            0 │      19.41 │
     // └─────────────┴─────────┴──────────────┴──────────────┴──────────────┴──────────────┴──────────────┴────────────┘
 
     // maximum time allowed for a single iteration of the test
-    const MAX_ITER_TIME: Duration = Duration::from_secs(20);
+    const MAX_ITER_TIME: Duration = Duration::from_secs(25);
 
     /// maximum peers to configure node with
-    const MAX_PEERS: u16 = 50;
+    const MAX_PEERS: u16 = 100;
 
-    let synth_counts = vec![1u16, 5, 10, 20, 30, 50];
+    let synth_counts = vec![1u16, 5, 10, 20, 30, 50, 100];
 
     let mut all_stats = Vec::new();
 
@@ -105,6 +169,14 @@ async fn p002_connections_load() {
         .await
         .unwrap();
     let node_addr = node.addr();
+
+    // This is "the hack" but is needed to perform next tests if IPS table is not empty. The
+    // standard TIME_WAIT is 60s before we can use the same addr and port again.
+    // So we're taking already used IPs and each thread in each iteration will use different IP.
+    // If the table is empty or too small, the thread itself will notice it and will use the
+    // local IP.
+    // It can be removed once pea2pea will offer REUSE_ADDR options.
+    let mut ip_idx = 0;
 
     for synth_count in synth_counts {
         // setup metrics recorder
@@ -132,9 +204,10 @@ async fn p002_connections_load() {
             synth_handles.push(tokio::spawn(async move {
                 tokio::select! {
                     _ = exit_rx => {},
-                    _ = simulate_peer(node_addr, synth_handshaken) => {},
+                    _ = simulate_peer(node_addr, synth_handshaken, ip_idx) => {},
                 };
             }));
+            ip_idx += 1;
         }
 
         // Wait for all peers to indicate that they've completed the handshake portion
@@ -173,16 +246,48 @@ async fn p002_connections_load() {
         all_stats.push(stats);
     }
 
-    // TODO: assertions with expected test results.
-
     node.stop().expect("unable to stop the node");
 
     // Display results table
     println!("\r\n{}", fmt_table(Table::new(&all_stats)));
+
+    // Check that results are okay
+    for stats in all_stats.iter() {
+        // No connection should be terminated.
+        assert_eq!(stats.terminated, 0, "Stats: {:?}", stats);
+
+        // We expect to have `MAX_PEERS` connections. This is only true if
+        // `stats.terminated == 0`.
+        assert_eq!(stats.accepted, MAX_PEERS, "Stats: {:?}", stats);
+
+        // The rest of the peers should be rejected.
+        assert_eq!(
+            stats.rejected,
+            stats.peers - MAX_PEERS,
+            "Stats: {:?}",
+            stats
+        );
+
+        // And no connection timeouts or errors
+        assert_eq!(stats.timed_out, 0, "Stats: {:?}", stats);
+        assert_eq!(stats.conn_error, 0, "Stats: {:?}", stats);
+    }
 }
 
-async fn simulate_peer(node_addr: SocketAddr, handshake_complete: Sender<()>) {
-    let config = TestConfig::default();
+async fn simulate_peer(node_addr: SocketAddr, handshake_complete: Sender<()>, peer_id: usize) {
+    let mut config = TestConfig::default();
+
+    // If there is address for our thread in the pool we can use it.
+    // Otherwise we'll not set bound_addr and use local IP addr (127.0.0.1).
+    if IPS.len() > peer_id {
+        // We can safely use the same port as every thread will use different IP.
+        let source_addr = SocketAddr::new(
+            IpAddr::V4(Ipv4Addr::from_str(IPS[peer_id]).unwrap()),
+            CONNECTION_PORT,
+        );
+        config.pea2pea_config.bound_addr = Some(source_addr);
+    }
+
     let mut synth_node = SyntheticNode::new(&config).await;
 
     // Establish peer connection
