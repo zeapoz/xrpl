@@ -16,7 +16,21 @@ cp setup/validators.txt ~/.ziggurat/ripple/setup
     path = "<path to the directory where you built rippled>"
     start_command = "./rippled"
     ```
-5. Run tests with `cargo +stable t -- --test-threads=1`.
+5. Create package of IP addresses to be used as source IP for test nodes. Those source IP addresses are important for performance tests. Beeing in the repository directory run eg.:
+   Under Linux (to generate dummy devices with addresses):
+   ```
+   sudo python3 ./tools/ips.py --subnet 1.1.1.0/24 --file src/tools/ips.rs --dev_prefix test_zeth
+   ```
+   Under MacOS (to add whole subnet to loopback device):
+   ```
+   sudo python3 ./tools/ips.py --subnet 1.1.1.0/24 --file src/tools/ips.rs --dev lo0
+   ```
+   Adding new address to existing device works under Linux too. You can adjust subnet and device name as you wish. Read ./tools/ips.py for more details or run:
+   ```
+   python3 ./tools/ips.py --help
+   ```
+   for options.
+6. Run tests with `cargo +stable t -- --test-threads=1`.
 
 ### Initial state
 Specific tests require an initial node state to be set up.
