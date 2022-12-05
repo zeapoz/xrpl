@@ -1,8 +1,10 @@
-# Tools for creating virtual linux dummy devices that can be addressed, addresses those devices with
-# hardware address, ip address and sets the link up. Moreover, it generates list of valid addresses (where
-# ip/ipconfig command invocation completed successfully) and writes that list to the Rust file.
+# Tools for creating ability to test nodes with different source IP using either virtual linux dummy devices
+# or plain devices that can be addressed with multiple addresses (works on Linux and Mac).
+# Moreover, it generates list of valid addresses (where ip/ipconfig command invocation completed successfully) and
+# writes that list to the Rust file.
+# When testing is done, just change --op to 'remove' and run the script again to remove all the dummy devices (or aliases).
 #
-# Only Linux is supported! Script need to be run with sudo.
+# Linux and Mac supprted! Script need to be run with sudo.
 #
 # User can tweak settings using command line.
 # Just run python ips.py --help for more information about parameters.
@@ -29,32 +31,89 @@ def generate_dev(device_name, ip_addr):
     return os.system(cmd)
 
 
+def remove_dev(device_name, ip_addr):
+    return os.system('ip link delete ' + device_name)
+
+
+def add_addr_to_existing_dev(device_name, ip_addr):
+    if sys.platform.startswith('linux'):
+        cmd = 'ip addr add ' + ip_addr + ' dev ' + device_name + ' && '
+        cmd += 'ip link set ' + device_name + ' up'
+    else:
+        cmd = 'ifconfig ' + device_name + ' alias ' + ip_addr
+    return os.system(cmd)
+
+
+def delete_addr_from_existing_dev(device_name, ip_addr):
+    if sys.platform.startswith('linux'):
+        cmd = 'ip addr del ' + ip_addr + '/32 dev ' + device_name
+    else:
+        cmd = 'ifconfig ' + device_name + ' -alias ' + ip_addr
+    return os.system(cmd)
+
+
 parser = argparse.ArgumentParser(description='Setting interfaces and generating Rust file with IPs.')
 parser.add_argument('--subnet', nargs='?', default='1.1.1.0/28', help='Subnet to generate', type=str)
 parser.add_argument('--file', nargs='?', default='ips.rs', help='Output file with IPs', type=str)
-parser.add_argument('--dev_prefix', nargs='?', default='test_eth', help='How to prefix dummy devs', type=str)
+parser.add_argument('--op', nargs='?', default='add', help='add/remove operation', type=str)
+parser.add_argument('--dev_prefix', nargs='?', help='How to prefix dummy devs (Linux only)(def: test_dummyX)', type=str)
+parser.add_argument('--dev', nargs='?', help='Device to add addresses (Linux and Mac)(default: lo0)', type=str)
 
 args = parser.parse_args()
 
 subnet = args.subnet
 file = args.file
-dev = args.dev_prefix
+op = args.op
+
+if not sys.platform.startswith('linux') and not sys.platform.lower().startswith('darwin'):
+    print('Script work only under Linux or MacOS')
+    sys.exit(0)
+
+if args.dev_prefix is None and args.dev is None:
+    print('Either --dev_prefix or --dev must be specified')
+    sys.exit(0)
+
+if op not in ['add', 'remove']:
+    print('Operation must be either add or remove')
+    sys.exit(0)
+
+dev = None
+dev_prefix = None
+
+if op == 'add':
+    operation_dev = 'generate_dev'
+    operation_addr = 'add_addr_to_existing_dev'
+else:
+    operation_dev = 'remove_dev'
+    operation_addr = 'delete_addr_from_existing_dev'
+
+if args.dev is not None:
+    dev = args.dev
+else:
+    if args.dev_prefix is None:
+        dev = 'lo0'
+
+if sys.platform.startswith('linux'):
+    if args.dev_prefix is not None :
+        dev_prefix = args.dev_prefix
+    else:
+        dev_prefix = 'test_dummy'
 
 ips = []
 
 for ip in ipaddress.IPv4Network(subnet):
     ips.append(ip)
 
-if not sys.platform.startswith('linux'):
-    print('Setting virtual interfaces can be done only on Linux')
-    sys.exit(0)
-
 i = 0
 
 with open(file, 'w') as f:
-    f.write('pub const IPS: &\'static [&\'static str] = &[ \n')
+    f.write('pub const IPS: & [& str] = &[ \n')
     for ip in ips:
-        if generate_dev(dev + str(i), str(ip)) == 0:
+        if dev is not None:
+            res = eval(operation_addr)(dev, str(ip))
+        else:
+            res = eval(operation_dev)(dev_prefix + str(i), str(ip))
+        if res == 0 and op == 'add':
             f.write('\t"' + str(ip) + '",\n')
         i += 1
 
