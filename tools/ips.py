@@ -52,7 +52,7 @@ def add_addr_to_existing_dev(device_name, ip_addr):
         cmd = 'ip addr add ' + ip_addr + ' dev ' + device_name + ' && '
         cmd += 'ip link set ' + device_name + ' up'
     else:
-        cmd = 'ifconfig ' + device_name + ' alias ' + ip_addr
+        cmd = 'ifconfig ' + device_name + ' alias ' + ip_addr + '/32'
     return os.system(cmd)
 
 
