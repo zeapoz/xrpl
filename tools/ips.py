@@ -4,11 +4,23 @@
 # writes that list to the Rust file.
 # When testing is done, just change --op to 'remove' and run the script again to remove all the dummy devices (or aliases).
 #
-# Linux and Mac supprted! Script need to be run with sudo.
+# Linux and Mac supported! Script need to be run with sudo.
 #
 # User can tweak settings using command line.
 # Just run python ips.py --help for more information about parameters.
-
+# Either --dev_prefix or --dev should be specified.
+# Sample invocation:
+# add whole 9.1.1.0/24 subnet creating dummy devices test_zeth0...test_zeth248 and resulting IPs to file: src/tools/ips.rs
+# sudo python3 ./tools/ips.py --subnet 9.1.1.0/24 --file src/tools/ips.rs --dev_prefix test_zeth
+#
+# remove all test_zeth* devices from 24 subnet (clear src/tools/ips.rs file)
+# sudo python3 ./tools/ips.py --subnet 9.1.1.0/24 --file src/tools/ips.rs --dev_prefix test_zeth --op remove
+#
+# add whole 9.1.1.0/24 subnet to device lo (for Mac use lo0) and resulting IPs to file: src/tools/ips.rs
+# sudo python3 ./tools/ips.py --subnet 9.1.1.0/24 --file src/tools/ips.rs --dev lo
+#
+# remove whole 9.1.1.0/24 subnet from device lo (clear src/tools/ips.rs file)
+# sudo python3 ./tools/ips.py --subnet 9.1.1.0/24 --file src/tools/ips.rs --dev lo --op remove
 
 import argparse
 import ipaddress
@@ -54,7 +66,7 @@ def delete_addr_from_existing_dev(device_name, ip_addr):
 
 parser = argparse.ArgumentParser(description='Setting interfaces and generating Rust file with IPs.')
 parser.add_argument('--subnet', nargs='?', default='1.1.1.0/28', help='Subnet to generate', type=str)
-parser.add_argument('--file', nargs='?', default='ips.rs', help='Output file with IPs', type=str)
+parser.add_argument('--file', nargs='?', default='ips.rs', help='Output file with IPs (default ips.rs)', type=str)
 parser.add_argument('--op', nargs='?', default='add', help='add/remove operation', type=str)
 parser.add_argument('--dev_prefix', nargs='?', help='How to prefix dummy devs (Linux only)(def: test_dummyX)', type=str)
 parser.add_argument('--dev', nargs='?', help='Device to add addresses (Linux and Mac)(default: lo0)', type=str)
