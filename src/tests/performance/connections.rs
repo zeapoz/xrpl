@@ -173,7 +173,7 @@ async fn p002_connections_load() {
     let mut port_idx = 0;
 
     for synth_count in synth_counts {
-        let mut synth_sockets = Vec::with_capacity(synth_count as usize);
+        let mut synth_sockets = Vec::with_capacity(synth_count.into());
         for i in 0..synth_count {
             let socket = TcpSocket::new_v4().unwrap();
 
@@ -206,8 +206,8 @@ async fn p002_connections_load() {
         metrics::register_counter!(METRIC_REJECTED);
         metrics::register_counter!(METRIC_ERROR);
 
-        let mut synth_handles = Vec::with_capacity(synth_count as usize);
-        let mut synth_exits = Vec::with_capacity(synth_count as usize);
+        let mut synth_handles = Vec::with_capacity(synth_count.into());
+        let mut synth_exits = Vec::with_capacity(synth_count.into());
         let (handshake_tx, mut handshake_rx) =
             tokio::sync::mpsc::channel::<()>(synth_count as usize);
 
