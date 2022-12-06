@@ -124,8 +124,7 @@ impl InnerNode {
 
     /// Connects to the target address.
     pub async fn connect_from(&self, target: SocketAddr, socket: TcpSocket) -> io::Result<()> {
-        self.node.connect_using_socket(target, socket).await?;
-        Ok(())
+        self.node.connect_using_socket(target, socket).await
     }
 
     /// Gracefully shuts down the node.
