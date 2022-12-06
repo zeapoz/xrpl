@@ -69,7 +69,7 @@ parser.add_argument('--subnet', nargs='?', default='1.1.1.0/28', help='Subnet to
 parser.add_argument('--file', nargs='?', default='ips.rs', help='Output file with IPs (default ips.rs)', type=str)
 parser.add_argument('--op', nargs='?', default='add', help='add/remove operation', type=str)
 parser.add_argument('--dev_prefix', nargs='?', help='How to prefix dummy devs (Linux only)(def: test_dummyX)', type=str)
-parser.add_argument('--dev', nargs='?', help='Device to add addresses (Linux and Mac)(default: lo0)', type=str)
+parser.add_argument('--dev', nargs='?', help='Device to add addresses (Linux and Mac)', type=str)
 
 args = parser.parse_args()
 
@@ -101,9 +101,6 @@ else:
 
 if args.dev is not None:
     dev = args.dev
-else:
-    if args.dev_prefix is None:
-        dev = 'lo0'
 
 if sys.platform.startswith('linux'):
     if args.dev_prefix is not None :
