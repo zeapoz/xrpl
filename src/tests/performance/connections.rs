@@ -214,17 +214,16 @@ async fn p002_connections_load() {
         let test_start = Instant::now();
 
         // start synthetic nodes
-        for _ in 0..synth_count {
+        for socket in synth_sockets.into_iter() {
             let (exit_tx, exit_rx) = tokio::sync::oneshot::channel::<()>();
             synth_exits.push(exit_tx);
 
-            let sock = synth_sockets.remove(0);
             let synth_handshaken = handshake_tx.clone();
             // Synthetic node runs until it completes or is instructed to exit
             synth_handles.push(tokio::spawn(async move {
                 tokio::select! {
                     _ = exit_rx => {},
-                    _ = simulate_peer(node_addr, synth_handshaken, sock) => {},
+                    _ = simulate_peer(node_addr, synth_handshaken, socket) => {},
                 };
             }));
         }
