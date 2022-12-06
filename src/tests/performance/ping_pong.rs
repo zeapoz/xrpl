@@ -114,6 +114,8 @@ async fn p001_t1_PING_PONG_throughput() {
 
     for synth_count in synth_counts {
         let mut synth_sockets = Vec::with_capacity(synth_count);
+
+        #[allow(clippy::needless-range-loop)]
         for i in 0..synth_count {
             let socket = TcpSocket::new_v4().unwrap();
 
