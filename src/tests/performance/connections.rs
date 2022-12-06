@@ -6,7 +6,7 @@ use std::{
 
 use tabled::{Table, Tabled};
 use tempfile::TempDir;
-use tokio::sync::mpsc::Sender;
+use tokio::{net::TcpSocket, sync::mpsc::Sender};
 
 use crate::{
     setup::node::{Node, NodeType},
@@ -170,14 +170,6 @@ async fn p002_connections_load() {
         .unwrap();
     let node_addr = node.addr();
 
-    // This is "the hack" but is needed to perform next tests if IPS table is not empty. The
-    // standard TIME_WAIT is 60s before we can use the same addr and port again.
-    // So we're taking already used IPs and each thread in each iteration will use different IP.
-    // If the table is empty or too small, the thread itself will notice it and will use the
-    // local IP.
-    // It can be removed once pea2pea will offer REUSE_ADDR options.
-    let mut ip_idx = 0;
-
     for synth_count in synth_counts {
         // setup metrics recorder
         let test_metrics = TestMetrics::default();
@@ -195,7 +187,7 @@ async fn p002_connections_load() {
         let test_start = Instant::now();
 
         // start synthetic nodes
-        for _ in 0..synth_count {
+        for i in 0..synth_count {
             let (exit_tx, exit_rx) = tokio::sync::oneshot::channel::<()>();
             synth_exits.push(exit_tx);
 
@@ -204,10 +196,9 @@ async fn p002_connections_load() {
             synth_handles.push(tokio::spawn(async move {
                 tokio::select! {
                     _ = exit_rx => {},
-                    _ = simulate_peer(node_addr, synth_handshaken, ip_idx) => {},
+                    _ = simulate_peer(node_addr, synth_handshaken, i as usize) => {},
                 };
             }));
-            ip_idx += 1;
         }
 
         // Wait for all peers to indicate that they've completed the handshake portion
@@ -256,14 +247,13 @@ async fn p002_connections_load() {
         // No connection should be terminated.
         assert_eq!(stats.terminated, 0, "Stats: {:?}", stats);
 
-        // We expect to have `MAX_PEERS` connections. This is only true if
-        // `stats.terminated == 0`.
-        assert_eq!(stats.accepted, MAX_PEERS, "Stats: {:?}", stats);
+        // We expect to have at least `MAX_PEERS` connections.
+        assert!(stats.accepted <= MAX_PEERS, "Stats: {:?}", stats);
 
         // The rest of the peers should be rejected.
         assert_eq!(
             stats.rejected,
-            stats.peers - MAX_PEERS,
+            stats.accepted - stats.peers,
             "Stats: {:?}",
             stats
         );
@@ -275,7 +265,12 @@ async fn p002_connections_load() {
 }
 
 async fn simulate_peer(node_addr: SocketAddr, handshake_complete: Sender<()>, peer_id: usize) {
-    let mut config = TestConfig::default();
+    let config = TestConfig::default();
+    let socket = TcpSocket::new_v4().unwrap();
+
+    // Make sure we can reuse the address and port
+    socket.set_reuseaddr(true).unwrap();
+    socket.set_reuseport(true).unwrap();
 
     // If there is address for our thread in the pool we can use it.
     // Otherwise we'll not set bound_addr and use local IP addr (127.0.0.1).
@@ -285,13 +280,17 @@ async fn simulate_peer(node_addr: SocketAddr, handshake_complete: Sender<()>, pe
             IpAddr::V4(Ipv4Addr::from_str(IPS[peer_id]).unwrap()),
             CONNECTION_PORT,
         );
-        config.pea2pea_config.bound_addr = Some(source_addr);
+        socket.bind(source_addr).expect("unable to bind to socket");
+    } else {
+        socket
+            .bind("127.0.0.1:0".parse().unwrap())
+            .expect("unable to bind to socket");
     }
 
     let mut synth_node = SyntheticNode::new(&config).await;
 
     // Establish peer connection
-    let handshake_result = synth_node.connect(node_addr).await;
+    let handshake_result = synth_node.connect_from(node_addr, socket).await;
     handshake_complete.send(()).await.unwrap();
     match handshake_result {
         Ok(_) => {

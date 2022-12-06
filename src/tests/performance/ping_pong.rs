@@ -7,6 +7,7 @@ use std::{
 
 use rand::{thread_rng, RngCore};
 use tempfile::TempDir;
+use tokio::net::TcpSocket;
 
 use crate::{
     protocol::{
@@ -83,23 +84,45 @@ async fn p001_t1_PING_PONG_throughput() {
 
     let mut table = RequestsTable::default();
 
-    let target = TempDir::new().expect("Unable to create TempDir");
-    let mut node = Node::builder()
-        .max_peers(MAX_PEERS)
-        .start(target.path(), NodeType::Stateless)
-        .await
-        .unwrap();
-    let node_addr = node.addr();
-
-    // This is "the hack" but is needed to perform next tests if IPS table is not empty. The
-    // standard TIME_WAIT is 60s before we can use the same addr and port again.
-    // So we're taking already used IPs and each thread in each iteration will use different IP.
-    // If the table is empty or too small, the thread itself will notice it and will use the
-    // local IP.
-    // It can be removed once pea2pea will offer REUSE_ADDR options.
-    let mut ip_idx = 0;
+    let mut port_idx = 0;
 
     for synth_count in synth_counts {
+        let target = TempDir::new().expect("Unable to create TempDir");
+
+        let mut node = Node::builder()
+            .max_peers(MAX_PEERS)
+            .start(target.path(), NodeType::Stateless)
+            .await
+            .unwrap();
+        let node_addr = node.addr();
+
+        //thread::sleep(Duration::from_secs(2));
+        let mut synth_sockets = Vec::with_capacity(synth_count);
+        for i in 0..synth_count {
+            let socket = TcpSocket::new_v4().unwrap();
+
+            // Make sure we can reuse the address and port
+            socket.set_reuseaddr(true).unwrap();
+            socket.set_reuseport(true).unwrap();
+
+            // If there is address for our thread in the pool we can use it.
+            // Otherwise we'll not set bound_addr and use local IP addr (127.0.0.1).
+            if IPS.len() > i {
+                // We can safely use the same port as every thread will use different IP.
+                let source_addr = SocketAddr::new(
+                    IpAddr::V4(Ipv4Addr::from_str(IPS[i]).unwrap()),
+                    CONNECTION_PORT + port_idx,
+                );
+                port_idx += 1;
+                socket.bind(source_addr).expect("unable to bind to socket");
+            } else {
+                socket
+                    .bind("127.0.0.1:0".parse().unwrap())
+                    .expect("unable to bind to socket");
+            }
+            synth_sockets.push(socket);
+        }
+
         // setup metrics recorder
         let test_metrics = TestMetrics::default();
         // clear metrics and register metrics
@@ -108,8 +131,8 @@ async fn p001_t1_PING_PONG_throughput() {
         let mut synth_handles = Vec::with_capacity(synth_count);
         let test_start = tokio::time::Instant::now();
         for _ in 0..synth_count {
-            synth_handles.push(tokio::spawn(simulate_peer(node_addr, ip_idx)));
-            ip_idx += 1;
+            let sock = synth_sockets.remove(0);
+            synth_handles.push(tokio::spawn(simulate_peer(node_addr, sock)));
         }
 
         // wait for peers to complete
@@ -131,31 +154,21 @@ async fn p001_t1_PING_PONG_throughput() {
                 ));
             }
         }
-    }
 
-    node.stop().unwrap();
+        node.stop().unwrap();
+    }
 
     // Display results table
     println!("\r\n{}", table);
 }
 
-async fn simulate_peer(node_addr: SocketAddr, thread_num: usize) {
-    let mut config = TestConfig::default();
-
-    // If there is address for our thread in the pool we can use it.
-    // Otherwise we'll not set bound_addr and use local IP addr (127.0.0.1).
-    if IPS.len() > thread_num {
-        // We can safely use the same port as every thread will use different IP.
-        let source_addr = SocketAddr::new(
-            IpAddr::V4(Ipv4Addr::from_str(IPS[thread_num]).unwrap()),
-            CONNECTION_PORT,
-        );
-        config.pea2pea_config.bound_addr = Some(source_addr);
-    }
+async fn simulate_peer(node_addr: SocketAddr, socket: TcpSocket) {
+    let config = TestConfig::default();
 
     let mut synth_node = SyntheticNode::new(&config).await;
 
-    synth_node.connect(node_addr).await.unwrap();
+    // Establish peer connection
+    synth_node.connect_from(node_addr, socket).await.unwrap();
     let mut seq;
 
     for _ in 0..PINGS {

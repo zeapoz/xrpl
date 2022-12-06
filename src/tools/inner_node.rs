@@ -10,10 +10,7 @@ use secp256k1::{
     constants::{PUBLIC_KEY_SIZE, SECRET_KEY_SIZE},
     PublicKey, Secp256k1, SecretKey,
 };
-use tokio::{
-    net::TcpSocket,
-    sync::mpsc::Sender,
-};
+use tokio::{net::TcpSocket, sync::mpsc::Sender};
 
 use crate::{
     protocol::codecs::message::BinaryMessage,
