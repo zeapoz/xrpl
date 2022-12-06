@@ -98,7 +98,7 @@ async fn p001_t1_PING_PONG_throughput() {
     // *NOTE* run with `cargo test --release tests::performance::ping_pong -- --nocapture`
     // Before running test generate dummy devices with different ips using toos/ips.py
 
-    let synth_counts = vec![1, 10, 15, 20, 30, 50, 100];
+    let synth_counts = vec![1u16, 10, 15, 20, 30, 50, 100];
 
     let mut table = RequestsTable::default();
 
@@ -113,9 +113,8 @@ async fn p001_t1_PING_PONG_throughput() {
     let node_addr = node.addr();
 
     for synth_count in synth_counts {
-        let mut synth_sockets = Vec::with_capacity(synth_count);
+        let mut synth_sockets = Vec::with_capacity(synth_count.into());
 
-        #[allow(clippy::needless-range-loop)]
         for i in 0..synth_count {
             let socket = TcpSocket::new_v4().unwrap();
 
@@ -125,9 +124,9 @@ async fn p001_t1_PING_PONG_throughput() {
 
             // If there is address for our thread in the pool we can use it.
             // Otherwise we'll not set bound_addr and use local IP addr (127.0.0.1).
-            if IPS.len() > i {
+            if IPS.len() > i as usize {
                 let source_addr = SocketAddr::new(
-                    IpAddr::V4(Ipv4Addr::from_str(IPS[i]).unwrap()),
+                    IpAddr::V4(Ipv4Addr::from_str(IPS[i as usize]).unwrap()),
                     CONNECTION_PORT + port_idx,
                 );
                 port_idx += 1;
@@ -145,7 +144,7 @@ async fn p001_t1_PING_PONG_throughput() {
         // clear metrics and register metrics
         metrics::register_histogram!(METRIC_LATENCY);
 
-        let mut synth_handles = Vec::with_capacity(synth_count);
+        let mut synth_handles = Vec::with_capacity(synth_count.into());
         let test_start = tokio::time::Instant::now();
         for _ in 0..synth_count {
             let sock = synth_sockets.remove(0);
@@ -164,7 +163,7 @@ async fn p001_t1_PING_PONG_throughput() {
             if latencies.entries() >= 1 {
                 // add stats to table display
                 table.add_row(RequestStats::new(
-                    synth_count as u16,
+                    synth_count,
                     PINGS,
                     latencies,
                     time_taken_secs,
