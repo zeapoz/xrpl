@@ -146,9 +146,9 @@ async fn p001_t1_PING_PONG_throughput() {
 
         let mut synth_handles = Vec::with_capacity(synth_count.into());
         let test_start = tokio::time::Instant::now();
-        for _ in 0..synth_count {
-            let sock = synth_sockets.remove(0);
-            synth_handles.push(tokio::spawn(simulate_peer(node_addr, sock)));
+
+        for socket in synth_sockets.into_iter() {
+            synth_handles.push(tokio::spawn(simulate_peer(node_addr, socket)));
         }
 
         // wait for peers to complete
