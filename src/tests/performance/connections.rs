@@ -170,7 +170,34 @@ async fn p002_connections_load() {
         .unwrap();
     let node_addr = node.addr();
 
+    let mut port_idx = 0;
+
     for synth_count in synth_counts {
+        let mut synth_sockets = Vec::with_capacity(synth_count as usize);
+        for i in 0..synth_count {
+            let socket = TcpSocket::new_v4().unwrap();
+
+            // Make sure we can reuse the address and port
+            socket.set_reuseaddr(true).unwrap();
+            socket.set_reuseport(true).unwrap();
+
+            // If there is address for our thread in the pool we can use it.
+            // Otherwise we'll not set bound_addr and use local IP addr (127.0.0.1).
+            if IPS.len() > i as usize {
+                let source_addr = SocketAddr::new(
+                    IpAddr::V4(Ipv4Addr::from_str(IPS[i as usize]).unwrap()),
+                    CONNECTION_PORT + port_idx,
+                );
+                port_idx += 1;
+                socket.bind(source_addr).expect("unable to bind to socket");
+            } else {
+                socket
+                    .bind("127.0.0.1:0".parse().unwrap())
+                    .expect("unable to bind to socket");
+            }
+            synth_sockets.push(socket);
+        }
+
         // setup metrics recorder
         let test_metrics = TestMetrics::default();
         // register metrics
@@ -187,16 +214,17 @@ async fn p002_connections_load() {
         let test_start = Instant::now();
 
         // start synthetic nodes
-        for i in 0..synth_count {
+        for _ in 0..synth_count {
             let (exit_tx, exit_rx) = tokio::sync::oneshot::channel::<()>();
             synth_exits.push(exit_tx);
 
+            let sock = synth_sockets.remove(0);
             let synth_handshaken = handshake_tx.clone();
             // Synthetic node runs until it completes or is instructed to exit
             synth_handles.push(tokio::spawn(async move {
                 tokio::select! {
                     _ = exit_rx => {},
-                    _ = simulate_peer(node_addr, synth_handshaken, i as usize) => {},
+                    _ = simulate_peer(node_addr, synth_handshaken, sock) => {},
                 };
             }));
         }
@@ -264,28 +292,8 @@ async fn p002_connections_load() {
     }
 }
 
-async fn simulate_peer(node_addr: SocketAddr, handshake_complete: Sender<()>, peer_id: usize) {
+async fn simulate_peer(node_addr: SocketAddr, handshake_complete: Sender<()>, socket: TcpSocket) {
     let config = TestConfig::default();
-    let socket = TcpSocket::new_v4().unwrap();
-
-    // Make sure we can reuse the address and port
-    socket.set_reuseaddr(true).unwrap();
-    socket.set_reuseport(true).unwrap();
-
-    // If there is address for our thread in the pool we can use it.
-    // Otherwise we'll not set bound_addr and use local IP addr (127.0.0.1).
-    if IPS.len() > peer_id {
-        // We can safely use the same port as every thread will use different IP.
-        let source_addr = SocketAddr::new(
-            IpAddr::V4(Ipv4Addr::from_str(IPS[peer_id]).unwrap()),
-            CONNECTION_PORT,
-        );
-        socket.bind(source_addr).expect("unable to bind to socket");
-    } else {
-        socket
-            .bind("127.0.0.1:0".parse().unwrap())
-            .expect("unable to bind to socket");
-    }
 
     let mut synth_node = SyntheticNode::new(&config).await;
 

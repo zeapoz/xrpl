@@ -58,7 +58,7 @@ async fn p001_t1_PING_PONG_throughput() {
     //          connections cannot be established and other ones are closed during the test. However, amount of nodes and ping count
     //          does not affect the latency and rippled responses have similar std time.
     //
-    // Example test result (with percentile latencies) - 1000 pings per node with max_peers set to 100:
+    // Example test result (with percentile latencies) - 1000 pings per node with max_peers set to 100 - node was restarted each interation:
     // ┌─────────┬────────────┬────────────┬────────────┬────────────────┬────────────┬────────────┬────────────┬────────────┬────────────┬────────────────┬────────────┬──────────────┐
     // │  peers  │  requests  │  min (ms)  │  max (ms)  │  std dev (ms)  │  10% (ms)  │  50% (ms)  │  75% (ms)  │  90% (ms)  │  99% (ms)  │  completion %  │  time (s)  │  requests/s  │
     // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
@@ -77,6 +77,24 @@ async fn p001_t1_PING_PONG_throughput() {
     // │     100 │       1000 │          0 │       3130 │             48 │          0 │          0 │          0 │          1 │         44 │          71.01 │     137.67 │       515.81 │
     // └─────────┴────────────┴────────────┴────────────┴────────────────┴────────────┴────────────┴────────────┴────────────┴────────────┴────────────────┴────────────┴──────────────┘
     //
+    // Example test result (with percentile latencies) - 1000 pings per node with max_peers set to 100 - node was NOT restarted each interation:
+    // ┌─────────┬────────────┬────────────┬────────────┬────────────────┬────────────┬────────────┬────────────┬────────────┬────────────┬────────────────┬────────────┬──────────────┐
+    // │  peers  │  requests  │  min (ms)  │  max (ms)  │  std dev (ms)  │  10% (ms)  │  50% (ms)  │  75% (ms)  │  90% (ms)  │  99% (ms)  │  completion %  │  time (s)  │  requests/s  │
+    // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
+    // │       1 │       1000 │          0 │         47 │              2 │          0 │          0 │          0 │          0 │          0 │         100.00 │       0.33 │      3009.46 │
+    // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
+    // │      10 │       1000 │          0 │         57 │              5 │          0 │          0 │          0 │          0 │          0 │          99.52 │      12.14 │       820.00 │
+    // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
+    // │      15 │       1000 │          0 │         59 │              3 │          0 │          0 │          0 │          0 │          0 │          97.33 │      12.00 │      1216.49 │
+    // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
+    // │      20 │       1000 │          0 │         84 │              4 │          0 │          0 │          0 │          0 │          0 │          87.69 │      13.55 │      1293.90 │
+    // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
+    // │      30 │       1000 │          0 │         67 │              4 │          0 │          0 │          0 │          0 │          0 │          86.68 │      14.89 │      1746.04 │
+    // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
+    // │      50 │       1000 │          0 │        302 │              5 │          0 │          0 │          0 │          0 │          1 │          95.32 │      19.10 │      2495.61 │
+    // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
+    // │     100 │       1000 │          0 │        177 │              8 │          0 │          0 │          0 │          1 │         48 │          66.00 │     143.66 │       459.43 │
+    // └─────────┴────────────┴────────────┴────────────┴────────────────┴────────────┴────────────┴────────────┴────────────┴────────────┴────────────────┴────────────┴──────────────┘
     // *NOTE* run with `cargo test --release tests::performance::ping_pong -- --nocapture`
     // Before running test generate dummy devices with different ips using toos/ips.py
 
@@ -86,17 +104,15 @@ async fn p001_t1_PING_PONG_throughput() {
 
     let mut port_idx = 0;
 
+    let target = TempDir::new().expect("Unable to create TempDir");
+    let mut node = Node::builder()
+        .max_peers(MAX_PEERS)
+        .start(target.path(), NodeType::Stateless)
+        .await
+        .unwrap();
+    let node_addr = node.addr();
+
     for synth_count in synth_counts {
-        let target = TempDir::new().expect("Unable to create TempDir");
-
-        let mut node = Node::builder()
-            .max_peers(MAX_PEERS)
-            .start(target.path(), NodeType::Stateless)
-            .await
-            .unwrap();
-        let node_addr = node.addr();
-
-        //thread::sleep(Duration::from_secs(2));
         let mut synth_sockets = Vec::with_capacity(synth_count);
         for i in 0..synth_count {
             let socket = TcpSocket::new_v4().unwrap();
@@ -108,7 +124,6 @@ async fn p001_t1_PING_PONG_throughput() {
             // If there is address for our thread in the pool we can use it.
             // Otherwise we'll not set bound_addr and use local IP addr (127.0.0.1).
             if IPS.len() > i {
-                // We can safely use the same port as every thread will use different IP.
                 let source_addr = SocketAddr::new(
                     IpAddr::V4(Ipv4Addr::from_str(IPS[i]).unwrap()),
                     CONNECTION_PORT + port_idx,
@@ -154,9 +169,9 @@ async fn p001_t1_PING_PONG_throughput() {
                 ));
             }
         }
-
-        node.stop().unwrap();
     }
+
+    node.stop().unwrap();
 
     // Display results table
     println!("\r\n{}", table);
