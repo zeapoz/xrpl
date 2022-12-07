@@ -98,7 +98,7 @@ async fn p001_t1_PING_PONG_throughput() {
     // *NOTE* run with `cargo test --release tests::performance::ping_pong -- --nocapture`
     // Before running test generate dummy devices with different ips using toos/ips.py
 
-    let synth_counts = vec![1u16, 10, 15, 20, 30, 50, 100];
+    let synth_counts = vec![1, 10, 15, 20, 30, 50, 100];
 
     let mut table = RequestsTable::default();
 
@@ -111,8 +111,10 @@ async fn p001_t1_PING_PONG_throughput() {
             .unwrap();
         let node_addr = node.addr();
 
-        let mut synth_sockets = Vec::with_capacity(synth_count.into());
-        for i in 0..synth_count {
+        let mut synth_sockets = Vec::with_capacity(synth_count);
+        let mut ips = IPS.to_vec();
+
+        for _ in 0..synth_count {
             let socket = TcpSocket::new_v4().unwrap();
 
             // Make sure we can reuse the address and port
@@ -121,17 +123,16 @@ async fn p001_t1_PING_PONG_throughput() {
 
             // If there is address for our thread in the pool we can use it.
             // Otherwise we'll not set bound_addr and use local IP addr (127.0.0.1).
-            if IPS.len() > i as usize {
-                let source_addr = SocketAddr::new(
-                    IpAddr::V4(Ipv4Addr::from_str(IPS[i as usize]).unwrap()),
+            let ip = if let Some(ip_addr) = ips.pop() {
+                SocketAddr::new(
+                    IpAddr::V4(Ipv4Addr::from_str(ip_addr).unwrap()),
                     CONNECTION_PORT,
-                );
-                socket.bind(source_addr).expect("unable to bind to socket");
+                )
             } else {
-                socket
-                    .bind("127.0.0.1:0".parse().unwrap())
-                    .expect("unable to bind to socket");
-            }
+                "127.0.0.1:0".parse().unwrap()
+            };
+
+            socket.bind(ip).expect("unable to bind to socket");
             synth_sockets.push(socket);
         }
 
@@ -140,10 +141,10 @@ async fn p001_t1_PING_PONG_throughput() {
         // clear metrics and register metrics
         metrics::register_histogram!(METRIC_LATENCY);
 
-        let mut synth_handles = Vec::with_capacity(synth_count.into());
+        let mut synth_handles = Vec::with_capacity(synth_count);
         let test_start = tokio::time::Instant::now();
 
-        for socket in synth_sockets.into_iter() {
+        for socket in synth_sockets {
             synth_handles.push(tokio::spawn(simulate_peer(node_addr, socket)));
         }
 
@@ -159,7 +160,7 @@ async fn p001_t1_PING_PONG_throughput() {
             if latencies.entries() >= 1 {
                 // add stats to table display
                 table.add_row(RequestStats::new(
-                    synth_count,
+                    synth_count as u16,
                     PINGS,
                     latencies,
                     time_taken_secs,

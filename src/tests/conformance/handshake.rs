@@ -45,7 +45,10 @@ async fn c002_handshake_when_node_initiates_connection() {
 
     // Start synthetic node.
     let synth_node = SyntheticNode::new(&Default::default()).await;
-    let listening_addr = synth_node.start_listening().await.unwrap();
+    let listening_addr = synth_node
+        .start_listening()
+        .await
+        .expect("unable to start listening");
 
     // Build and start the Ripple node and set the synth node as an initial peer.
     let target = TempDir::new().expect("Can't build tmp dir");
