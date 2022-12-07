@@ -10,7 +10,7 @@ use secp256k1::{
     constants::{PUBLIC_KEY_SIZE, SECRET_KEY_SIZE},
     PublicKey, Secp256k1, SecretKey,
 };
-use tokio::sync::mpsc::Sender;
+use tokio::{net::TcpSocket, sync::mpsc::Sender};
 
 use crate::{
     protocol::codecs::message::BinaryMessage,
@@ -92,7 +92,7 @@ impl InnerNode {
 
         // the node
         Self {
-            node: Node::new(config.pea2pea_config.clone()).await.unwrap(),
+            node: Node::new(config.pea2pea_config.clone()),
             sender,
             crypto,
             tls: Tls {
@@ -120,6 +120,11 @@ impl InnerNode {
     pub async fn connect(&self, target: SocketAddr) -> io::Result<()> {
         self.node.connect(target).await?;
         Ok(())
+    }
+
+    /// Connects to the target address.
+    pub async fn connect_from(&self, target: SocketAddr, socket: TcpSocket) -> io::Result<()> {
+        self.node.connect_using_socket(target, socket).await
     }
 
     /// Gracefully shuts down the node.

@@ -9,6 +9,7 @@ use pea2pea::{
     Pea2Pea,
 };
 use tokio::{
+    net::TcpSocket,
     sync::{mpsc, mpsc::Receiver, oneshot},
     time::timeout,
 };
@@ -53,9 +54,21 @@ impl SyntheticNode {
         Self { inner, receiver }
     }
 
+    /// Starts listening for inbound connections.
+    ///
+    /// Returns the listening socket address.
+    pub async fn start_listening(&self) -> io::Result<SocketAddr> {
+        self.inner.node().start_listening().await
+    }
+
     /// Connects to the target address.
     pub async fn connect(&self, target: SocketAddr) -> io::Result<()> {
         self.inner.connect(target).await
+    }
+
+    /// Connects to the target address using specified socket.
+    pub async fn connect_from(&self, target: SocketAddr, socket: TcpSocket) -> io::Result<()> {
+        self.inner.connect_from(target, socket).await
     }
 
     pub fn unicast(
