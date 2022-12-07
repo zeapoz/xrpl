@@ -161,18 +161,16 @@ async fn p002_connections_load() {
 
     let mut all_stats = Vec::new();
 
-    let target = TempDir::new().expect("couldn't create a temporary directory");
-    // start node
-    let mut node = Node::builder()
-        .max_peers(MAX_PEERS as usize)
-        .start(target.path(), NodeType::Stateless)
-        .await
-        .unwrap();
-    let node_addr = node.addr();
-
-    let mut port_idx = 0;
-
     for synth_count in synth_counts {
+        let target = TempDir::new().expect("couldn't create a temporary directory");
+        // start node
+        let mut node = Node::builder()
+            .max_peers(MAX_PEERS as usize)
+            .start(target.path(), NodeType::Stateless)
+            .await
+            .unwrap();
+        let node_addr = node.addr();
+
         let mut synth_sockets = Vec::with_capacity(synth_count.into());
         for i in 0..synth_count {
             let socket = TcpSocket::new_v4().unwrap();
@@ -186,9 +184,8 @@ async fn p002_connections_load() {
             if IPS.len() > i as usize {
                 let source_addr = SocketAddr::new(
                     IpAddr::V4(Ipv4Addr::from_str(IPS[i as usize]).unwrap()),
-                    CONNECTION_PORT + port_idx,
+                    CONNECTION_PORT,
                 );
-                port_idx += 1;
                 socket.bind(source_addr).expect("unable to bind to socket");
             } else {
                 socket
@@ -262,9 +259,9 @@ async fn p002_connections_load() {
             stats.timed_out = synth_count - stats.accepted - stats.rejected - stats.conn_error;
         }
         all_stats.push(stats);
-    }
 
-    node.stop().expect("unable to stop the node");
+        node.stop().expect("unable to stop the node");
+    }
 
     // Display results table
     println!("\r\n{}", fmt_table(Table::new(&all_stats)));
@@ -280,7 +277,7 @@ async fn p002_connections_load() {
         // The rest of the peers should be rejected.
         assert_eq!(
             stats.rejected,
-            stats.accepted - stats.peers,
+            stats.peers - stats.accepted,
             "Stats: {:?}",
             stats
         );

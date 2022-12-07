@@ -102,19 +102,16 @@ async fn p001_t1_PING_PONG_throughput() {
 
     let mut table = RequestsTable::default();
 
-    let mut port_idx = 0;
-
-    let target = TempDir::new().expect("Unable to create TempDir");
-    let mut node = Node::builder()
-        .max_peers(MAX_PEERS)
-        .start(target.path(), NodeType::Stateless)
-        .await
-        .unwrap();
-    let node_addr = node.addr();
-
     for synth_count in synth_counts {
-        let mut synth_sockets = Vec::with_capacity(synth_count.into());
+        let target = TempDir::new().expect("Unable to create TempDir");
+        let mut node = Node::builder()
+            .max_peers(MAX_PEERS)
+            .start(target.path(), NodeType::Stateless)
+            .await
+            .unwrap();
+        let node_addr = node.addr();
 
+        let mut synth_sockets = Vec::with_capacity(synth_count.into());
         for i in 0..synth_count {
             let socket = TcpSocket::new_v4().unwrap();
 
@@ -127,9 +124,8 @@ async fn p001_t1_PING_PONG_throughput() {
             if IPS.len() > i as usize {
                 let source_addr = SocketAddr::new(
                     IpAddr::V4(Ipv4Addr::from_str(IPS[i as usize]).unwrap()),
-                    CONNECTION_PORT + port_idx,
+                    CONNECTION_PORT,
                 );
-                port_idx += 1;
                 socket.bind(source_addr).expect("unable to bind to socket");
             } else {
                 socket
@@ -170,9 +166,9 @@ async fn p001_t1_PING_PONG_throughput() {
                 ));
             }
         }
-    }
 
-    node.stop().unwrap();
+        node.stop().unwrap();
+    }
 
     // Display results table
     println!("\r\n{}", table);
