@@ -70,10 +70,7 @@ async fn r001_t2_HANDSHAKE_reject_if_server_too_long() {
     // Build and start the Ripple node. Configure its peers such that it connects to the synthetic node above.
     let target = TempDir::new().expect("couldn't create a temporary directory");
     let mut node = Node::builder()
-        .initial_peers(vec![
-            sn1_listening_addr,
-            sn2_listening_addr,
-        ])
+        .initial_peers(vec![sn1_listening_addr, sn2_listening_addr])
         .start(target.path(), NodeType::Stateless)
         .await
         .expect("unable to start the node");
