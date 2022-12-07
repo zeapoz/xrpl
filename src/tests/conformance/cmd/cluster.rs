@@ -26,7 +26,10 @@ async fn c024_TM_CLUSTER_node_should_connect_to_other_nodes_in_cluster() {
     test_config.pea2pea_config.desired_listening_port = Some(DEFAULT_PORT);
     test_config.synth_node_config.generate_new_keys = false;
     let mut synth_node = SyntheticNode::new(&test_config).await;
-    let listening_addr = synth_node.start_listening().await.unwrap();
+    let listening_addr = synth_node
+        .start_listening()
+        .await
+        .expect("unable to start listening");
 
     // Start a rippled node with enabled clustering.
     let target = TempDir::new().expect("unable to create TempDir");
