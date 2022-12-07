@@ -7,6 +7,7 @@ use std::{
 
 use rand::{thread_rng, RngCore};
 use tempfile::TempDir;
+use tokio::net::TcpSocket;
 
 use crate::{
     protocol::{
@@ -57,7 +58,7 @@ async fn p001_t1_PING_PONG_throughput() {
     //          connections cannot be established and other ones are closed during the test. However, amount of nodes and ping count
     //          does not affect the latency and rippled responses have similar std time.
     //
-    // Example test result (with percentile latencies) - 1000 pings per node with max_peers set to 100:
+    // Example test result (with percentile latencies) - 1000 pings per node with max_peers set to 100 - node was restarted each interation:
     // ┌─────────┬────────────┬────────────┬────────────┬────────────────┬────────────┬────────────┬────────────┬────────────┬────────────┬────────────────┬────────────┬──────────────┐
     // │  peers  │  requests  │  min (ms)  │  max (ms)  │  std dev (ms)  │  10% (ms)  │  50% (ms)  │  75% (ms)  │  90% (ms)  │  99% (ms)  │  completion %  │  time (s)  │  requests/s  │
     // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
@@ -76,6 +77,24 @@ async fn p001_t1_PING_PONG_throughput() {
     // │     100 │       1000 │          0 │       3130 │             48 │          0 │          0 │          0 │          1 │         44 │          71.01 │     137.67 │       515.81 │
     // └─────────┴────────────┴────────────┴────────────┴────────────────┴────────────┴────────────┴────────────┴────────────┴────────────┴────────────────┴────────────┴──────────────┘
     //
+    // Example test result (with percentile latencies) - 1000 pings per node with max_peers set to 100 - node was NOT restarted each interation:
+    // ┌─────────┬────────────┬────────────┬────────────┬────────────────┬────────────┬────────────┬────────────┬────────────┬────────────┬────────────────┬────────────┬──────────────┐
+    // │  peers  │  requests  │  min (ms)  │  max (ms)  │  std dev (ms)  │  10% (ms)  │  50% (ms)  │  75% (ms)  │  90% (ms)  │  99% (ms)  │  completion %  │  time (s)  │  requests/s  │
+    // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
+    // │       1 │       1000 │          0 │         47 │              2 │          0 │          0 │          0 │          0 │          0 │         100.00 │       0.33 │      3009.46 │
+    // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
+    // │      10 │       1000 │          0 │         57 │              5 │          0 │          0 │          0 │          0 │          0 │          99.52 │      12.14 │       820.00 │
+    // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
+    // │      15 │       1000 │          0 │         59 │              3 │          0 │          0 │          0 │          0 │          0 │          97.33 │      12.00 │      1216.49 │
+    // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
+    // │      20 │       1000 │          0 │         84 │              4 │          0 │          0 │          0 │          0 │          0 │          87.69 │      13.55 │      1293.90 │
+    // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
+    // │      30 │       1000 │          0 │         67 │              4 │          0 │          0 │          0 │          0 │          0 │          86.68 │      14.89 │      1746.04 │
+    // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
+    // │      50 │       1000 │          0 │        302 │              5 │          0 │          0 │          0 │          0 │          1 │          95.32 │      19.10 │      2495.61 │
+    // ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
+    // │     100 │       1000 │          0 │        177 │              8 │          0 │          0 │          0 │          1 │         48 │          66.00 │     143.66 │       459.43 │
+    // └─────────┴────────────┴────────────┴────────────┴────────────────┴────────────┴────────────┴────────────┴────────────┴────────────┴────────────────┴────────────┴──────────────┘
     // *NOTE* run with `cargo test --release tests::performance::ping_pong -- --nocapture`
     // Before running test generate dummy devices with different ips using toos/ips.py
 
@@ -83,23 +102,40 @@ async fn p001_t1_PING_PONG_throughput() {
 
     let mut table = RequestsTable::default();
 
-    let target = TempDir::new().expect("Unable to create TempDir");
-    let mut node = Node::builder()
-        .max_peers(MAX_PEERS)
-        .start(target.path(), NodeType::Stateless)
-        .await
-        .unwrap();
-    let node_addr = node.addr();
-
-    // This is "the hack" but is needed to perform next tests if IPS table is not empty. The
-    // standard TIME_WAIT is 60s before we can use the same addr and port again.
-    // So we're taking already used IPs and each thread in each iteration will use different IP.
-    // If the table is empty or too small, the thread itself will notice it and will use the
-    // local IP.
-    // It can be removed once pea2pea will offer REUSE_ADDR options.
-    let mut ip_idx = 0;
-
     for synth_count in synth_counts {
+        let target = TempDir::new().expect("Unable to create TempDir");
+        let mut node = Node::builder()
+            .max_peers(MAX_PEERS)
+            .start(target.path(), NodeType::Stateless)
+            .await
+            .unwrap();
+        let node_addr = node.addr();
+
+        let mut synth_sockets = Vec::with_capacity(synth_count);
+        let mut ips = IPS.to_vec();
+
+        for _ in 0..synth_count {
+            let socket = TcpSocket::new_v4().unwrap();
+
+            // Make sure we can reuse the address and port
+            socket.set_reuseaddr(true).unwrap();
+            socket.set_reuseport(true).unwrap();
+
+            // If there is address for our thread in the pool we can use it.
+            // Otherwise we'll not set bound_addr and use local IP addr (127.0.0.1).
+            let ip = if let Some(ip_addr) = ips.pop() {
+                SocketAddr::new(
+                    IpAddr::V4(Ipv4Addr::from_str(ip_addr).unwrap()),
+                    CONNECTION_PORT,
+                )
+            } else {
+                "127.0.0.1:0".parse().unwrap()
+            };
+
+            socket.bind(ip).expect("unable to bind to socket");
+            synth_sockets.push(socket);
+        }
+
         // setup metrics recorder
         let test_metrics = TestMetrics::default();
         // clear metrics and register metrics
@@ -107,9 +143,9 @@ async fn p001_t1_PING_PONG_throughput() {
 
         let mut synth_handles = Vec::with_capacity(synth_count);
         let test_start = tokio::time::Instant::now();
-        for _ in 0..synth_count {
-            synth_handles.push(tokio::spawn(simulate_peer(node_addr, ip_idx)));
-            ip_idx += 1;
+
+        for socket in synth_sockets {
+            synth_handles.push(tokio::spawn(simulate_peer(node_addr, socket)));
         }
 
         // wait for peers to complete
@@ -131,31 +167,21 @@ async fn p001_t1_PING_PONG_throughput() {
                 ));
             }
         }
-    }
 
-    node.stop().unwrap();
+        node.stop().unwrap();
+    }
 
     // Display results table
     println!("\r\n{}", table);
 }
 
-async fn simulate_peer(node_addr: SocketAddr, thread_num: usize) {
-    let mut config = TestConfig::default();
-
-    // If there is address for our thread in the pool we can use it.
-    // Otherwise we'll not set bound_addr and use local IP addr (127.0.0.1).
-    if IPS.len() > thread_num {
-        // We can safely use the same port as every thread will use different IP.
-        let source_addr = SocketAddr::new(
-            IpAddr::V4(Ipv4Addr::from_str(IPS[thread_num]).unwrap()),
-            CONNECTION_PORT,
-        );
-        config.pea2pea_config.bound_addr = Some(source_addr);
-    }
+async fn simulate_peer(node_addr: SocketAddr, socket: TcpSocket) {
+    let config = TestConfig::default();
 
     let mut synth_node = SyntheticNode::new(&config).await;
 
-    synth_node.connect(node_addr).await.unwrap();
+    // Establish peer connection
+    synth_node.connect_from(node_addr, socket).await.unwrap();
     let mut seq;
 
     for _ in 0..PINGS {
