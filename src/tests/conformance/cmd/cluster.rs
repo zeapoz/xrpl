@@ -1,4 +1,4 @@
-use std::net::{IpAddr, SocketAddr, SocketAddrV4};
+use std::net::{IpAddr};
 
 use tempfile::TempDir;
 
@@ -26,15 +26,13 @@ async fn c024_TM_CLUSTER_node_should_connect_to_other_nodes_in_cluster() {
     test_config.pea2pea_config.desired_listening_port = Some(DEFAULT_PORT);
     test_config.synth_node_config.generate_new_keys = false;
     let mut synth_node = SyntheticNode::new(&test_config).await;
+    let listening_addr = synth_node.start_listening().await.unwrap();
 
     // Start a rippled node with enabled clustering.
     let target = TempDir::new().expect("unable to create TempDir");
     let mut node = Node::builder()
         .enable_cluster(true)
-        .initial_peers(vec![SocketAddr::V4(SocketAddrV4::new(
-            synth_node_ip,
-            DEFAULT_PORT,
-        ))])
+        .initial_peers(vec![listening_addr])
         .start(target.path(), NodeType::Stateless)
         .await
         .expect("unable to start rippled node");

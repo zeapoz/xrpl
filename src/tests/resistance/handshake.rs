@@ -59,18 +59,20 @@ async fn r001_t2_HANDSHAKE_reject_if_server_too_long() {
     test_config.synth_node_config.ident = format!("{:8192}", 0);
     test_config.pea2pea_config.listener_ip = Some(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 2)));
     let synth_node1 = SyntheticNode::new(&test_config).await;
+    let sn1_listening_addr = synth_node1.start_listening().await.unwrap();
 
     // Start the second synthetic node with the default 'Server' header.
     let mut test_config2 = TestConfig::default();
     test_config2.pea2pea_config.listener_ip = Some(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 3)));
     let synth_node2 = SyntheticNode::new(&test_config2).await;
+    let sn2_listening_addr = synth_node2.start_listening().await.unwrap();
 
     // Build and start the Ripple node. Configure its peers such that it connects to the synthetic node above.
     let target = TempDir::new().expect("couldn't create a temporary directory");
     let mut node = Node::builder()
         .initial_peers(vec![
-            synth_node1.listening_addr().unwrap(),
-            synth_node2.listening_addr().unwrap(),
+            sn1_listening_addr,
+            sn2_listening_addr,
         ])
         .start(target.path(), NodeType::Stateless)
         .await
@@ -121,12 +123,13 @@ async fn r003_t2_HANDSHAKE_reject_if_shared_value_has_bit_flipped() {
 async fn run_and_assert_handshake_failure(config: &TestConfig, connection_side: ConnectionSide) {
     // Start a SyntheticNode with the required config.
     let synth_node = SyntheticNode::new(config).await;
+    let listening_addr = synth_node.start_listening().await.unwrap();
 
     // Build and start the Ripple node.
     let target = TempDir::new().expect("couldn't create a temporary directory");
     let initial_peers = match connection_side {
         Initiator => vec![],
-        Responder => vec![synth_node.listening_addr().unwrap()],
+        Responder => vec![listening_addr],
     };
     let mut node = Node::builder()
         .initial_peers(initial_peers)
