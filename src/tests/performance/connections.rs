@@ -157,7 +157,7 @@ async fn p002_connections_load() {
     /// maximum peers to configure node with
     const MAX_PEERS: u16 = 100;
 
-    let synth_counts = vec![1u16, 5, 10, 20, 30, 50, 100];
+    let synth_counts = vec![1, 5, 10, 20, 30, 50, 100];
 
     let mut all_stats = Vec::new();
 
@@ -171,8 +171,10 @@ async fn p002_connections_load() {
             .unwrap();
         let node_addr = node.addr();
 
-        let mut synth_sockets = Vec::with_capacity(synth_count.into());
-        for i in 0..synth_count {
+        let mut synth_sockets = Vec::with_capacity(synth_count);
+        let mut ips = IPS.to_vec();
+
+        for _ in 0..synth_count {
             let socket = TcpSocket::new_v4().unwrap();
 
             // Make sure we can reuse the address and port
@@ -181,17 +183,16 @@ async fn p002_connections_load() {
 
             // If there is address for our thread in the pool we can use it.
             // Otherwise we'll not set bound_addr and use local IP addr (127.0.0.1).
-            if IPS.len() > i as usize {
-                let source_addr = SocketAddr::new(
-                    IpAddr::V4(Ipv4Addr::from_str(IPS[i as usize]).unwrap()),
+            let ip = if let Some(ip_addr) = ips.pop() {
+                SocketAddr::new(
+                    IpAddr::V4(Ipv4Addr::from_str(ip_addr).unwrap()),
                     CONNECTION_PORT,
-                );
-                socket.bind(source_addr).expect("unable to bind to socket");
+                )
             } else {
-                socket
-                    .bind("127.0.0.1:0".parse().unwrap())
-                    .expect("unable to bind to socket");
-            }
+                "127.0.0.1:0".parse().unwrap()
+            };
+
+            socket.bind(ip).expect("unable to bind to socket");
             synth_sockets.push(socket);
         }
 
@@ -203,15 +204,14 @@ async fn p002_connections_load() {
         metrics::register_counter!(METRIC_REJECTED);
         metrics::register_counter!(METRIC_ERROR);
 
-        let mut synth_handles = Vec::with_capacity(synth_count.into());
-        let mut synth_exits = Vec::with_capacity(synth_count.into());
-        let (handshake_tx, mut handshake_rx) =
-            tokio::sync::mpsc::channel::<()>(synth_count as usize);
+        let mut synth_handles = Vec::with_capacity(synth_count);
+        let mut synth_exits = Vec::with_capacity(synth_count);
+        let (handshake_tx, mut handshake_rx) = tokio::sync::mpsc::channel::<()>(synth_count);
 
         let test_start = Instant::now();
 
         // start synthetic nodes
-        for socket in synth_sockets.into_iter() {
+        for socket in synth_sockets {
             let (exit_tx, exit_rx) = tokio::sync::oneshot::channel::<()>();
             synth_exits.push(exit_tx);
 
@@ -246,7 +246,7 @@ async fn p002_connections_load() {
         }
 
         // Collect stats for this run
-        let mut stats = Stats::new(MAX_PEERS, synth_count);
+        let mut stats = Stats::new(MAX_PEERS, synth_count as u16);
         stats.time = test_start.elapsed().as_secs_f64();
         {
             let snapshot = test_metrics.take_snapshot();
@@ -256,7 +256,8 @@ async fn p002_connections_load() {
             stats.rejected = snapshot.get_counter(METRIC_REJECTED) as u16;
             stats.conn_error = snapshot.get_counter(METRIC_ERROR) as u16;
 
-            stats.timed_out = synth_count - stats.accepted - stats.rejected - stats.conn_error;
+            stats.timed_out =
+                synth_count as u16 - stats.accepted - stats.rejected - stats.conn_error;
         }
         all_stats.push(stats);
 
