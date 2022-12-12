@@ -180,13 +180,11 @@ async fn simulate_peer(node_addr: SocketAddr, socket: TcpSocket, tx_hash: [u8; T
         .await
         .expect("unable to connect to node");
 
-    let mut seq: u32 = 1;
-
-    for _ in 0..REQUESTS {
+    for seq in 0..REQUESTS {
         let payload = Payload::TmGetObjectByHash(TmGetObjectByHash {
             r#type: ObjectType::OtTransactions as i32,
             query: true,
-            seq: Some(seq),
+            seq: Some(seq as u32),
             ledger_hash: None,
             fat: None,
             objects: vec![TmIndexedObject {
@@ -197,8 +195,6 @@ async fn simulate_peer(node_addr: SocketAddr, socket: TcpSocket, tx_hash: [u8; T
                 ledger_seq: None,
             }],
         });
-
-        seq += 1;
 
         // Query transaction via peer protocol.
         if synth_node.is_connected(node_addr) {
