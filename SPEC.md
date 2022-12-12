@@ -332,6 +332,14 @@ The test index makes use of symbolic language in describing connection and messa
     2. Connect and handshake synthetic peers until peer threshold is reached.
     3. Expect connections to be dropped.
 
+### ZG-PERFORMANCE-003
+
+    The node behaves as expected under load when other peers are requesting transaction details.
+    1. Establish a node and synthetic peers.
+    2. Begin simulation.
+    3. Introspect node health and responsiveness through peers (latency, throughput) when requesting transaction data.
+    Each peer is requesting transaction details using transaction hash obtained earlier through RPC. 
+
 ## Resistance
 
 ### ZG-RESISTANCE-001
