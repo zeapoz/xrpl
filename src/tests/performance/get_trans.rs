@@ -17,7 +17,6 @@ use crate::{
     },
     setup::node::{Node, NodeType},
     tools::{
-        config::TestConfig,
         constants::{EXPECTED_RESULT_TIMEOUT, TEST_ACCOUNT},
         ips::IPS,
         metrics::{
@@ -35,6 +34,7 @@ const CONNECTION_PORT: u16 = 31337;
 // number of requests to send per peer
 const REQUESTS: u16 = 150;
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
+const TX_HASH_LEN: usize = 32;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 #[allow(non_snake_case)]
@@ -133,7 +133,7 @@ async fn p003_t1_GET_TRANSACTION_latency() {
             .await
             .expect("unable to get transaction info");
 
-        let mut tx_hash = [0u8; 32];
+        let mut tx_hash = [0u8; TX_HASH_LEN];
         hex::decode_to_slice(&tx, &mut tx_hash as &mut [u8])
             .expect("unable to decode transaction hash");
 
@@ -171,10 +171,8 @@ async fn p003_t1_GET_TRANSACTION_latency() {
     println!("\r\n{}", table);
 }
 
-async fn simulate_peer(node_addr: SocketAddr, socket: TcpSocket, tx_hash: [u8; 32]) {
-    let config = TestConfig::default();
-
-    let mut synth_node = SyntheticNode::new(&config).await;
+async fn simulate_peer(node_addr: SocketAddr, socket: TcpSocket, tx_hash: [u8; TX_HASH_LEN]) {
+    let mut synth_node = SyntheticNode::new(&Default::default()).await;
 
     // Establish peer connection
     synth_node
