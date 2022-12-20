@@ -70,3 +70,17 @@ default-features = false
 version = "0.3"
 default-features = false
 features = ["ansi", "env-filter", "fmt", "parking_lot", "smallvec"]
+
+
+[dependencies.clap]
+version = "4.0.29"
+features = [ "derive" ]
+optional = true
+
+[features]
+crawler = [ "clap" ]
+
+[[bin]]
+name = "crawler"
+path = "src/tools/crawler/main.rs"
+required-features = [ "crawler" ]
