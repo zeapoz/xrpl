@@ -7,5 +7,5 @@ use clap::Parser;
 pub(super) struct Args {
     /// The initial addresses to connect to
     #[clap(short, long, value_parser, num_args = 1.., required = true)]
-    seed_addrs: Vec<SocketAddr>,
+    pub(super) seed_addrs: Vec<SocketAddr>,
 }

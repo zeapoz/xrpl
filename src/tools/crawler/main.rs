@@ -1,10 +1,12 @@
 use clap::Parser;
-use tracing::debug;
+use tracing::info;
 use tracing_subscriber::filter::{EnvFilter, LevelFilter};
 
-use crate::args::Args;
+use crate::{args::Args, crawler::Crawler};
 
 mod args;
+mod crawler;
+mod network;
 
 fn start_logger(default_level: LevelFilter) {
     let filter = match EnvFilter::try_from_default_env() {
@@ -25,7 +27,15 @@ fn start_logger(default_level: LevelFilter) {
 
 #[tokio::main]
 async fn main() {
-    start_logger(LevelFilter::DEBUG);
+    start_logger(LevelFilter::INFO);
     let args = Args::parse();
-    debug!("Crawler starting with args: {:?}", args);
+
+    info!("Crawler starting with args: {:?}", args);
+    let mut crawler = Crawler::new().await;
+
+    for addr in args.seed_addrs {
+        crawler.get_peers(addr).await;
+    }
+
+    crawler.start_processing().await;
 }
