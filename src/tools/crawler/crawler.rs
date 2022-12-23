@@ -76,10 +76,11 @@ impl Crawler {
         let network = self.known_network.clone();
 
         tokio::spawn(async move {
-            network.insert_node(addr).await;
-            let start = Instant::now();
-            if connect_node(node, addr).await {
-                network.set_connected(addr, start.elapsed()).await;
+            if network.insert_node(addr).await {
+                let start = Instant::now();
+                if connect_node(node, addr).await {
+                    network.set_connected(addr, start.elapsed()).await;
+                }
             }
         });
     }
