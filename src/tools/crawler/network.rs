@@ -7,7 +7,7 @@ use std::{
 };
 
 use tokio::{sync::RwLock, time::Instant};
-use tracing::{error, info};
+use tracing::info;
 
 #[derive(Default)]
 pub struct KnownNetwork {
@@ -16,11 +16,16 @@ pub struct KnownNetwork {
 }
 
 impl KnownNetwork {
-    pub(super) async fn insert_node(&self, addr: SocketAddr) {
+    /// Inserts addr to known_nodes if not yet present (so to avoid overriding the node's statistics).
+    /// Returns true if it's a new node, false otherwise.
+    pub(super) async fn insert_node(&self, addr: SocketAddr) -> bool {
         let mut nodes = self.nodes.write().await;
         if !nodes.contains_key(&addr) {
             nodes.insert(addr, KnownNode::default());
             info!("Known nodes: {}", nodes.len());
+            true
+        } else {
+            false
         }
     }
 
@@ -31,10 +36,9 @@ impl KnownNetwork {
 
     pub(super) async fn set_connected(&self, addr: SocketAddr, handshake_time: Duration) {
         let mut nodes = self.nodes.write().await;
-        if !nodes.contains_key(&addr) {
-            error!("set_connected(): addr not found ({})", addr);
-        } else {
-            nodes.get_mut(&addr).unwrap().handshake_time = Some(handshake_time);
+        if let Some(mut node) = nodes.get_mut(&addr) {
+            node.handshake_time = Some(handshake_time);
+            node.last_connected = Some(Instant::now());
         }
     }
 }
@@ -91,9 +95,9 @@ impl PartialEq for KnownConnection {
 #[derive(Debug, Default, Clone)]
 pub struct KnownNode {
     // // The address is omitted, as it's a key in the owning HashMap.
-    // /// The last time the node was successfully connected to.
-    // pub last_connected: Option<Instant>,
-    // /// The time it took to complete a connection.
+    /// The last time the node was successfully connected to.
+    pub last_connected: Option<Instant>,
+    /// The time it took to complete a connection.
     pub handshake_time: Option<Duration>,
     // /// The node's user agent.
     // pub user_agent: Option<VarStr>,
