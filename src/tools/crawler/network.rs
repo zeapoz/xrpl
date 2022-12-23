@@ -16,11 +16,16 @@ pub struct KnownNetwork {
 }
 
 impl KnownNetwork {
-    pub(super) async fn insert_node(&self, addr: SocketAddr) {
+    /// Inserts addr to known_nodes if not yet present (so to avoid overriding the node's statistics).
+    /// Returns true if it's a new node, false otherwise.
+    pub(super) async fn insert_node(&self, addr: SocketAddr) -> bool {
         let mut nodes = self.nodes.write().await;
         if !nodes.contains_key(&addr) {
             nodes.insert(addr, KnownNode::default());
             info!("Known nodes: {}", nodes.len());
+            true
+        } else {
+            false
         }
     }
 
