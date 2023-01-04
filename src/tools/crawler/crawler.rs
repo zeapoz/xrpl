@@ -1,107 +1,72 @@
 use std::{net::SocketAddr, str::FromStr, sync::Arc};
 
-use pea2pea::protocols::{Handshake, Reading, Writing};
-use tokio::{
-    sync::mpsc::{channel, Receiver},
-    time::{timeout, Instant},
-};
-use tracing::{error, info, trace, warn};
-use ziggurat_xrpl::{
-    protocol::{
-        codecs::message::{BinaryMessage, Payload},
-        proto::TmEndpoints,
-    },
-    setup::constants::CONNECTION_TIMEOUT,
-    tools::inner_node::InnerNode,
-};
+use futures_util::{future::BoxFuture, FutureExt};
+use reqwest::Client;
+use tracing::{trace, warn};
 
-use crate::network::KnownNetwork;
+use crate::{
+    crawl::{get_crawl_response, CrawlResponse, Peer},
+    network::KnownNetwork,
+};
 
 pub(super) struct Crawler {
-    node: InnerNode,
-    known_network: Arc<KnownNetwork>,
-    receiver: Receiver<(SocketAddr, BinaryMessage)>,
+    pub(super) known_network: Arc<KnownNetwork>,
 }
 
 impl Crawler {
     pub(super) async fn new() -> Self {
-        let (sender, receiver) = channel(1024);
-        let node = InnerNode::new(&Default::default(), sender).await;
-        node.enable_handshake().await;
-        node.enable_reading().await;
-        node.enable_writing().await;
-        let known_network = Arc::new(Default::default());
         Self {
-            node,
-            known_network,
-            receiver,
+            known_network: Default::default(),
         }
     }
+}
 
-    pub(super) async fn start_processing(&mut self) {
-        while let Some((addr, message)) = self.receiver.recv().await {
-            if let Payload::TmEndpoints(endpoints) = message.payload {
-                self.process_endpoints_message(addr, endpoints).await;
-            }
-        }
-    }
-
-    async fn process_endpoints_message(&mut self, addr: SocketAddr, endpoints: TmEndpoints) {
-        info!(
-            "Received endpoints from {}: {:?}",
-            addr, endpoints.endpoints_v2
-        );
-        for endpoint in endpoints.endpoints_v2 {
-            match SocketAddr::from_str(&endpoint.endpoint) {
-                Ok(peer) => {
-                    self.process_peer(addr, endpoint.hops, peer).await;
-                }
-                Err(e) => {
-                    error!("invalid address from {}: {}", addr, e);
-                }
-            }
-        }
-    }
-
-    async fn process_peer(&mut self, addr: SocketAddr, hops: u32, peer: SocketAddr) {
-        self.known_network.insert_node(peer).await;
-        if hops == 0 {
-            self.known_network.insert_connection(addr, peer).await;
-        }
-        self.get_peers(peer).await;
-    }
-
-    pub(super) async fn get_peers(&self, addr: SocketAddr) {
-        let node = self.node.clone();
-        let network = self.known_network.clone();
-
+/// Spawns a tokio's task to crawl given address. After receiving the response it will
+/// process it and start more crawl tasks recursively.
+pub(super) fn crawl(
+    client: Client,
+    addr: SocketAddr,
+    known_network: Arc<KnownNetwork>,
+) -> BoxFuture<'static, ()> {
+    // Wrapped in box to allow for async recursion.
+    async move {
         tokio::spawn(async move {
-            if network.insert_node(addr).await {
-                let start = Instant::now();
-                if connect_node(node, addr).await {
-                    network.set_connected(addr, start.elapsed()).await;
+            trace!("Crawling {}", addr);
+            if known_network.new_node(addr).await {
+                match get_crawl_response(client.clone(), addr).await {
+                    Ok((response, connecting_time)) => {
+                        let addresses = extract_known_nodes(&response).await;
+                        known_network
+                            .update_stats(addr, connecting_time, response.server.build_version)
+                            .await;
+                        known_network.insert_connections(addr, &addresses).await;
+                        for addr in addresses {
+                            crawl(client.clone(), addr, known_network.clone()).await;
+                        }
+                    }
+                    Err(e) => {
+                        warn!("Unable to get crawl response from {}: {:?}", addr, e);
+                        // TODO if it's connection refused or timeout: retry connection a few time after a while
+                    }
                 }
             }
         });
     }
+    .boxed()
 }
 
-async fn connect_node(node: InnerNode, addr: SocketAddr) -> bool {
-    let connection_result = timeout(CONNECTION_TIMEOUT, node.connect(addr)).await;
-    match connection_result {
-        Ok(response) => match response {
-            Ok(_) => {
-                trace!("connected to {}", addr);
-                true
-            }
-            Err(e) => {
-                warn!("unable to connect to {} due to {}", addr, e);
-                false
-            }
-        },
-        Err(_) => {
-            warn!("unable to connect to {} due to timeout", addr);
-            false
-        }
-    }
+/// Extract addresses from /crawl response.
+async fn extract_known_nodes(response: &CrawlResponse) -> Vec<SocketAddr> {
+    response
+        .overlay
+        .active
+        .iter()
+        .filter_map(|peer| parse_peer_addr(peer))
+        .collect()
+}
+
+/// Tries to parse address information from response.
+/// On success returns Some(SocketAddr) on failure returns None.
+fn parse_peer_addr(peer: &Peer) -> Option<SocketAddr> {
+    SocketAddr::from_str(format!("{}:{}", peer.ip.as_ref()?, peer.port().ok()?).as_str()).ok()
 }
