@@ -1,6 +1,6 @@
 use std::{
     cmp::Ordering,
-    collections::{HashMap, HashSet},
+    collections::{hash_map::Entry, HashMap, HashSet},
     hash::{Hash, Hasher},
     net::SocketAddr,
     time::Duration,
@@ -18,10 +18,10 @@ pub struct KnownNetwork {
 impl KnownNetwork {
     /// Inserts addr to known_nodes if not yet present (so to avoid overriding the node's statistics).
     /// Returns true if it's a new node, false otherwise.
-    pub(super) async fn insert_node(&self, addr: SocketAddr) -> bool {
+    pub(super) async fn new_node(&self, addr: SocketAddr) -> bool {
         let mut nodes = self.nodes.write().await;
-        if !nodes.contains_key(&addr) {
-            nodes.insert(addr, KnownNode::default());
+        if let Entry::Vacant(e) = nodes.entry(addr) {
+            e.insert(KnownNode::default());
             info!("Known nodes: {}", nodes.len());
             true
         } else {
@@ -29,17 +29,26 @@ impl KnownNetwork {
         }
     }
 
-    pub(super) async fn insert_connection(&self, addr: SocketAddr, peer: SocketAddr) {
+    /// Inserts connection from `from` to `peers`.
+    pub(super) async fn insert_connections(&self, from: SocketAddr, peers: &[SocketAddr]) {
         let mut connections = self.connections.write().await;
-        connections.insert(KnownConnection::new(addr, peer));
+        peers.iter().for_each(|peer| {
+            connections.insert(KnownConnection::new(from, *peer));
+        });
     }
 
-    pub(super) async fn set_connected(&self, addr: SocketAddr, handshake_time: Duration) {
+    /// Updates stats for `peer`.
+    pub(super) async fn update_stats(
+        &self,
+        peer: SocketAddr,
+        connecting_time: Duration,
+        server_version: String,
+    ) {
         let mut nodes = self.nodes.write().await;
-        if let Some(mut node) = nodes.get_mut(&addr) {
-            node.handshake_time = Some(handshake_time);
-            node.last_connected = Some(Instant::now());
-        }
+        let mut node = nodes.get_mut(&peer).unwrap();
+        node.last_connected = Some(Instant::now());
+        node.connecting_time = Some(connecting_time);
+        node.server = Some(server_version);
     }
 }
 
@@ -98,9 +107,9 @@ pub struct KnownNode {
     /// The last time the node was successfully connected to.
     pub last_connected: Option<Instant>,
     /// The time it took to complete a connection.
-    pub handshake_time: Option<Duration>,
-    // /// The node's user agent.
-    // pub user_agent: Option<VarStr>,
+    pub connecting_time: Option<Duration>,
+    /// The node's server version.
+    pub server: Option<String>,
     // /// The number of subsequent connection errors.
     // pub connection_failures: u8,
 }
