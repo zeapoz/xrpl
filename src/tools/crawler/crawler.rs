@@ -1,13 +1,16 @@
-use std::{net::SocketAddr, str::FromStr, sync::Arc};
+use std::{net::SocketAddr, str::FromStr, sync::Arc, time::Duration};
 
 use futures_util::{future::BoxFuture, FutureExt};
 use reqwest::Client;
+use tokio::time::sleep;
 use tracing::{trace, warn};
 
 use crate::{
     crawl::{get_crawl_response, CrawlResponse, Peer},
     network::KnownNetwork,
 };
+
+const DELAY_AFTER_CONNECTION_FAILURE: Duration = Duration::from_secs(10);
 
 pub(super) struct Crawler {
     pub(super) known_network: Arc<KnownNetwork>,
@@ -33,26 +36,43 @@ pub(super) fn crawl(
         tokio::spawn(async move {
             trace!("Crawling {}", addr);
             if known_network.new_node(addr).await {
-                match get_crawl_response(client.clone(), addr).await {
-                    Ok((response, connecting_time)) => {
-                        let addresses = extract_known_nodes(&response).await;
-                        known_network
-                            .update_stats(addr, connecting_time, response.server.build_version)
-                            .await;
-                        known_network.insert_connections(addr, &addresses).await;
-                        for addr in addresses {
-                            crawl(client.clone(), addr, known_network.clone()).await;
-                        }
+                loop {
+                    let success = try_crawling(client.clone(), addr, known_network.clone()).await;
+                    if success {
+                        break;
                     }
-                    Err(e) => {
-                        warn!("Unable to get crawl response from {}: {:?}", addr, e);
-                        // TODO if it's connection refused or timeout: retry connection a few time after a while
+                    let failures = known_network.increase_connection_failures(addr).await;
+                    if failures == u8::MAX {
+                        warn!("Giving up connecting to {}", addr);
+                        break;
                     }
+                    trace!("Trying connection #{} to {}", failures, addr);
+                    sleep(DELAY_AFTER_CONNECTION_FAILURE).await;
                 }
             }
         });
     }
     .boxed()
+}
+
+async fn try_crawling(client: Client, addr: SocketAddr, known_network: Arc<KnownNetwork>) -> bool {
+    match get_crawl_response(client.clone(), addr).await {
+        Ok((response, connecting_time)) => {
+            let addresses = extract_known_nodes(&response).await;
+            known_network
+                .update_stats(addr, connecting_time, response.server.build_version)
+                .await;
+            known_network.insert_connections(addr, &addresses).await;
+            for addr in addresses {
+                crawl(client.clone(), addr, known_network.clone()).await;
+            }
+            true
+        }
+        Err(e) => {
+            warn!("Unable to get crawl response from {}: {:?}", addr, e);
+            false
+        }
+    }
 }
 
 /// Extract addresses from /crawl response.
