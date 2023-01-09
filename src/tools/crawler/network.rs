@@ -50,6 +50,14 @@ impl KnownNetwork {
         node.connecting_time = Some(connecting_time);
         node.server = Some(server_version);
     }
+
+    /// Increases connection failures to the `addr` and returns its new value.
+    pub(super) async fn increase_connection_failures(&self, addr: SocketAddr) -> u8 {
+        let mut nodes = self.nodes.write().await;
+        let mut node = nodes.get_mut(&addr).unwrap();
+        node.connection_failures = node.connection_failures.saturating_add(1);
+        node.connection_failures
+    }
 }
 
 /// A connection found in the network.
@@ -110,6 +118,6 @@ pub struct KnownNode {
     pub connecting_time: Option<Duration>,
     /// The node's server version.
     pub server: Option<String>,
-    // /// The number of subsequent connection errors.
-    // pub connection_failures: u8,
+    /// The number of subsequent connection errors.
+    pub connection_failures: u8,
 }
