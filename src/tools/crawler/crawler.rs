@@ -1,9 +1,11 @@
 use std::{net::SocketAddr, str::FromStr, sync::Arc, time::Duration};
 
 use futures_util::{future::BoxFuture, FutureExt};
+use pea2pea::protocols::Handshake;
 use reqwest::Client;
 use tokio::time::sleep;
 use tracing::{trace, warn};
+use ziggurat_xrpl::tools::inner_node::InnerNode;
 
 use crate::{
     crawl::{get_crawl_response, CrawlResponse, Peer},
@@ -36,6 +38,7 @@ pub(super) fn crawl(
         tokio::spawn(async move {
             trace!("Crawling {}", addr);
             if known_network.new_node(addr).await {
+                tokio::spawn(try_handshake(addr, known_network.clone()));
                 loop {
                     let success = try_crawling(client.clone(), addr, known_network.clone()).await;
                     if success {
@@ -53,6 +56,19 @@ pub(super) fn crawl(
         });
     }
     .boxed()
+}
+
+async fn try_handshake(addr: SocketAddr, known_network: Arc<KnownNetwork>) {
+    let (sender, _receiver) = tokio::sync::mpsc::channel(1024);
+    let node = InnerNode::new(&Default::default(), sender).await;
+    node.enable_handshake().await;
+    if node.connect(addr).await.is_ok() {
+        known_network.set_handshake_successful(addr, true).await;
+        trace!("Successful handshake to {}", addr);
+    } else {
+        warn!("Unsuccessful handshake to {}", addr);
+    }
+    node.shut_down().await;
 }
 
 async fn try_crawling(client: Client, addr: SocketAddr, known_network: Arc<KnownNetwork>) -> bool {
