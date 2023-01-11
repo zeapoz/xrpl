@@ -1,4 +1,7 @@
-use std::time::Duration;
+use std::{
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
 use clap::Parser;
 use futures_util::future::pending;
@@ -6,12 +9,19 @@ use reqwest::Client;
 use tracing::info;
 use tracing_subscriber::filter::{EnvFilter, LevelFilter};
 
-use crate::{args::Args, crawler::Crawler};
+use crate::{
+    args::Args,
+    crawler::Crawler,
+    metrics::NetworkSummary,
+    rpc::{initialize_rpc_server, RpcContext},
+};
 
 mod args;
 mod crawl;
 mod crawler;
+mod metrics;
 mod network;
+mod rpc;
 
 const CRAWLER_TIMEOUT: Duration = Duration::from_secs(10);
 
@@ -36,6 +46,15 @@ fn start_logger(default_level: LevelFilter) {
 async fn main() {
     start_logger(LevelFilter::INFO);
     let args = Args::parse();
+
+    let summary_snapshot = Arc::new(Mutex::new(NetworkSummary::default()));
+    let _rpc_handle = if let Some(addr) = args.rpc_addr {
+        let rpc_context = RpcContext::new(summary_snapshot.clone());
+        let rpc_handle = initialize_rpc_server(addr, rpc_context).await;
+        Some(rpc_handle)
+    } else {
+        None
+    };
 
     info!("Crawler starting with args: {:?}", args);
     let crawler = Crawler::new().await;

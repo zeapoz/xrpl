@@ -58,6 +58,12 @@ impl KnownNetwork {
         node.connection_failures = node.connection_failures.saturating_add(1);
         node.connection_failures
     }
+
+    pub(super) async fn set_handshake_successful(&self, addr: SocketAddr, success: bool) {
+        let mut nodes = self.nodes.write().await;
+        let mut node = nodes.get_mut(&addr).unwrap();
+        node.handshake_successful = success;
+    }
 }
 
 /// A connection found in the network.
@@ -120,4 +126,6 @@ pub struct KnownNode {
     pub server: Option<String>,
     /// The number of subsequent connection errors.
     pub connection_failures: u8,
+    /// Status for binary protocol connection/handshake attempt.
+    pub handshake_successful: bool,
 }
