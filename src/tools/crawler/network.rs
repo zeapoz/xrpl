@@ -3,11 +3,19 @@ use std::{
     collections::{hash_map::Entry, HashMap, HashSet},
     hash::{Hash, Hasher},
     net::SocketAddr,
+    sync::{Arc, Mutex},
     time::Duration,
 };
 
-use tokio::{sync::RwLock, time::Instant};
+use tokio::{
+    sync::RwLock,
+    time::{sleep, Instant},
+};
 use tracing::info;
+
+use crate::metrics::NetworkSummary;
+
+const SUMMARY_LOOP_INTERVAL: Duration = Duration::from_secs(10);
 
 #[derive(Default)]
 pub struct KnownNetwork {
@@ -63,6 +71,29 @@ impl KnownNetwork {
         let mut nodes = self.nodes.write().await;
         let mut node = nodes.get_mut(&addr).unwrap();
         node.handshake_successful = success;
+    }
+
+    /// Returns a snapshot of the known connections.
+    pub async fn connections(&self) -> HashSet<KnownConnection> {
+        self.connections.read().await.clone()
+    }
+
+    /// Returns a snapshot of the known nodes.
+    pub async fn nodes(&self) -> HashMap<SocketAddr, KnownNode> {
+        self.nodes.read().await.clone()
+    }
+}
+
+pub(super) async fn update_summary_snapshot_task(
+    known_network: Arc<KnownNetwork>,
+    summary_snapshot: Arc<Mutex<NetworkSummary>>,
+) {
+    loop {
+        sleep(SUMMARY_LOOP_INTERVAL).await;
+        let new_network_summary = NetworkSummary::new(known_network.clone()).await;
+        *summary_snapshot
+            .lock()
+            .expect("unable to take `summary_snapshot` lock") = new_network_summary;
     }
 }
 
