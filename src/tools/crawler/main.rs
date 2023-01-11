@@ -13,6 +13,7 @@ use crate::{
     args::Args,
     crawler::Crawler,
     metrics::NetworkSummary,
+    network::update_summary_snapshot_task,
     rpc::{initialize_rpc_server, RpcContext},
 };
 
@@ -64,7 +65,10 @@ async fn main() {
         .timeout(CRAWLER_TIMEOUT)
         .build()
         .expect("unable to build the web client");
-
+    tokio::spawn(update_summary_snapshot_task(
+        crawler.known_network.clone(),
+        summary_snapshot,
+    ));
     for addr in args.seed_addrs {
         crawler::crawl(client.clone(), addr, crawler.known_network.clone()).await;
     }
