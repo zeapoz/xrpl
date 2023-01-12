@@ -13,7 +13,7 @@ use tokio::{
 };
 use tracing::info;
 
-use crate::metrics::NetworkSummary;
+use crate::metrics::{NetworkMetrics, NetworkSummary};
 
 const SUMMARY_LOOP_INTERVAL: Duration = Duration::from_secs(10);
 
@@ -88,9 +88,12 @@ pub(super) async fn update_summary_snapshot_task(
     known_network: Arc<KnownNetwork>,
     summary_snapshot: Arc<Mutex<NetworkSummary>>,
 ) {
+    let mut network_metrics = NetworkMetrics::default();
     loop {
         sleep(SUMMARY_LOOP_INTERVAL).await;
-        let new_network_summary = NetworkSummary::new(known_network.clone()).await;
+        network_metrics.update_graph(known_network.clone()).await;
+        let new_network_summary =
+            NetworkSummary::new(known_network.clone(), &mut network_metrics).await;
         *summary_snapshot
             .lock()
             .expect("unable to take `summary_snapshot` lock") = new_network_summary;
