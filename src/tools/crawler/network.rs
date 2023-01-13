@@ -55,6 +55,7 @@ impl KnownNetwork {
         let mut nodes = self.nodes.write().await;
         let mut node = nodes.get_mut(&peer).unwrap();
         node.last_connected = Some(Instant::now());
+        node.connection_failures = 0;
         node.connecting_time = Some(connecting_time);
         node.server = Some(server_version);
     }
