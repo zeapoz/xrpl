@@ -1,5 +1,8 @@
 use std::{
+    fs,
     net::SocketAddr,
+    ops::Deref,
+    path::PathBuf,
     sync::{Arc, Mutex},
 };
 
@@ -7,7 +10,8 @@ use jsonrpsee::{
     server::{ServerBuilder, ServerHandle},
     RpcModule,
 };
-use tracing::debug;
+use serde::Deserialize;
+use tracing::{debug, warn};
 
 use crate::metrics::NetworkSummary;
 
@@ -34,9 +38,24 @@ pub async fn initialize_rpc_server(rpc_addr: SocketAddr, rpc_context: RpcContext
 fn create_rpc_module(rpc_context: RpcContext) -> RpcModule<RpcContext> {
     let mut module = RpcModule::new(rpc_context);
     module
-        .register_method("getmetrics", |_, rpc_context| {
+        .register_method("getmetrics", |params, rpc_context| {
+            let report_params = params.parse::<ReportParams>()?;
+            if let Some(path) = report_params.file {
+                let content = serde_json::to_string(rpc_context.0.lock().unwrap().deref())?;
+                // TODO: consider some checks against directory traversal
+                if let Err(e) = fs::write(path, content) {
+                    warn!("Unable to write to file: {}", e);
+                }
+            }
             Ok(rpc_context.0.lock().unwrap().clone())
         })
         .unwrap();
     module
+}
+
+/// Represents how to return [NetworkSummary].
+#[derive(Deserialize, Debug)]
+pub struct ReportParams {
+    /// If present then [NetworkSummary] will be written to given file.
+    file: Option<PathBuf>,
 }

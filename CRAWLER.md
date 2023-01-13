@@ -20,5 +20,10 @@ cargo r --bin crawler --features="crawler" -- --seed-addrs 35.162.59.23:51235 --
 ```
 Crawler's metrics can be accessed by:
 ```bash
-curl --data-binary '{"jsonrpc": "2.0", "id":0, "method": "getmetrics", "params": [] }' -H 'content-type: application/json'  http://127.0.0.1:8080/
+curl --data-binary '{"jsonrpc": "2.0", "id":0, "method": "getmetrics", "params": {} }' -H 'content-type: application/json'  http://127.0.0.1:8080/
+```
+
+Field "params" accepts a json. Param's field "file" can be added to dump data to a file:
+```bash
+curl --data-binary '{"jsonrpc": "2.0", "id":0, "method": "getmetrics", "params": {"file":"dump.json"}}' -H 'content-type: application/json'  http://127.0.0.1:8080/
 ```
