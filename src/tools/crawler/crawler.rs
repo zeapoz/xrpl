@@ -12,7 +12,7 @@ use crate::{
     network::KnownNetwork,
 };
 
-const DELAY_AFTER_CONNECTION_FAILURE: Duration = Duration::from_secs(10);
+const DELAY_AFTER_CONNECTION: Duration = Duration::from_secs(60 * 5);
 
 pub(super) struct Crawler {
     pub(super) known_network: Arc<KnownNetwork>,
@@ -38,19 +38,18 @@ pub(super) fn crawl(
         tokio::spawn(async move {
             trace!("Crawling {}", addr);
             if known_network.new_node(addr).await {
-                tokio::spawn(try_handshake(addr, known_network.clone()));
                 loop {
+                    tokio::spawn(try_handshake(addr, known_network.clone()));
                     let success = try_crawling(client.clone(), addr, known_network.clone()).await;
-                    if success {
-                        break;
+                    if !success {
+                        let failures = known_network.increase_connection_failures(addr).await;
+                        if failures == u8::MAX {
+                            warn!("Giving up connecting to {}", addr);
+                            break;
+                        }
                     }
-                    let failures = known_network.increase_connection_failures(addr).await;
-                    if failures == u8::MAX {
-                        warn!("Giving up connecting to {}", addr);
-                        break;
-                    }
-                    trace!("Trying connection #{} to {}", failures, addr);
-                    sleep(DELAY_AFTER_CONNECTION_FAILURE).await;
+                    // Even if connection was successful try again after a while to update peers.
+                    sleep(DELAY_AFTER_CONNECTION).await;
                 }
             }
         });
@@ -66,6 +65,7 @@ async fn try_handshake(addr: SocketAddr, known_network: Arc<KnownNetwork>) {
         known_network.set_handshake_successful(addr, true).await;
         trace!("Successful handshake to {}", addr);
     } else {
+        known_network.set_handshake_successful(addr, false).await;
         warn!("Unsuccessful handshake to {}", addr);
     }
     node.shut_down().await;
