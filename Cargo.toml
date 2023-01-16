@@ -2,7 +2,6 @@
 name = "ziggurat-xrpl"
 version = "0.1.0"
 edition = "2021"
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -15,9 +14,9 @@ hex = "0.4"
 histogram = "0.6.9"
 home = "0.5.3"
 httparse = "1.7"
-openssl = "0.10"
 metrics = "0.20.0"
 metrics-util = "0.14.0"
+openssl = "0.10"
 pea2pea = "0.43"
 prost = "0.10"
 rand_chacha = "0.3"
@@ -35,9 +34,19 @@ version = "0.4.0"
 default-features = false
 features = ["check", "alloc"]
 
+[dependencies.clap]
+version = "4.0.29"
+features = ["derive"]
+optional = true
+
 [dependencies.futures-util]
 version = "0.3"
 features = ["sink"]
+
+[dependencies.jsonrpsee]
+version = "0.16.2"
+features = ["server"]
+optional = true
 
 [dependencies.rand]
 version = "0.8"
@@ -54,11 +63,19 @@ features = ["global-context", "rand-std"]
 
 [dependencies.serde]
 version = "1"
-features = [ "derive" ]
+features = ["derive"]
+
+[dependencies.spectre]
+version = "0.4"
+optional = true
+
+[dependencies.thiserror]
+version = "1"
+optional = true
 
 [dependencies.tokio]
 version = "1"
-features = [ "full" ]
+features = ["full"]
 
 [dependencies.tokio-util]
 version = "0.7"
@@ -73,30 +90,11 @@ version = "0.3"
 default-features = false
 features = ["ansi", "env-filter", "fmt", "parking_lot", "smallvec"]
 
-
-[dependencies.clap]
-version = "4.0.29"
-features = [ "derive" ]
-optional = true
-
-[dependencies.thiserror]
-version = "1"
-optional = true
-
-[dependencies.jsonrpsee]
-version = "0.16.2"
-features = [ "server" ]
-optional = true
-
-[dependencies.spectre]
-version = "0.4"
-optional = true
-
 [features]
-crawler = [ "clap", "thiserror", "jsonrpsee", "spectre"]
+crawler = ["clap", "thiserror", "jsonrpsee", "spectre"]
 performance = []
 
 [[bin]]
 name = "crawler"
 path = "src/tools/crawler/main.rs"
-required-features = [ "crawler" ]
+required-features = ["crawler"]
