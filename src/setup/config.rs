@@ -76,7 +76,7 @@ impl RippledConfigFile {
         writeln!(&mut config_str)?;
 
         writeln!(&mut config_str, "[port_rpc_admin_local]")?;
-        writeln!(&mut config_str, "port = {}", JSON_RPC_PORT)?;
+        writeln!(&mut config_str, "port = {JSON_RPC_PORT}")?;
         writeln!(&mut config_str, "ip = {}", config.local_addr.ip())?;
         writeln!(&mut config_str, "admin = {}", config.local_addr.ip())?;
         writeln!(&mut config_str, "protocol = http")?;
@@ -90,13 +90,13 @@ impl RippledConfigFile {
 
         if let Some(token) = &config.validator_token {
             writeln!(&mut config_str, "[validator_token]")?;
-            writeln!(&mut config_str, "{}", token)?;
+            writeln!(&mut config_str, "{token}")?;
             writeln!(&mut config_str)?;
         }
 
         if let Some(network_id) = &config.network_id {
             writeln!(&mut config_str, "[network_id]")?;
-            writeln!(&mut config_str, "{}", network_id)?;
+            writeln!(&mut config_str, "{network_id}")?;
             writeln!(&mut config_str)?;
         }
 
@@ -129,16 +129,16 @@ impl RippledConfigFile {
         // 3. Ripple protocol
         if config.enable_cluster {
             writeln!(&mut config_str, "[node_seed]")?;
-            writeln!(&mut config_str, "{}", RIPPLED_NODE_SEED)?;
+            writeln!(&mut config_str, "{RIPPLED_NODE_SEED}")?;
             writeln!(&mut config_str)?;
 
             writeln!(&mut config_str, "[cluster_nodes]")?;
-            writeln!(&mut config_str, "{}", SYNTHETIC_NODE_PUBLIC_KEY)?;
+            writeln!(&mut config_str, "{SYNTHETIC_NODE_PUBLIC_KEY}")?;
             writeln!(&mut config_str)?;
         }
 
         writeln!(&mut config_str, "[validators_file]")?;
-        writeln!(&mut config_str, "{}", VALIDATORS_FILE_NAME)?;
+        writeln!(&mut config_str, "{VALIDATORS_FILE_NAME}")?;
         writeln!(&mut config_str)?;
 
         if config.enable_sharding {

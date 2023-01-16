@@ -270,7 +270,7 @@ pub struct Node {
 impl Node {
     pub fn builder() -> NodeBuilder {
         NodeBuilder::stateful()
-            .map_err(|e| format!("Unable to create builder: {:?}", e))
+            .map_err(|e| format!("Unable to create builder: {e:?}"))
             .unwrap()
     }
 
@@ -305,7 +305,7 @@ impl Drop for Node {
     fn drop(&mut self) {
         // We should avoid a panic.
         if let Err(e) = self.stop() {
-            eprintln!("Failed to stop the node: {}", e);
+            eprintln!("Failed to stop the node: {e}");
         }
     }
 }
