@@ -92,7 +92,7 @@ impl TestNet {
     pub async fn stop(mut self) -> anyhow::Result<()> {
         self.running.iter_mut().for_each(|node| {
             if let Err(e) = node.stop() {
-                eprintln!("Unable to stop node: {:?}", e);
+                eprintln!("Unable to stop node: {e:?}");
             }
         });
         Ok(())
