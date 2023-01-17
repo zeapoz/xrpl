@@ -81,9 +81,12 @@ fn get_node_ids(good_nodes: &HashMap<SocketAddr, KnownNode>) -> Vec<String> {
 
 fn get_good_nodes(nodes: &HashMap<SocketAddr, KnownNode>) -> HashMap<SocketAddr, KnownNode> {
     let good_nodes: HashMap<_, _> = nodes
-        .clone()
-        .into_iter()
-        .filter(|(_, node)| node.last_connected.is_some())
+        .iter()
+        .filter_map(|(addr, node)| {
+            node.last_connected
+                .filter(|last| last.elapsed().as_secs() < LAST_SEEN_CUTOFF)
+                .map(|_| (*addr, node.clone()))
+        })
         .collect();
     good_nodes
 }
