@@ -3,7 +3,7 @@ use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 use serde::Serialize;
 use spectre::{edge::Edge, graph::Graph};
 
-use crate::network::KnownNetwork;
+use crate::network::{KnownNetwork, KnownNode};
 
 /// The elapsed time before a connection should be regarded as inactive.
 pub const LAST_SEEN_CUTOFF: u64 = 10 * 60;
@@ -35,6 +35,7 @@ pub(super) struct NetworkSummary {
     density: f64,
     degree_centrality_delta: f64,
     avg_degree_centrality: u64,
+    node_ids: Vec<String>,
 }
 
 impl NetworkSummary {
@@ -45,12 +46,9 @@ impl NetworkSummary {
     ) -> Self {
         let nodes = known_network.nodes().await;
         let connections = known_network.connections().await;
-        let good_nodes: HashMap<_, _> = nodes
-            .clone()
-            .into_iter()
-            .filter(|(_, node)| node.last_connected.is_some())
-            .collect();
+        let good_nodes = get_good_nodes(&nodes);
 
+        let node_ids = get_node_ids(&good_nodes);
         // Procure metrics from the graph.
         let density = metrics.graph.density();
         let degree_centrality_delta = metrics.graph.degree_centrality_delta();
@@ -65,6 +63,30 @@ impl NetworkSummary {
             density,
             degree_centrality_delta,
             avg_degree_centrality,
+            node_ids,
         }
     }
+}
+
+fn get_node_ids(good_nodes: &HashMap<SocketAddr, KnownNode>) -> Vec<String> {
+    let good_addresses: Vec<SocketAddr> = good_nodes.keys().cloned().collect();
+    let node_ids = good_addresses
+        .iter()
+        .map(|addr| md5::compute(addr.to_string()))
+        .map(|digest| format!("{:x}", digest))
+        .map(|hex| hex[0..12].to_string())
+        .collect::<Vec<_>>();
+    node_ids
+}
+
+fn get_good_nodes(nodes: &HashMap<SocketAddr, KnownNode>) -> HashMap<SocketAddr, KnownNode> {
+    let good_nodes: HashMap<_, _> = nodes
+        .iter()
+        .filter_map(|(addr, node)| {
+            node.last_connected
+                .filter(|last| last.elapsed().as_secs() < LAST_SEEN_CUTOFF)
+                .map(|_| (*addr, node.clone()))
+        })
+        .collect();
+    good_nodes
 }
