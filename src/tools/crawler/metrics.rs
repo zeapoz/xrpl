@@ -46,11 +46,7 @@ impl NetworkSummary {
     ) -> Self {
         let nodes = known_network.nodes().await;
         let connections = known_network.connections().await;
-        let good_nodes: HashMap<_, _> = nodes
-            .clone()
-            .into_iter()
-            .filter(|(_, node)| node.last_connected.is_some())
-            .collect();
+        let good_nodes = get_good_nodes(&nodes);
 
         let node_ids = get_node_ids(&good_nodes);
         // Procure metrics from the graph.
@@ -81,4 +77,13 @@ fn get_node_ids(good_nodes: &HashMap<SocketAddr, KnownNode>) -> Vec<String> {
         .map(|hex| hex[0..12].to_string())
         .collect::<Vec<_>>();
     node_ids
+}
+
+fn get_good_nodes(nodes: &HashMap<SocketAddr, KnownNode>) -> HashMap<SocketAddr, KnownNode> {
+    let good_nodes: HashMap<_, _> = nodes
+        .clone()
+        .into_iter()
+        .filter(|(_, node)| node.last_connected.is_some())
+        .collect();
+    good_nodes
 }
