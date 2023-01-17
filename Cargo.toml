@@ -90,8 +90,12 @@ version = "0.3"
 default-features = false
 features = ["ansi", "env-filter", "fmt", "parking_lot", "smallvec"]
 
+[dependencies.md5]
+version = "0.7"
+optional = true
+
 [features]
-crawler = ["clap", "thiserror", "jsonrpsee", "spectre"]
+crawler = [ "clap", "thiserror", "jsonrpsee", "spectre", "md5"]
 performance = []
 
 [[bin]]

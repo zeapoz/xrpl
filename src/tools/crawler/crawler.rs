@@ -97,7 +97,7 @@ async fn extract_known_nodes(response: &CrawlResponse) -> Vec<SocketAddr> {
         .overlay
         .active
         .iter()
-        .filter_map(|peer| parse_peer_addr(peer))
+        .filter_map(parse_peer_addr)
         .collect()
 }
 
