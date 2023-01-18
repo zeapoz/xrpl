@@ -1,4 +1,4 @@
-use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+use std::{collections::HashMap, net::SocketAddr, sync::Arc, time::Duration};
 
 use serde::Serialize;
 use spectre::{edge::Edge, graph::Graph};
@@ -33,6 +33,7 @@ pub(super) struct NetworkSummary {
     num_good_nodes: usize,
     num_known_connections: usize,
     server_versions: HashMap<String, usize>,
+    crawler_runtime: Duration,
     density: f64,
     degree_centrality_delta: f64,
     avg_degree_centrality: u64,
@@ -44,6 +45,7 @@ impl NetworkSummary {
     pub(super) async fn new(
         known_network: Arc<KnownNetwork>,
         metrics: &mut NetworkMetrics,
+        crawler_runtime: Duration,
     ) -> Self {
         let nodes = known_network.nodes().await;
         let connections = known_network.connections().await;
@@ -67,6 +69,7 @@ impl NetworkSummary {
             avg_degree_centrality,
             node_ids,
             server_versions,
+            crawler_runtime,
         }
     }
 }
