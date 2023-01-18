@@ -32,6 +32,7 @@ pub(super) struct NetworkSummary {
     num_known_nodes: usize,
     num_good_nodes: usize,
     num_known_connections: usize,
+    server_versions: HashMap<String, usize>,
     density: f64,
     degree_centrality_delta: f64,
     avg_degree_centrality: u64,
@@ -47,6 +48,7 @@ impl NetworkSummary {
         let nodes = known_network.nodes().await;
         let connections = known_network.connections().await;
         let good_nodes = get_good_nodes(&nodes);
+        let server_versions = get_server_versions(&nodes);
 
         let node_ids = get_node_ids(&good_nodes);
         // Procure metrics from the graph.
@@ -64,6 +66,7 @@ impl NetworkSummary {
             degree_centrality_delta,
             avg_degree_centrality,
             node_ids,
+            server_versions,
         }
     }
 }
@@ -79,14 +82,24 @@ fn get_node_ids(good_nodes: &HashMap<SocketAddr, KnownNode>) -> Vec<String> {
     node_ids
 }
 
+fn get_server_versions(nodes: &HashMap<SocketAddr, KnownNode>) -> HashMap<String, usize> {
+    nodes.iter().fold(HashMap::new(), |mut map, (_, node)| {
+        node.server.clone().map(|version| {
+            map.entry(version)
+                .and_modify(|count| *count += 1)
+                .or_insert(1)
+        });
+        map
+    })
+}
+
 fn get_good_nodes(nodes: &HashMap<SocketAddr, KnownNode>) -> HashMap<SocketAddr, KnownNode> {
-    let good_nodes: HashMap<_, _> = nodes
+    nodes
         .iter()
         .filter_map(|(addr, node)| {
             node.last_connected
                 .filter(|last| last.elapsed().as_secs() < LAST_SEEN_CUTOFF)
                 .map(|_| (*addr, node.clone()))
         })
-        .collect();
-    good_nodes
+        .collect()
 }
