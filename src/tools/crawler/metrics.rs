@@ -1,7 +1,10 @@
 use std::{collections::HashMap, net::SocketAddr, sync::Arc, time::Duration};
 
 use serde::Serialize;
-use spectre::{edge::Edge, graph::Graph};
+use spectre::{
+    edge::Edge,
+    graph::{AGraph, Graph},
+};
 
 use crate::network::{KnownNetwork, KnownNode};
 
@@ -38,6 +41,7 @@ pub(super) struct NetworkSummary {
     degree_centrality_delta: f64,
     avg_degree_centrality: u64,
     node_ids: Vec<String>,
+    agraph: AGraph,
 }
 
 impl NetworkSummary {
@@ -53,6 +57,9 @@ impl NetworkSummary {
         let server_versions = get_server_versions(&nodes);
 
         let node_ids = get_node_ids(&good_nodes);
+        let agraph = metrics
+            .graph
+            .create_agraph(&good_nodes.iter().map(|e| *e.0).collect());
         // Procure metrics from the graph.
         let density = metrics.graph.density();
         let degree_centrality_delta = metrics.graph.degree_centrality_delta();
@@ -70,6 +77,7 @@ impl NetworkSummary {
             node_ids,
             server_versions,
             crawler_runtime,
+            agraph,
         }
     }
 }
