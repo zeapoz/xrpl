@@ -1,7 +1,10 @@
-use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+use std::{collections::HashMap, net::SocketAddr, sync::Arc, time::Duration};
 
 use serde::Serialize;
-use spectre::{edge::Edge, graph::Graph};
+use spectre::{
+    edge::Edge,
+    graph::{AGraph, Graph},
+};
 
 use crate::network::{KnownNetwork, KnownNode};
 
@@ -32,10 +35,13 @@ pub(super) struct NetworkSummary {
     num_known_nodes: usize,
     num_good_nodes: usize,
     num_known_connections: usize,
+    server_versions: HashMap<String, usize>,
+    crawler_runtime: Duration,
     density: f64,
     degree_centrality_delta: f64,
     avg_degree_centrality: u64,
     node_ids: Vec<String>,
+    agraph: AGraph,
 }
 
 impl NetworkSummary {
@@ -43,12 +49,17 @@ impl NetworkSummary {
     pub(super) async fn new(
         known_network: Arc<KnownNetwork>,
         metrics: &mut NetworkMetrics,
+        crawler_runtime: Duration,
     ) -> Self {
         let nodes = known_network.nodes().await;
         let connections = known_network.connections().await;
         let good_nodes = get_good_nodes(&nodes);
+        let server_versions = get_server_versions(&nodes);
 
         let node_ids = get_node_ids(&good_nodes);
+        let agraph = metrics
+            .graph
+            .create_agraph(&good_nodes.iter().map(|e| *e.0).collect());
         // Procure metrics from the graph.
         let density = metrics.graph.density();
         let degree_centrality_delta = metrics.graph.degree_centrality_delta();
@@ -64,6 +75,9 @@ impl NetworkSummary {
             degree_centrality_delta,
             avg_degree_centrality,
             node_ids,
+            server_versions,
+            crawler_runtime,
+            agraph,
         }
     }
 }
@@ -79,14 +93,24 @@ fn get_node_ids(good_nodes: &HashMap<SocketAddr, KnownNode>) -> Vec<String> {
     node_ids
 }
 
+fn get_server_versions(nodes: &HashMap<SocketAddr, KnownNode>) -> HashMap<String, usize> {
+    nodes.iter().fold(HashMap::new(), |mut map, (_, node)| {
+        node.server.clone().map(|version| {
+            map.entry(version)
+                .and_modify(|count| *count += 1)
+                .or_insert(1)
+        });
+        map
+    })
+}
+
 fn get_good_nodes(nodes: &HashMap<SocketAddr, KnownNode>) -> HashMap<SocketAddr, KnownNode> {
-    let good_nodes: HashMap<_, _> = nodes
+    nodes
         .iter()
         .filter_map(|(addr, node)| {
             node.last_connected
                 .filter(|last| last.elapsed().as_secs() < LAST_SEEN_CUTOFF)
                 .map(|_| (*addr, node.clone()))
         })
-        .collect();
-    good_nodes
+        .collect()
 }
