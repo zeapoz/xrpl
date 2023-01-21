@@ -186,7 +186,6 @@ async fn c026_TM_VALIDATOR_LIST_send_validator_list() {
     // Create stateful node.
     let target = TempDir::new().expect("unable to create TempDir");
     let mut node = Node::builder()
-        .log_to_stdout(true)
         .start(target.path(), NodeType::Stateless)
         .await
         .expect("unable to start stateful node");
