@@ -6,6 +6,9 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
 use tempfile::TempDir;
 use tokio::time::timeout;
+use ziggurat_core_utils::err_constants::{
+    ERR_NODE_BUILD, ERR_NODE_STOP, ERR_SYNTH_CONNECT, ERR_SYNTH_UNICAST, ERR_TEMPDIR_NEW,
+};
 
 // serialization type field constants from rippled
 const ST_TAG_SEQUENCE: u8 = 0x24;
@@ -184,23 +187,23 @@ fn sign_buffer_with_prefix(hash_prefix: &[u8], secret_key: &SecretKey, buffer: &
 #[allow(non_snake_case)]
 async fn c026_TM_VALIDATOR_LIST_send_validator_list() {
     // Create stateful node.
-    let target = TempDir::new().expect("unable to create TempDir");
+    let target = TempDir::new().expect(ERR_TEMPDIR_NEW);
     let mut node = Node::builder()
         .start(target.path(), NodeType::Stateless)
         .await
-        .expect("unable to start stateful node");
+        .expect(ERR_NODE_BUILD);
 
     // create & connect two synth nodes
     let synth_node1 = SyntheticNode::new(&Default::default()).await;
     synth_node1
         .connect(node.addr())
         .await
-        .expect("unable to connect");
+        .expect(ERR_SYNTH_CONNECT);
     let mut synth_node2 = SyntheticNode::new(&Default::default()).await;
     synth_node2
         .connect(node.addr())
         .await
-        .expect("unable to connect");
+        .expect(ERR_SYNTH_CONNECT);
 
     // 1. Setup keys & prefix.  Both master and signing key pairs have been previously generated.
     let master_secret = hex::decode(MASTER_SECRET).expect("unable to decode hex");
@@ -224,7 +227,7 @@ async fn c026_TM_VALIDATOR_LIST_send_validator_list() {
         signing_public.len(),
         PUBLIC_KEY_SIZE,
         "invalid signing public key length: {}",
-        master_public.len()
+        signing_public.len()
     );
     let manifest = create_manifest(1, &master_public, &signing_public);
 
@@ -257,7 +260,7 @@ async fn c026_TM_VALIDATOR_LIST_send_validator_list() {
     });
     synth_node1
         .unicast(node.addr(), payload)
-        .expect("unable to send message");
+        .expect(ERR_SYNTH_UNICAST);
 
     let check = |m: &BinaryMessage| {
         if let Payload::TmValidatorListCollection(validator_list_collection) = &m.payload {
@@ -296,5 +299,5 @@ async fn c026_TM_VALIDATOR_LIST_send_validator_list() {
     // Shutdown.
     synth_node1.shut_down().await;
     synth_node2.shut_down().await;
-    node.stop().expect("unable to stop the rippled node");
+    node.stop().expect(ERR_NODE_STOP);
 }
