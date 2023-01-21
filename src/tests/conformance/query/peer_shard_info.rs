@@ -53,7 +53,6 @@ async fn check_relay_for_key_type(key_type: u8, relays: u32) {
     // Create node.
     let target = TempDir::new().expect("unable to create TempDir");
     let mut node = Node::builder()
-        .log_to_stdout(false)
         .start(target.path(), NodeType::Stateless)
         .await
         .expect("unable to start the rippled node");
