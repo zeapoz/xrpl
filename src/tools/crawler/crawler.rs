@@ -2,6 +2,7 @@ use std::{net::SocketAddr, str::FromStr, sync::Arc, time::Duration};
 
 use futures_util::{future::BoxFuture, FutureExt};
 use pea2pea::protocols::Handshake;
+use rand::Rng;
 use reqwest::Client;
 use tokio::time::sleep;
 use tracing::{trace, warn};
@@ -12,7 +13,8 @@ use crate::{
     network::KnownNetwork,
 };
 
-const DELAY_AFTER_CONNECTION: Duration = Duration::from_secs(60 * 5);
+const CONNECTION_RETRY_MIN_SEC: u64 = 3 * 60; // 3 minutes
+const CONNECTION_RETRY_MAX_SEC: u64 = 5 * 60; // 5 minutes
 
 pub(super) struct Crawler {
     pub(super) known_network: Arc<KnownNetwork>,
@@ -36,21 +38,29 @@ pub(super) fn crawl(
     // Wrapped in box to allow for async recursion.
     async move {
         tokio::spawn(async move {
-            trace!("Crawling {}", addr);
-            if known_network.new_node(addr).await {
-                loop {
-                    tokio::spawn(try_handshake(addr, known_network.clone()));
-                    let success = try_crawling(client.clone(), addr, known_network.clone()).await;
-                    if !success {
-                        let failures = known_network.increase_connection_failures(addr).await;
-                        if failures == u8::MAX {
-                            warn!("Giving up connecting to {}", addr);
-                            break;
-                        }
+            if !known_network.new_node(addr).await {
+                trace!("Skip crawling a known node {addr}");
+                return;
+            }
+
+            trace!("Crawling {addr}");
+            loop {
+                // TODO(team): decide how to use this information about the handshake_successful data
+                tokio::spawn(try_handshake(addr, known_network.clone()));
+
+                let success = try_crawling(client.clone(), addr, known_network.clone()).await;
+                if !success {
+                    let failures = known_network.increase_connection_failures(addr).await;
+                    if failures == u8::MAX {
+                        warn!("Giving up connecting to {addr}");
+                        break;
                     }
-                    // Even if connection was successful try again after a while to update peers.
-                    sleep(DELAY_AFTER_CONNECTION).await;
                 }
+
+                // Even if connection was successful - try again after a while to update peers.
+                let duration = rand::thread_rng()
+                    .gen_range(CONNECTION_RETRY_MIN_SEC..=CONNECTION_RETRY_MAX_SEC);
+                sleep(Duration::from_secs(duration)).await;
             }
         });
     }
@@ -61,6 +71,7 @@ async fn try_handshake(addr: SocketAddr, known_network: Arc<KnownNetwork>) {
     let (sender, _receiver) = tokio::sync::mpsc::channel(1024);
     let node = InnerNode::new(&Default::default(), sender).await;
     node.enable_handshake().await;
+
     if node.connect(addr).await.is_ok() {
         known_network.set_handshake_successful(addr, true).await;
         trace!("Successful handshake to {}", addr);
@@ -68,6 +79,7 @@ async fn try_handshake(addr: SocketAddr, known_network: Arc<KnownNetwork>) {
         known_network.set_handshake_successful(addr, false).await;
         warn!("Unsuccessful handshake to {}", addr);
     }
+
     node.shut_down().await;
 }
 
