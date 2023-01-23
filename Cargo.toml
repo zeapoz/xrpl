@@ -7,18 +7,18 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0"
 async-trait = "0.1"
-base64 = "0.13"
+base64 = "0.21.0"
 bytes = "1"
 fs_extra = "1.2"
 hex = "0.4"
-histogram = "0.6.9"
+histogram = "0.7.0"
 home = "0.5.3"
 httparse = "1.7"
 metrics = "0.20.0"
 metrics-util = "0.14.0"
 openssl = "0.10"
-pea2pea = "0.43"
-prost = "0.10"
+pea2pea = "0.45"
+prost = "0.11.6"
 rand_chacha = "0.3"
 serde_json = "1.0"
 sha2 = "0.10"
@@ -62,7 +62,7 @@ version = "0.11"
 features = ["json"]
 
 [dependencies.secp256k1]
-version = "0.24"
+version = "0.26"
 features = ["global-context", "rand-std"]
 
 [dependencies.serde]
@@ -91,8 +91,7 @@ default-features = false
 features = ["ansi", "env-filter", "fmt", "parking_lot", "smallvec"]
 
 [dependencies.spectre]
-git = "https://github.com/niklaslong/spectre"
-rev = "61bdbf5"
+version = "0.5.1"
 optional = true
 
 [dependencies.ziggurat-core-crawler]
