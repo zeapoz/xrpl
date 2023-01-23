@@ -12,8 +12,7 @@ use jsonrpsee::{
 };
 use serde::Deserialize;
 use tracing::{debug, warn};
-
-use crate::metrics::NetworkSummary;
+use ziggurat_core_crawler::summary::NetworkSummary;
 
 pub struct RpcContext(Arc<Mutex<NetworkSummary>>);
 

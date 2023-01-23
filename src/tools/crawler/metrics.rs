@@ -1,10 +1,7 @@
 use std::{collections::HashMap, net::SocketAddr, sync::Arc, time::Duration};
 
-use serde::Serialize;
-use spectre::{
-    edge::Edge,
-    graph::{AGraph, Graph},
-};
+use spectre::{edge::Edge, graph::Graph};
+use ziggurat_core_crawler::summary::NetworkSummary;
 
 use crate::network::{KnownNetwork, KnownNode};
 
@@ -30,67 +27,39 @@ impl NetworkMetrics {
     }
 }
 
-#[derive(Default, Clone, Serialize)]
-pub(super) struct NetworkSummary {
-    num_known_nodes: usize,
-    num_good_nodes: usize,
-    num_known_connections: usize,
-    server_versions: HashMap<String, usize>,
+/// Builds a new [NetworkSummary] out of current state of [KnownNetwork]
+pub(super) async fn new_network_summary(
+    known_network: Arc<KnownNetwork>,
+    metrics: &mut NetworkMetrics,
     crawler_runtime: Duration,
-    density: f64,
-    degree_centrality_delta: f64,
-    avg_degree_centrality: u64,
-    node_ids: Vec<String>,
-    agraph: AGraph,
-}
+) -> NetworkSummary {
+    let nodes = known_network.nodes().await;
+    let connections = known_network.connections().await;
+    let good_nodes = get_good_nodes(&nodes);
+    let server_versions = get_server_versions(&nodes);
 
-impl NetworkSummary {
-    /// Builds a new [NetworkSummary] out of current state of [KnownNetwork]
-    pub(super) async fn new(
-        known_network: Arc<KnownNetwork>,
-        metrics: &mut NetworkMetrics,
-        crawler_runtime: Duration,
-    ) -> Self {
-        let nodes = known_network.nodes().await;
-        let connections = known_network.connections().await;
-        let good_nodes = get_good_nodes(&nodes);
-        let server_versions = get_server_versions(&nodes);
+    let node_ips = get_node_ips(&good_nodes);
+    let agraph = metrics
+        .graph
+        .create_agraph(&good_nodes.iter().map(|e| *e.0).collect());
 
-        let node_ids = get_node_ids(&good_nodes);
-        let agraph = metrics
-            .graph
-            .create_agraph(&good_nodes.iter().map(|e| *e.0).collect());
-        // Procure metrics from the graph.
-        let density = metrics.graph.density();
-        let degree_centrality_delta = metrics.graph.degree_centrality_delta();
-        let degree_centralities = metrics.graph.degree_centrality();
-        let avg_degree_centrality = degree_centralities.values().map(|v| *v as u64).sum::<u64>()
-            / degree_centralities.len() as u64;
-
-        Self {
-            num_known_nodes: nodes.len(),
-            num_good_nodes: good_nodes.len(),
-            num_known_connections: connections.len(),
-            density,
-            degree_centrality_delta,
-            avg_degree_centrality,
-            node_ids,
-            server_versions,
-            crawler_runtime,
-            agraph,
-        }
+    NetworkSummary {
+        num_known_nodes: nodes.len(),
+        num_good_nodes: good_nodes.len(),
+        num_known_connections: connections.len(),
+        node_ips,
+        user_agents: server_versions,
+        crawler_runtime,
+        agraph,
+        ..Default::default()
     }
 }
 
-fn get_node_ids(good_nodes: &HashMap<SocketAddr, KnownNode>) -> Vec<String> {
-    let good_addresses: Vec<SocketAddr> = good_nodes.keys().cloned().collect();
-    let node_ids = good_addresses
-        .iter()
-        .map(|addr| md5::compute(addr.to_string()))
-        .map(|digest| format!("{:x}", digest))
-        .map(|hex| hex[0..12].to_string())
-        .collect::<Vec<_>>();
-    node_ids
+fn get_node_ips(good_nodes: &HashMap<SocketAddr, KnownNode>) -> Vec<String> {
+    good_nodes
+        .keys()
+        .map(|addr| addr.ip().to_string())
+        .collect()
 }
 
 fn get_server_versions(nodes: &HashMap<SocketAddr, KnownNode>) -> HashMap<String, usize> {
