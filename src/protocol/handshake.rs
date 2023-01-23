@@ -1,6 +1,7 @@
 /// The Ripple handshake implementation.
 use std::{io, pin::Pin};
 
+use base64::{engine::general_purpose::STANDARD, Engine};
 use bytes::Bytes;
 use futures_util::{sink::SinkExt, TryStreamExt};
 use openssl::ssl::Ssl;
@@ -42,7 +43,7 @@ fn create_session_signature(crypto: &Crypto, shared_value: &[u8]) -> String {
     let signature = crypto.engine.sign_ecdsa(&message, &crypto.private_key);
     let serialized = signature.serialize_der();
 
-    base64::encode(serialized)
+    STANDARD.encode(serialized)
 }
 
 // Used as input for create_session_signature.
