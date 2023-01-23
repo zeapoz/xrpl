@@ -48,6 +48,10 @@ version = "0.16.2"
 features = ["server"]
 optional = true
 
+[dependencies.md5]
+version = "0.7"
+optional = true
+
 [dependencies.rand]
 version = "0.8"
 default-features = false
@@ -64,6 +68,11 @@ features = ["global-context", "rand-std"]
 [dependencies.serde]
 version = "1"
 features = ["derive"]
+
+[dependencies.spectre]
+git = "https://github.com/niklaslong/spectre"
+rev = "61bdbf5"
+optional = true
 
 [dependencies.thiserror]
 version = "1"
@@ -86,17 +95,8 @@ version = "0.3"
 default-features = false
 features = ["ansi", "env-filter", "fmt", "parking_lot", "smallvec"]
 
-[dependencies.md5]
-version = "0.7"
-optional = true
-
-[dependencies.spectre]
-git = "https://github.com/niklaslong/spectre"
-rev = "61bdbf5"
-optional = true
-
 [features]
-crawler = [ "clap", "thiserror", "jsonrpsee", "spectre", "md5"]
+crawler = ["clap", "thiserror", "jsonrpsee", "spectre", "md5"]
 performance = []
 
 [[bin]]

@@ -2,6 +2,9 @@
 
 use secp256k1::constants::PUBLIC_KEY_SIZE;
 use tempfile::TempDir;
+use ziggurat_core_utils::err_constants::{
+    ERR_NODE_BUILD, ERR_NODE_STOP, ERR_SYNTH_CONNECT, ERR_SYNTH_UNICAST, ERR_TEMPDIR_NEW,
+};
 
 use crate::{
     protocol::{
@@ -51,24 +54,23 @@ async fn c014_TM_GET_PEER_SHARD_INFO_V2_node_should_not_relay_shard_info_when_re
 
 async fn check_relay_for_key_type(key_type: u8, relays: u32) {
     // Create node.
-    let target = TempDir::new().expect("unable to create TempDir");
+    let target = TempDir::new().expect(ERR_TEMPDIR_NEW);
     let mut node = Node::builder()
-        .log_to_stdout(false)
         .start(target.path(), NodeType::Stateless)
         .await
-        .expect("unable to start the rippled node");
+        .expect(ERR_NODE_BUILD);
 
     // Create two synthetic nodes and connect them to rippled.
     let synth_node1 = SyntheticNode::new(&Default::default()).await;
     synth_node1
         .connect(node.addr())
         .await
-        .expect("unable to connect");
+        .expect(ERR_SYNTH_CONNECT);
     let mut synth_node2 = SyntheticNode::new(&Default::default()).await;
     synth_node2
         .connect(node.addr())
         .await
-        .expect("unable to connect");
+        .expect(ERR_SYNTH_CONNECT);
 
     // Create a dummy key with the specified key type.
     let mut key = vec![key_type]; // Place the key type as the first byte.
@@ -83,7 +85,7 @@ async fn check_relay_for_key_type(key_type: u8, relays: u32) {
     // Send a message from the first synthetic node.
     synth_node1
         .unicast(node.addr(), payload)
-        .expect("unable to send message");
+        .expect(ERR_SYNTH_UNICAST);
 
     // Ensure that the second synthetic node receives the relayed message.
     // Verify the public key and ensure that the `relays` number got subtracted.
@@ -96,7 +98,7 @@ async fn check_relay_for_key_type(key_type: u8, relays: u32) {
     // Shutdown.
     synth_node1.shut_down().await;
     synth_node2.shut_down().await;
-    node.stop().expect("unable to stop the rippled node");
+    node.stop().expect(ERR_NODE_STOP);
 }
 
 #[tokio::test]
@@ -105,12 +107,12 @@ async fn c023_TM_PEER_SHARD_INFO_V2_node_should_respond_with_shard_info_if_shard
     // ZG-CONFORMANCE-023
 
     // Create a rippled node.
-    let target = TempDir::new().expect("unable to create TempDir");
+    let target = TempDir::new().expect(ERR_TEMPDIR_NEW);
     let mut node = Node::builder()
         .enable_sharding(true)
         .start(target.path(), NodeType::Stateful)
         .await
-        .expect("unable to start the rippled node");
+        .expect(ERR_NODE_BUILD);
     wait_for_state(&node.rpc_url(), "proposing".into()).await;
 
     // Create a synthetic node and connect it to rippled.
@@ -118,7 +120,7 @@ async fn c023_TM_PEER_SHARD_INFO_V2_node_should_respond_with_shard_info_if_shard
     synth_node
         .connect(node.addr())
         .await
-        .expect("unable to connect");
+        .expect(ERR_SYNTH_CONNECT);
 
     // Create a payload with a valid key.
     let mut public_key = vec![PUBLIC_KEY_TYPES[0]]; // Place the key type as the first byte.
@@ -131,7 +133,7 @@ async fn c023_TM_PEER_SHARD_INFO_V2_node_should_respond_with_shard_info_if_shard
     // Send a message from the synthetic node.
     synth_node
         .unicast(node.addr(), payload)
-        .expect("unable to send message");
+        .expect(ERR_SYNTH_UNICAST);
 
     // Ensure that the synthetic node receives TmPeerShardInfoV2.
     // This should happen when rippled is configured to use history sharding.
@@ -140,5 +142,5 @@ async fn c023_TM_PEER_SHARD_INFO_V2_node_should_respond_with_shard_info_if_shard
 
     // Shutdown.
     synth_node.shut_down().await;
-    node.stop().expect("unable to stop the rippled node");
+    node.stop().expect(ERR_NODE_STOP);
 }
