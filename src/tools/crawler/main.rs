@@ -8,11 +8,11 @@ use futures_util::future::pending;
 use reqwest::Client;
 use tracing::info;
 use tracing_subscriber::filter::{EnvFilter, LevelFilter};
+use ziggurat_core_crawler::summary::NetworkSummary;
 
 use crate::{
     args::Args,
     crawler::Crawler,
-    metrics::NetworkSummary,
     network::update_summary_snapshot_task,
     rpc::{initialize_rpc_server, RpcContext},
 };

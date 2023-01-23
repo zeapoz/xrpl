@@ -69,11 +69,6 @@ features = ["global-context", "rand-std"]
 version = "1"
 features = ["derive"]
 
-[dependencies.spectre]
-git = "https://github.com/niklaslong/spectre"
-rev = "61bdbf5"
-optional = true
-
 [dependencies.thiserror]
 version = "1"
 optional = true
@@ -95,8 +90,18 @@ version = "0.3"
 default-features = false
 features = ["ansi", "env-filter", "fmt", "parking_lot", "smallvec"]
 
+[dependencies.spectre]
+git = "https://github.com/niklaslong/spectre"
+rev = "61bdbf5"
+optional = true
+
+[dependencies.ziggurat-core-crawler]
+git = "https://github.com/runziggurat/ziggurat-core"
+rev = "4780f63"
+optional = true
+
 [features]
-crawler = ["clap", "thiserror", "jsonrpsee", "spectre", "md5"]
+crawler = ["clap", "thiserror", "jsonrpsee", "spectre", "ziggurat-core-crawler"]
 performance = []
 
 [[bin]]

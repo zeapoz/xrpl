@@ -1,7 +1,5 @@
 use std::{
-    cmp::Ordering,
     collections::{hash_map::Entry, HashMap, HashSet},
-    hash::{Hash, Hasher},
     net::SocketAddr,
     sync::{Arc, Mutex},
     time::Duration,
@@ -12,8 +10,9 @@ use tokio::{
     time::{sleep, Instant},
 };
 use tracing::info;
+use ziggurat_core_crawler::{connection::KnownConnection, summary::NetworkSummary};
 
-use crate::metrics::{NetworkMetrics, NetworkSummary};
+use crate::metrics::{new_network_summary, NetworkMetrics};
 
 const SUMMARY_LOOP_INTERVAL: Duration = Duration::from_secs(10);
 
@@ -94,7 +93,7 @@ pub(super) async fn update_summary_snapshot_task(
     loop {
         sleep(SUMMARY_LOOP_INTERVAL).await;
         network_metrics.update_graph(known_network.clone()).await;
-        let new_network_summary = NetworkSummary::new(
+        let new_network_summary = new_network_summary(
             known_network.clone(),
             &mut network_metrics,
             start_time.elapsed(),
@@ -103,54 +102,6 @@ pub(super) async fn update_summary_snapshot_task(
         *summary_snapshot
             .lock()
             .expect("unable to take `summary_snapshot` lock") = new_network_summary;
-    }
-}
-
-/// A connection found in the network.
-#[derive(Debug, Eq, Copy, Clone)]
-pub struct KnownConnection {
-    /// One of the two sides of a connection.
-    pub a: SocketAddr,
-    /// The other side of a connection.
-    pub b: SocketAddr,
-    /// The timestamp of the last time the connection was seen.
-    pub last_seen: Instant,
-}
-
-impl Hash for KnownConnection {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        let (a, b) = (self.a, self.b);
-
-        // This ensures the hash is the same for (a, b) as it is for (b, a).
-        match a.cmp(&b) {
-            Ordering::Greater => {
-                b.hash(state);
-                a.hash(state);
-            }
-            _ => {
-                a.hash(state);
-                b.hash(state);
-            }
-        }
-    }
-}
-
-impl KnownConnection {
-    pub fn new(a: SocketAddr, b: SocketAddr) -> Self {
-        Self {
-            a,
-            b,
-            last_seen: Instant::now(),
-        }
-    }
-}
-
-impl PartialEq for KnownConnection {
-    fn eq(&self, other: &Self) -> bool {
-        let (a, b) = (self.a, self.b);
-        let (c, d) = (other.a, other.b);
-
-        a == d && b == c || a == c && b == d
     }
 }
 
