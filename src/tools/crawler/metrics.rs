@@ -1,4 +1,9 @@
-use std::{collections::HashMap, net::SocketAddr, sync::Arc, time::Duration};
+use std::{
+    collections::HashMap,
+    net::{IpAddr, SocketAddr},
+    sync::Arc,
+    time::Duration,
+};
 
 use spectre::{edge::Edge, graph::Graph};
 use ziggurat_core_crawler::summary::NetworkSummary;
@@ -10,7 +15,7 @@ pub const LAST_SEEN_CUTOFF: u64 = 10 * 60;
 
 #[derive(Default)]
 pub struct NetworkMetrics {
-    graph: Graph<SocketAddr>,
+    graph: Graph<IpAddr>,
 }
 
 impl NetworkMetrics {
@@ -41,7 +46,7 @@ pub(super) async fn new_network_summary(
     let node_ips = get_node_ips(&good_nodes);
     let agraph = metrics
         .graph
-        .create_agraph(&good_nodes.iter().map(|e| *e.0).collect());
+        .create_agraph(&good_nodes.iter().map(|e| e.0.ip()).collect());
 
     NetworkSummary {
         num_known_nodes: nodes.len(),
