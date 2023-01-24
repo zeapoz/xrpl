@@ -1,5 +1,6 @@
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use base64::{engine::general_purpose::STANDARD, Engine};
 use bytes::{BufMut, BytesMut};
 use secp256k1::{constants::PUBLIC_KEY_SIZE, Message, Secp256k1, SecretKey};
 use serde::{Deserialize, Serialize};
@@ -62,8 +63,9 @@ async fn c015_TM_VALIDATOR_LIST_COLLECTION_node_should_send_validator_list() {
     let check = |m: &BinaryMessage| {
         if let Payload::TmValidatorListCollection(validator_list_collection) = &m.payload {
             if let Some(blob_info) = validator_list_collection.blobs.first() {
-                let decoded_blob =
-                    base64::decode(&blob_info.blob).expect("unable to decode a blob");
+                let decoded_blob = STANDARD
+                    .decode(&blob_info.blob)
+                    .expect("unable to decode a blob");
                 let text = String::from_utf8(decoded_blob)
                     .expect("unable to convert decoded blob to a string");
                 let validator_list = serde_json::from_str::<ValidatorList>(&text)
@@ -120,7 +122,7 @@ fn get_expiration() -> u32 {
 fn create_validator_list_json(manifest: &[u8], public_key: &str) -> String {
     let validator = Validator {
         validation_public_key: public_key.to_string(),
-        manifest: base64::encode(manifest),
+        manifest: STANDARD.encode(manifest),
     };
 
     let validator_list = ValidatorList {
@@ -170,9 +172,11 @@ fn sign_buffer(secret_key: &SecretKey, buffer: &[u8]) -> Vec<u8> {
     let digest = create_sha512_half_digest(buffer);
     let message = Message::from_slice(&digest).unwrap();
     let signature = engine.sign_ecdsa(&message, secret_key).serialize_der();
-    let signature_b64 = base64::encode(signature);
+    let signature_b64 = STANDARD.encode(signature);
 
-    base64::decode(signature_b64).expect("unable to decode a blob")
+    STANDARD
+        .decode(signature_b64)
+        .expect("unable to decode a blob")
 }
 
 fn sign_buffer_with_prefix(hash_prefix: &[u8], secret_key: &SecretKey, buffer: &[u8]) -> Vec<u8> {
@@ -248,9 +252,9 @@ async fn c026_TM_VALIDATOR_LIST_send_validator_list() {
     let signature = sign_buffer(&signing_secret_key, blob.as_bytes());
 
     // 8. Setup payload, send it
-    let manifest = base64::encode(signed_manifest).as_bytes().to_vec();
+    let manifest = STANDARD.encode(signed_manifest).as_bytes().to_vec();
     let signature = hex::encode_upper(signature).as_bytes().to_vec();
-    let blob = base64::encode(&blob).as_bytes().to_vec();
+    let blob = STANDARD.encode(&blob).as_bytes().to_vec();
 
     let payload = Payload::TmValidatorList(TmValidatorList {
         manifest,
@@ -265,8 +269,9 @@ async fn c026_TM_VALIDATOR_LIST_send_validator_list() {
     let check = |m: &BinaryMessage| {
         if let Payload::TmValidatorListCollection(validator_list_collection) = &m.payload {
             if let Some(blob_info) = validator_list_collection.blobs.first() {
-                let decoded_blob =
-                    base64::decode(&blob_info.blob).expect("unable to decode a blob");
+                let decoded_blob = STANDARD
+                    .decode(&blob_info.blob)
+                    .expect("unable to decode a blob");
 
                 let text = String::from_utf8(decoded_blob)
                     .expect("unable to convert decoded blob to a string");
