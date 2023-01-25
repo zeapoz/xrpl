@@ -40,7 +40,7 @@ impl KnownNetwork {
     pub(super) async fn insert_connections(&self, from: SocketAddr, peers: &[SocketAddr]) {
         let mut connections = self.connections.write().await;
         peers.iter().for_each(|peer| {
-            connections.insert(KnownConnection::new(from, *peer));
+            connections.insert(KnownConnection::new(from.ip(), peer.ip()));
         });
     }
 
