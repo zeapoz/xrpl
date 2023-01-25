@@ -70,7 +70,13 @@ async fn main() {
         summary_snapshot,
     ));
     for addr in args.seed_addrs {
-        crawler::crawl(client.clone(), addr, crawler.known_network.clone()).await;
+        crawler::crawl(
+            client.clone(),
+            addr.ip(),
+            Some(addr.port()),
+            crawler.known_network.clone(),
+        )
+        .await;
     }
     pending::<()>().await;
 }
