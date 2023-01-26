@@ -141,6 +141,10 @@ impl NodeBuilder {
             self.meta.start_args.push("--nodetoshard".into());
         }
 
+        if self.conf.log_to_stdout {
+            self.meta.start_args.push("--debug".into());
+        }
+
         self.meta.start_args.push("--conf".into());
         self.meta.start_args.push(rippled_cfg_path.into());
 

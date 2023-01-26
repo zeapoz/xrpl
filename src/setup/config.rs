@@ -165,7 +165,7 @@ impl RippledConfigFile {
 
         // 5. Reporting mode
 
-        // 6. Datababase
+        // 6. Database
 
         writeln!(&mut config_str, "[node_db]")?;
         writeln!(&mut config_str, "type=NuDB")?;
