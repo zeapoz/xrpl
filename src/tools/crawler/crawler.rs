@@ -1,4 +1,9 @@
-use std::{net::SocketAddr, str::FromStr, sync::Arc, time::Duration};
+use std::{
+    collections::HashSet,
+    net::{IpAddr, SocketAddr},
+    sync::Arc,
+    time::Duration,
+};
 
 use futures_util::{future::BoxFuture, FutureExt};
 use pea2pea::protocols::Handshake;
@@ -12,6 +17,8 @@ use crate::{
     crawl::{get_crawl_response, CrawlResponse, Peer},
     network::KnownNetwork,
 };
+const CRAWLER_DEFAULT_PORT: u16 = 51235;
+const PROTOCOL_DEFAULT_PORT: u16 = 2459;
 
 const CONNECTION_RETRY_MIN_SEC: u64 = 3 * 60; // 3 minutes
 const CONNECTION_RETRY_MAX_SEC: u64 = 5 * 60; // 5 minutes
@@ -32,27 +39,34 @@ impl Crawler {
 /// process it and start more crawl tasks recursively.
 pub(super) fn crawl(
     client: Client,
-    addr: SocketAddr,
+    ip: IpAddr,
+    port: Option<u16>,
     known_network: Arc<KnownNetwork>,
 ) -> BoxFuture<'static, ()> {
     // Wrapped in box to allow for async recursion.
     async move {
         tokio::spawn(async move {
-            if !known_network.new_node(addr).await {
-                trace!("Skip crawling a known node {addr}");
+            if !known_network.new_node(ip).await {
+                trace!("Skip crawling a known node {ip}");
                 return;
             }
 
-            trace!("Crawling {addr}");
+            trace!("Crawling {ip}");
+            let ports = get_ports_to_try(port);
             loop {
-                // TODO(team): decide how to use this information about the handshake_successful data
-                tokio::spawn(try_handshake(addr, known_network.clone()));
-
-                let success = try_crawling(client.clone(), addr, known_network.clone()).await;
+                let mut success = false;
+                for port in &ports {
+                    // TODO(team): decide how to use this information about the handshake_successful data
+                    try_handshake(SocketAddr::new(ip, *port), known_network.clone()).await;
+                    success = try_crawling(client.clone(), ip, *port, known_network.clone()).await;
+                    if success {
+                        break;
+                    }
+                }
                 if !success {
-                    let failures = known_network.increase_connection_failures(addr).await;
+                    let failures = known_network.increase_connection_failures(ip).await;
                     if failures == u8::MAX {
-                        warn!("Giving up connecting to {addr}");
+                        warn!("Giving up connecting to {ip}");
                         break;
                     }
                 }
@@ -67,44 +81,62 @@ pub(super) fn crawl(
     .boxed()
 }
 
+fn get_ports_to_try(from_response: Option<u16>) -> HashSet<u16> {
+    let mut ports = HashSet::new();
+    if let Some(port) = from_response {
+        ports.insert(port);
+    } else {
+        ports.insert(CRAWLER_DEFAULT_PORT);
+        ports.insert(PROTOCOL_DEFAULT_PORT);
+    }
+    ports
+}
+
 async fn try_handshake(addr: SocketAddr, known_network: Arc<KnownNetwork>) {
     let (sender, _receiver) = tokio::sync::mpsc::channel(1024);
     let node = InnerNode::new(&Default::default(), sender).await;
     node.enable_handshake().await;
 
-    if node.connect(addr).await.is_ok() {
-        known_network.set_handshake_successful(addr, true).await;
+    let result = node.connect(addr).await.is_ok();
+    known_network
+        .set_handshake_successful(addr.ip(), result)
+        .await;
+    if result {
         trace!("Successful handshake to {}", addr);
     } else {
-        known_network.set_handshake_successful(addr, false).await;
-        warn!("Unsuccessful handshake to {}", addr);
+        trace!("Unsuccessful handshake to {}", addr);
     }
-
     node.shut_down().await;
 }
 
-async fn try_crawling(client: Client, addr: SocketAddr, known_network: Arc<KnownNetwork>) -> bool {
-    match get_crawl_response(client.clone(), addr).await {
+async fn try_crawling(
+    client: Client,
+    ip: IpAddr,
+    port: u16,
+    known_network: Arc<KnownNetwork>,
+) -> bool {
+    match get_crawl_response(client.clone(), SocketAddr::new(ip, port)).await {
         Ok((response, connecting_time)) => {
             let addresses = extract_known_nodes(&response).await;
             known_network
-                .update_stats(addr, connecting_time, response.server.build_version)
+                .update_stats(ip, connecting_time, response.server.build_version)
                 .await;
-            known_network.insert_connections(addr, &addresses).await;
-            for addr in addresses {
-                crawl(client.clone(), addr, known_network.clone()).await;
+            let peers = addresses.iter().map(|(ip, _)| *ip).collect::<Vec<_>>();
+            known_network.insert_connections(ip, &peers).await;
+            for (ip, port) in addresses {
+                crawl(client.clone(), ip, port, known_network.clone()).await;
             }
             true
         }
         Err(e) => {
-            warn!("Unable to get crawl response from {}: {:?}", addr, e);
+            warn!("Unable to get crawl response from {}: {:?}", ip, e);
             false
         }
     }
 }
 
 /// Extract addresses from /crawl response.
-async fn extract_known_nodes(response: &CrawlResponse) -> Vec<SocketAddr> {
+async fn extract_known_nodes(response: &CrawlResponse) -> Vec<(IpAddr, Option<u16>)> {
     response
         .overlay
         .active
@@ -114,7 +146,8 @@ async fn extract_known_nodes(response: &CrawlResponse) -> Vec<SocketAddr> {
 }
 
 /// Tries to parse address information from response.
-/// On success returns Some(SocketAddr) on failure returns None.
-fn parse_peer_addr(peer: &Peer) -> Option<SocketAddr> {
-    SocketAddr::from_str(format!("{}:{}", peer.ip.as_ref()?, peer.port().ok()?).as_str()).ok()
+/// On success returns optional tuple of Ip address, and optional port.
+fn parse_peer_addr(peer: &Peer) -> Option<(IpAddr, Option<u16>)> {
+    let ip = peer.ip.as_ref()?.parse().ok()?;
+    Some((ip, peer.port()))
 }

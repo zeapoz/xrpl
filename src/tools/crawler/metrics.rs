@@ -1,9 +1,4 @@
-use std::{
-    collections::HashMap,
-    net::{IpAddr, SocketAddr},
-    sync::Arc,
-    time::Duration,
-};
+use std::{collections::HashMap, net::IpAddr, sync::Arc, time::Duration};
 
 use spectre::{edge::Edge, graph::Graph};
 use ziggurat_core_crawler::summary::NetworkSummary;
@@ -43,16 +38,15 @@ pub(super) async fn new_network_summary(
     let good_nodes = get_good_nodes(&nodes);
     let server_versions = get_server_versions(&nodes);
 
-    let node_ips = get_node_ips(&good_nodes);
     let agraph = metrics
         .graph
-        .create_agraph(&good_nodes.iter().map(|e| e.0.ip()).collect());
+        .create_agraph(&good_nodes.keys().copied().collect());
 
     NetworkSummary {
         num_known_nodes: nodes.len(),
         num_good_nodes: good_nodes.len(),
         num_known_connections: connections.len(),
-        node_ips,
+        node_ips: good_nodes.iter().map(|n| n.0.to_string()).collect(),
         user_agents: server_versions,
         crawler_runtime,
         agraph,
@@ -60,14 +54,7 @@ pub(super) async fn new_network_summary(
     }
 }
 
-fn get_node_ips(good_nodes: &HashMap<SocketAddr, KnownNode>) -> Vec<String> {
-    good_nodes
-        .keys()
-        .map(|addr| addr.ip().to_string())
-        .collect()
-}
-
-fn get_server_versions(nodes: &HashMap<SocketAddr, KnownNode>) -> HashMap<String, usize> {
+fn get_server_versions(nodes: &HashMap<IpAddr, KnownNode>) -> HashMap<String, usize> {
     nodes.iter().fold(HashMap::new(), |mut map, (_, node)| {
         node.server.clone().map(|version| {
             map.entry(version)
@@ -78,7 +65,7 @@ fn get_server_versions(nodes: &HashMap<SocketAddr, KnownNode>) -> HashMap<String
     })
 }
 
-fn get_good_nodes(nodes: &HashMap<SocketAddr, KnownNode>) -> HashMap<SocketAddr, KnownNode> {
+fn get_good_nodes(nodes: &HashMap<IpAddr, KnownNode>) -> HashMap<IpAddr, KnownNode> {
     nodes
         .iter()
         .filter_map(|(addr, node)| {
