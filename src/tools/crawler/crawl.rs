@@ -2,7 +2,6 @@
 
 use std::{
     net::{IpAddr, SocketAddr},
-    num::ParseIntError,
     time::Duration,
 };
 
@@ -10,8 +9,6 @@ use reqwest::{Client, StatusCode};
 use serde::Deserialize;
 use thiserror::Error;
 use tokio::time::Instant;
-
-const CRAWLER_DEFAULT_PORT: u16 = 51235;
 
 #[allow(dead_code)]
 #[derive(Debug, Deserialize)]
@@ -28,16 +25,12 @@ pub(super) struct Peer {
 }
 
 impl Peer {
-    /// Returns port number for the peer. If no port was present in the response then returns the default port.
-    /// Returns [ParseIntError] if the response contained invalid value.
-    pub(super) fn port(&self) -> Result<u16, ParseIntError> {
-        self.port
-            .as_ref()
-            .map(|p| match p {
-                Port::Number(n) => Ok(*n),
-                Port::String(s) => s.parse(),
-            })
-            .unwrap_or(Ok(CRAWLER_DEFAULT_PORT))
+    /// Returns port number for the peer.
+    pub(super) fn port(&self) -> Option<u16> {
+        self.port.as_ref().and_then(|p| match p {
+            Port::Number(n) => Some(*n),
+            Port::String(s) => s.parse().ok(),
+        })
     }
 }
 
@@ -119,8 +112,11 @@ pub(super) enum CrawlError {
 mod test {
     use super::*;
 
+    const PORT_STRING: &str = "20";
+    const PORT_NUMBER: u16 = 20;
+
     #[test]
-    fn should_return_error_for_invalid_port() {
+    fn should_return_empty_for_invalid_port() {
         let peer = Peer {
             complete_ledgers: None,
             complete_shards: None,
@@ -131,6 +127,36 @@ mod test {
             uptime: 0,
             version: "".to_string(),
         };
-        assert!(peer.port().is_err());
+        assert!(peer.port().is_none());
+    }
+
+    #[test]
+    fn should_return_some_for_string_port() {
+        let peer = Peer {
+            complete_ledgers: None,
+            complete_shards: None,
+            ip: None,
+            port: Some(Port::String(PORT_STRING.into())),
+            public_key: "".to_string(),
+            connection_type: "".to_string(),
+            uptime: 0,
+            version: "".to_string(),
+        };
+        assert!(matches!(peer.port(), Some(PORT_NUMBER)));
+    }
+
+    #[test]
+    fn should_return_some_for_number_port() {
+        let peer = Peer {
+            complete_ledgers: None,
+            complete_shards: None,
+            ip: None,
+            port: Some(Port::Number(PORT_NUMBER)),
+            public_key: "".to_string(),
+            connection_type: "".to_string(),
+            uptime: 0,
+            version: "".to_string(),
+        };
+        assert!(matches!(peer.port(), Some(PORT_NUMBER)));
     }
 }
