@@ -82,16 +82,10 @@ async fn r001_t2_HANDSHAKE_reject_if_server_too_long() {
         .expect("unable to start the node");
 
     // Ensure the connection to the second synthetic node was successful.
-    wait_until!(
-        CONNECTION_TIMEOUT,
-        synth_node2.is_connected_ip(node.addr().ip())
-    );
+    wait_until!(CONNECTION_TIMEOUT, synth_node2.num_connected() > 0);
 
     // Ensure the connection to the first synthetic node was rejected by the node.
-    wait_until!(
-        CONNECTION_TIMEOUT,
-        !synth_node1.is_connected_ip(node.addr().ip())
-    );
+    wait_until!(CONNECTION_TIMEOUT, synth_node1.num_connected() == 0);
 
     // Shutdown all nodes.
     synth_node1.shut_down().await;
