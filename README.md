@@ -77,3 +77,62 @@ Make sure these two `127.0.0.x` (where `x != 1`) addresses are enabled:
    rm ~/.ziggurat/ripple/stateful/*/rippled.cfg;  # config files will be created when nodes are started
    rm -rf ~/.ziggurat/ripple/testnet;             # not needed anymore
    ```
+## Test status
+
+Short overview of test cases and their current status. In case of failure, the behaviour observed is usually documented in the test case.
+These results were obtained by running the test suite against [Ripple 1.9.3](https://github.com/XRPLF/rippled) (47dec467).
+
+| Status |               |
+|:------:|---------------|
+|   ✓    | pass          |
+|   ✖    | fail          |
+
+
+### Conformance
+
+|             Test Case             | Status | Additional Information |
+|:---------------------------------:|:------:|:-----------------------|
+| [001](SPEC.md#ZG-CONFORMANCE-001) |   ✓    |                        |
+| [002](SPEC.md#ZG-CONFORMANCE-002) |   ✓    |                        |
+| [003](SPEC.md#ZG-CONFORMANCE-003) |   ✓    |                        |
+| [004](SPEC.md#ZG-CONFORMANCE-004) |   ✓    |                        |
+| [005](SPEC.md#ZG-CONFORMANCE-005) |   ✓    |                        |
+| [006](SPEC.md#ZG-CONFORMANCE-006) |   ✓    |                        |
+| [007](SPEC.md#ZG-CONFORMANCE-007) |   ✓    |                        |
+| [008](SPEC.md#ZG-CONFORMANCE-008) |   ✓    |                        |
+| [009](SPEC.md#ZG-CONFORMANCE-009) |   ✓    |                        |
+| [010](SPEC.md#ZG-CONFORMANCE-010) |   ✓    |                        |
+| [011](SPEC.md#ZG-CONFORMANCE-011) |   ✓    |                        |
+| [012](SPEC.md#ZG-CONFORMANCE-012) |   ✓    |                        |
+| [013](SPEC.md#ZG-CONFORMANCE-013) |   ✓    |                        |
+| [014](SPEC.md#ZG-CONFORMANCE-014) |   ✓    |                        |
+| [015](SPEC.md#ZG-CONFORMANCE-015) |   ✓    |                        |
+| [016](SPEC.md#ZG-CONFORMANCE-016) |   ✓    | May fail on Mac        |
+| [017](SPEC.md#ZG-CONFORMANCE-017) |   ✓    |                        |
+| [018](SPEC.md#ZG-CONFORMANCE-018) |   ✓    |                        |
+| [019](SPEC.md#ZG-CONFORMANCE-019) |   ✓    |                        |
+| [020](SPEC.md#ZG-CONFORMANCE-020) |   ✓    |                        |
+| [021](SPEC.md#ZG-CONFORMANCE-021) |   ✓    |                        |
+| [022](SPEC.md#ZG-CONFORMANCE-022) |   ✓    |                        |
+| [023](SPEC.md#ZG-CONFORMANCE-023) |   ✓    |                        |
+| [024](SPEC.md#ZG-CONFORMANCE-024) |   ✓    |                        |
+| [025](SPEC.md#ZG-CONFORMANCE-025) |   ✓    |                        |
+| [026](SPEC.md#ZG-CONFORMANCE-026) |   ✓    | May fail on Mac        |
+
+### Performance
+Tests are ignored by default.
+
+|             Test Case             | Status | Additional Information |
+|:---------------------------------:|:------:|:-----------------------|
+| [001](SPEC.md#ZG-PERFORMANCE-001) |   ✓    |                        |
+| [002](SPEC.md#ZG-PERFORMANCE-002) |   ✓    |                        |
+| [003](SPEC.md#ZG-PERFORMANCE-003) |   ✓    |                        |
+
+### Resistance
+
+|            Test Case             | Status | Additional Information |
+|:--------------------------------:|:------:|:-----------------------|
+| [001](SPEC.md#ZG-RESISTANCE-001) |   ✓    | May fail on Mac        |
+| [002](SPEC.md#ZG-RESISTANCE-002) |   ✓    | May fail on Mac        |
+| [003](SPEC.md#ZG-RESISTANCE-003) |   ✓    |                        |
+| [004](SPEC.md#ZG-RESISTANCE-004) |   ✓    |                        |
