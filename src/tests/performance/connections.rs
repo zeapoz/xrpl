@@ -231,22 +231,21 @@ async fn p002_connections_load() {
     // Check that results are okay
     for stats in all_stats.iter() {
         // No connection should be terminated.
-        assert_eq!(stats.terminated, 0, "Stats: {:?}", stats);
+        assert_eq!(stats.terminated, 0, "Stats: {stats:?}");
 
         // We expect to have at least `MAX_PEERS` connections.
-        assert!(stats.accepted <= MAX_PEERS, "Stats: {:?}", stats);
+        assert!(stats.accepted <= MAX_PEERS, "Stats: {stats:?}");
 
         // The rest of the peers should be rejected.
         assert_eq!(
             stats.rejected,
             stats.peers - stats.accepted,
-            "Stats: {:?}",
-            stats
+            "Stats: {stats:?}"
         );
 
         // And no connection timeouts or errors
-        assert_eq!(stats.timed_out, 0, "Stats: {:?}", stats);
-        assert_eq!(stats.conn_error, 0, "Stats: {:?}", stats);
+        assert_eq!(stats.timed_out, 0, "Stats: {stats:?}");
+        assert_eq!(stats.conn_error, 0, "Stats: {stats:?}");
     }
 }
 
