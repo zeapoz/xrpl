@@ -151,7 +151,7 @@ async fn p001_t1_PING_PONG_throughput() {
     }
 
     // Display results table
-    println!("\r\n{}", table);
+    println!("\r\n{table}");
 }
 
 #[allow(unused_must_use)] // just for result of the timeout
