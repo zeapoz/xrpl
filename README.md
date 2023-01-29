@@ -7,15 +7,14 @@ The Ziggurat implementation for XRPLF's `rippled` nodes.
 1. Clone this repository.
 2. Build [rippled](https://github.com/XRPLF/rippled) from source.
 3. Create the `~/.ziggurat/ripple/setup` directories, and copy the `setup/validators.txt` file there.
-
-```
-cp setup/validators.txt ~/.ziggurat/ripple/setup
-```
+   ```
+   cp setup/validators.txt ~/.ziggurat/ripple/setup
+   ```
 4. In the same directory create a `config.toml` with the following contents:
-    ```
-    path = "<path to the directory where you built rippled>"
-    start_command = "./rippled"
-    ```
+   ```
+   path = "<path to the directory where you built rippled>"
+   start_command = "./rippled"
+   ```
 5. Create a package of IP addresses which are required for performance tests. From the root repository directory run, e.g.:
    Under Linux (to generate dummy devices with addresses):
    ```
@@ -26,7 +25,10 @@ cp setup/validators.txt ~/.ziggurat/ripple/setup
    sudo python3 ./tools/ips.py --subnet 1.1.1.0/24 --file src/tools/ips.rs --dev lo0
    ```
    Read ./tools/ips.py for more details.
-6. Run tests with `cargo +stable t -- --test-threads=1`.
+6. Run tests with:
+   ```
+   cargo +stable t -- --test-threads=1
+   ```
 
 ### Initial state
 Specific tests require an initial node state to be set up.
@@ -107,7 +109,7 @@ These results were obtained by running the test suite against [Ripple 1.9.3](htt
 | [013](SPEC.md#ZG-CONFORMANCE-013) |   ✓    |                        |
 | [014](SPEC.md#ZG-CONFORMANCE-014) |   ✓    |                        |
 | [015](SPEC.md#ZG-CONFORMANCE-015) |   ✓    |                        |
-| [016](SPEC.md#ZG-CONFORMANCE-016) |   ✓    | May fail on Mac        |
+| [016](SPEC.md#ZG-CONFORMANCE-016) |   ✓    |                        |
 | [017](SPEC.md#ZG-CONFORMANCE-017) |   ✓    |                        |
 | [018](SPEC.md#ZG-CONFORMANCE-018) |   ✓    |                        |
 | [019](SPEC.md#ZG-CONFORMANCE-019) |   ✓    |                        |
@@ -117,10 +119,14 @@ These results were obtained by running the test suite against [Ripple 1.9.3](htt
 | [023](SPEC.md#ZG-CONFORMANCE-023) |   ✓    |                        |
 | [024](SPEC.md#ZG-CONFORMANCE-024) |   ✓    |                        |
 | [025](SPEC.md#ZG-CONFORMANCE-025) |   ✓    |                        |
-| [026](SPEC.md#ZG-CONFORMANCE-026) |   ✓    | May fail on Mac        |
+| [026](SPEC.md#ZG-CONFORMANCE-026) |   ✓    |                        |
 
 ### Performance
-Tests are ignored by default.
+
+Tests are ignored by default. To explicitly run performance tests, run the command:
+```
+ cargo +stable test performance --features performance
+```
 
 |             Test Case             | Status | Additional Information |
 |:---------------------------------:|:------:|:-----------------------|
@@ -132,7 +138,7 @@ Tests are ignored by default.
 
 |            Test Case             | Status | Additional Information |
 |:--------------------------------:|:------:|:-----------------------|
-| [001](SPEC.md#ZG-RESISTANCE-001) |   ✓    | May fail on Mac        |
-| [002](SPEC.md#ZG-RESISTANCE-002) |   ✓    | May fail on Mac        |
+| [001](SPEC.md#ZG-RESISTANCE-001) |   ✓    |                        |
+| [002](SPEC.md#ZG-RESISTANCE-002) |  ✓/✖   | ⚠ Fails in rare cases  |
 | [003](SPEC.md#ZG-RESISTANCE-003) |   ✓    |                        |
 | [004](SPEC.md#ZG-RESISTANCE-004) |   ✓    |                        |
