@@ -168,7 +168,7 @@ async fn p003_t1_GET_TRANSACTION_latency() {
     }
 
     // Display results table
-    println!("\r\n{}", table);
+    println!("\r\n{table}");
 }
 
 #[allow(unused_must_use)] // just for result of the timeout
