@@ -9,7 +9,7 @@ use tokio::{
     sync::RwLock,
     time::{sleep, Instant},
 };
-use tracing::info;
+use tracing::debug;
 use ziggurat_core_crawler::{connection::KnownConnection, summary::NetworkSummary};
 
 use crate::metrics::{new_network_summary, NetworkMetrics};
@@ -29,7 +29,7 @@ impl KnownNetwork {
         let mut nodes = self.nodes.write().await;
         if let Entry::Vacant(e) = nodes.entry(addr) {
             e.insert(KnownNode::default());
-            info!("Known nodes: {}", nodes.len());
+            debug!("Known nodes: {}", nodes.len());
             true
         } else {
             false
