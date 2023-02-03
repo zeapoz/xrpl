@@ -139,10 +139,7 @@ impl Handshake for InnerNode {
                 framed.send(request).await?;
 
                 // read the HTTP request message (there should only be headers)
-                let response_body = framed.try_next().await?.ok_or(io::ErrorKind::InvalidData)?;
-                if !response_body.is_empty() {
-                    warn!(parent: self.node().span(), "trailing bytes in the handshake response from {}: {:?}", addr, response_body);
-                }
+                let _ = framed.try_next().await?.ok_or(io::ErrorKind::InvalidData)?;
 
                 tls_stream
             }
