@@ -10,7 +10,7 @@ use pea2pea::protocols::Handshake;
 use rand::Rng;
 use reqwest::Client;
 use tokio::time::sleep;
-use tracing::{trace, warn};
+use tracing::{debug, trace, warn};
 use ziggurat_xrpl::tools::inner_node::InnerNode;
 
 use crate::{
@@ -129,7 +129,7 @@ async fn try_crawling(
             true
         }
         Err(e) => {
-            warn!("Unable to get crawl response from {}: {:?}", ip, e);
+            debug!("Unable to get crawl response from {}: {:?}", ip, e);
             false
         }
     }
