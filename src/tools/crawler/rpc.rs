@@ -10,7 +10,7 @@ use jsonrpsee::{
     server::{ServerBuilder, ServerHandle},
     RpcModule,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tracing::{debug, warn};
 use ziggurat_core_crawler::summary::NetworkSummary;
 
@@ -41,12 +41,15 @@ fn create_rpc_module(rpc_context: RpcContext) -> RpcModule<RpcContext> {
             let report_params = params.parse::<ReportParams>()?;
             if let Some(path) = report_params.file {
                 let content = serde_json::to_string(rpc_context.0.lock().unwrap().deref())?;
+                let length = content.len();
                 // TODO: consider some checks against directory traversal
                 if let Err(e) = fs::write(path, content) {
                     warn!("Unable to write to file: {}", e);
                 }
+                Ok(RpcOutput::Length(length))
+            } else {
+                Ok(RpcOutput::Summary(rpc_context.0.lock().unwrap().clone()))
             }
-            Ok(rpc_context.0.lock().unwrap().clone())
         })
         .unwrap();
     module
@@ -57,4 +60,10 @@ fn create_rpc_module(rpc_context: RpcContext) -> RpcModule<RpcContext> {
 pub struct ReportParams {
     /// If present then [NetworkSummary] will be written to given file.
     file: Option<PathBuf>,
+}
+
+#[derive(Serialize)]
+enum RpcOutput {
+    Length(usize),
+    Summary(NetworkSummary),
 }
