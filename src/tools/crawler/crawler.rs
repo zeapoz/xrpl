@@ -57,7 +57,10 @@ pub(super) fn crawl(
                 let mut success = false;
                 for port in &ports {
                     // TODO(team): decide how to use this information about the handshake_successful data
-                    try_handshake(SocketAddr::new(ip, *port), known_network.clone()).await;
+                    tokio::spawn(try_handshake(
+                        SocketAddr::new(ip, *port),
+                        known_network.clone(),
+                    ));
                     success = try_crawling(client.clone(), ip, *port, known_network.clone()).await;
                     if success {
                         break;
