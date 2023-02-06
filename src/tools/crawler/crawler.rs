@@ -10,7 +10,7 @@ use pea2pea::protocols::Handshake;
 use rand::Rng;
 use reqwest::Client;
 use tokio::time::sleep;
-use tracing::{trace, warn};
+use tracing::{debug, trace, warn};
 use ziggurat_xrpl::tools::inner_node::InnerNode;
 
 use crate::{
@@ -57,7 +57,10 @@ pub(super) fn crawl(
                 let mut success = false;
                 for port in &ports {
                     // TODO(team): decide how to use this information about the handshake_successful data
-                    try_handshake(SocketAddr::new(ip, *port), known_network.clone()).await;
+                    tokio::spawn(try_handshake(
+                        SocketAddr::new(ip, *port),
+                        known_network.clone(),
+                    ));
                     success = try_crawling(client.clone(), ip, *port, known_network.clone()).await;
                     if success {
                         break;
@@ -129,7 +132,7 @@ async fn try_crawling(
             true
         }
         Err(e) => {
-            warn!("Unable to get crawl response from {}: {:?}", ip, e);
+            debug!("Unable to get crawl response from {}: {:?}", ip, e);
             false
         }
     }
