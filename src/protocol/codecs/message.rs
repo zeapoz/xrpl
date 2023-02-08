@@ -41,7 +41,7 @@ pub struct Header {
     compression: Compression,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum Payload {
     TmManifests(TmManifests),

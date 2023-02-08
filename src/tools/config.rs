@@ -5,6 +5,7 @@ use crate::protocol::codecs::message::Payload;
 use crate::tools::synth_node::SyntheticNode;
 
 /// Test configuration. Contains setup options for [SyntheticNode] and [pea2pea::Config].
+#[derive(Clone)]
 pub struct TestConfig {
     pub synth_node_config: SyntheticNodeTestConfig,
     pub pea2pea_config: pea2pea::Config,
@@ -35,6 +36,7 @@ impl TestConfig {
     }
 }
 
+#[derive(Clone)]
 pub struct SyntheticNodeTestConfig {
     /// Whether or not to call `enable_handshake` when creating a new node
     pub do_handshake: bool,
