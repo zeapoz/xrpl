@@ -38,6 +38,26 @@ Follow the steps below to save an initial state that can be loaded later in cert
 1. Make sure you have python3 installed. You should be able to run `python3 --version`.
 2. Install `xrpl` python lib: `pip3 install xrpl-py`.
 
+##### Important note!
+The `xrlp` library depends on legacy openSSL functions that are disabled by default. In the case of error, make sure to explicitly enable legacy functions in the config file like so:
+   ```
+   openssl_conf = openssl_init
+   
+   [openssl_init]
+   providers = provider_sect
+   
+   [provider_sect]
+   default = default_sect
+   legacy = legacy_sect
+   
+   [default_sect]
+   activate = 1
+   
+   [legacy_sect]
+   activate = 1
+   ```
+You can find out the path to the config file with the following command: `openssl version -d`.
+
 ##### Mac users
 Make sure these two `127.0.0.x` (where `x != 1`) addresses are enabled:
 ```
