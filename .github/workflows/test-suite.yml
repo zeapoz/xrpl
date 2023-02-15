@@ -11,21 +11,21 @@ jobs:
   install-rippled:
     runs-on: ubuntu-latest
     steps:
-      - name: install dependencies
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get -y upgrade
           sudo apt-get -y install git pkg-config protobuf-compiler libprotobuf-dev libssl-dev wget build-essential doxygen
           wget https://github.com/Kitware/CMake/releases/download/v3.16.3/cmake-3.16.3-Linux-x86_64.sh
           sudo sh cmake-3.16.3-Linux-x86_64.sh --prefix=/usr/local --exclude-subdir
-      - name: compile boost
+      - name: Compile boost
         run: |
           wget https://boostorg.jfrog.io/artifactory/main/release/1.75.0/source/boost_1_75_0.tar.gz
           tar xvzf boost_1_75_0.tar.gz
           cd boost_1_75_0
           ./bootstrap.sh
           ./b2 -j $(nproc)
-      - name: clone and build rippled
+      - name: Clone and build rippled
         env:
           BOOST_ROOT: /home/runner/work/xrpl/xrpl/boost_1_75_0
         run: |
@@ -36,83 +36,106 @@ jobs:
           cd build
           cmake ..
           cmake --build .
-      - name: debug
-        run: |
-          pwd
-          cd
-          ls -Rla
       - uses: actions/upload-artifact@v3
         with:
           name: rippled-executable
-          path: ./build/rippled
+          path: ./rippled/build/rippled
 
-  # check:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: actions-rs/toolchain@v1
-  #       with:
-  #         profile: minimal
-  #         toolchain: nightly
-  #         override: true
-  #     - uses: Swatinem/rust-cache@v2
-  #     - uses: actions-rs/cargo@v1
-  #       with:
-  #         command: test
-  #         args: --all-targets --no-run
-  #     - uses: actions/upload-artifact@v3
-  #       with:
-  #         name: ziggurat-executable
-  #         path: ./target/debug/deps/ziggurat-*
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-targets --no-run
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ziggurat-executable
+          path: ./target/debug/deps/ziggurat_*
 
-  # test-zcashd:
-  #   runs-on: ubuntu-latest
-  #   needs: [ check, install-zcashd ]
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #       with:
-  #         fetch-depth: 0
-  #     - uses: actions/download-artifact@v3
-  #       with:
-  #         name: zcashd-fetch-params
-  #         path: ./zcash
-  #     - uses: actions/download-artifact@v3
-  #       with:
-  #         name: zcashd-executable
-  #         path: ./zcash
-  #     - uses: actions/download-artifact@v3
-  #       with:
-  #         name: ziggurat-executable
-  #         path: ./ziggurat
-  #     - name: Create ~/.ziggurat/config.toml
-  #       run: |
-  #         mkdir ~/.ziggurat/
-  #         touch ~/.ziggurat/config.toml
-  #         echo kind = \"zcashd\" > ~/.ziggurat/config.toml
-  #         echo path = \"/home/runner/work/zcash/zcash/zcash\" >> ~/.ziggurat/config.toml
-  #         echo start_command = \"./zcashd -debug=1 -printtoconsole -logips=1 -dnsseed=0 -dns=0 -listenonion=0\" >> ~/.ziggurat/config.toml
-  #     - name: Fetch zcashd params
-  #       run: |
-  #         chmod +x zcash/fetch-params.sh
-  #         ./zcash/fetch-params.sh
-  #     - name: Run ziggurat suite
-  #       continue-on-error: true
-  #       run: |
-  #         rm ./ziggurat/*.d
-  #         mv ./ziggurat/ziggurat-* ziggurat_test
-  #         chmod +x ziggurat_test
-  #         chmod +x zcash/zcashd
-  #         mkdir -p results/zcashd
-  #         ./ziggurat_test --test-threads=1 --nocapture -Z unstable-options --report-time --format json > result.jsonl
-  #     - name: git
-  #       run: |
-  #         FILENAME=$(date +%Y-%m-%d)
-  #         mv result.jsonl results/zcashd/$FILENAME.jsonl
-  #         rm -f results/zcashd/latest.jsonl
-  #         cp results/zcashd/$FILENAME.jsonl results/zcashd/latest.jsonl
-  #         git config user.name "GitHub Actions Bot"
-  #         git config user.email "<>"
-  #         git pull
-  #         git add results
-  #         git commit -m "ci: zcashd suite results"
-  #         git push
+  test-rippled:
+    runs-on: ubuntu-latest
+    needs: [ check, install-rippled ]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+      - uses: actions/download-artifact@v3
+        with:
+          name: rippled-executable
+          path: ./rippled
+      - uses: actions/download-artifact@v3
+        with:
+          name: ziggurat-executable
+          path: ./ziggurat
+      - name: Create ~/.ziggurat/ripple/setup
+        run: |
+          mkdir -p ~/.ziggurat/ripple/setup
+          cp setup/validators.txt ~/.ziggurat/ripple/setup
+          touch ~/.ziggurat/ripple/setup/config.toml
+          echo path = \"/home/runner/work/xrpl/xrpl/rippled\" >> ~/.ziggurat/ripple/setup/config.toml
+          echo start_command = \"./rippled\" >> ~/.ziggurat/ripple/setup/config.toml
+      - name: Prepare IP addresses
+        run: |
+          sudo python3 ./tools/ips.py --subnet 1.1.1.0/24 --file src/tools/ips.rs --dev_prefix test_zeth
+          sudo python3 ./tools/ips.py --subnet 1.1.1.0/24 --file src/tools/ips.rs --dev lo
+      - name: Enable openSSL legacy functions
+        run: |
+          cp /etc/ssl/openssl.cnf ./
+          sed -i 's/^\#openssl_conf = openssl_init/openssl_conf = openssl_init/' openssl.cnf
+          sed -i '/^\default = default_sect/a legacy = legacy_sect' openssl.cnf
+          sed -i '/^\[default_sect\]/a activate = 1' openssl.cnf
+          echo "[legacy_sect]" >> openssl.cnf
+          echo "activate = 1" >> openssl.cnf
+      - name: Setup initial node state
+        env:
+          OPENSSL_CONF: /home/runner/work/xrpl/xrpl/openssl.cnf
+        run: |
+          pip3 install xrpl-py
+          chmod +x rippled/rippled
+          cargo t setup::testnet::test::run_testnet -- --ignored &
+          sleep 60s
+          python3 tools/account_info.py
+          # TODO: if !ResponseStatus.SUCCESS try again soon
+          python3 tools/transfer.py
+          python3 tools/account_info.py
+          cp -a ~/.ziggurat/ripple/testnet/ ~/.ziggurat/ripple/stateful
+          rm ~/.ziggurat/ripple/stateful/*/rippled.cfg
+          rm -rf ~/.ziggurat/ripple/testnet
+          # FIXME: DEBUG
+          echo "reached end"
+      - name: Run ziggurat suite
+        continue-on-error: true
+        run: |
+          rm ./ziggurat/*.d
+          mv ./ziggurat/ziggurat_* ziggurat_test
+          chmod +x ziggurat_test
+          mkdir -p results/suite
+          ./ziggurat_test --test-threads=1 --nocapture -Z unstable-options --report-time --format json > result.jsonl
+      - name: git
+        run: |
+          FILENAME=$(date +%Y-%m-%d)
+          mv result.jsonl results/suite/$FILENAME.jsonl
+          rm -f results/suite/latest.jsonl
+          cp results/suite/$FILENAME.jsonl results/suite/latest.jsonl
+          git config user.name "GitHub Actions Bot"
+          git config user.email "<>"
+          git pull
+          git add results
+          git commit -m "ci: test suite results"
+          git push
