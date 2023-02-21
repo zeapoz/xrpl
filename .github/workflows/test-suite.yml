@@ -54,7 +54,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all-targets --no-run
+          args: --all-targets --no-run --features performance
       - uses: actions/upload-artifact@v3
         with:
           name: ziggurat-executable
@@ -109,11 +109,16 @@ jobs:
           pip3 install xrpl-py
           chmod +x rippled/rippled
           cargo t setup::testnet::test::run_testnet -- --ignored &
-          sleep 60s
-          python3 tools/account_info.py
+          sleep 5m
+          echo "DEBUG: querying account info"
+          ! timeout 10s python3 tools/account_info.py
           # TODO: if !ResponseStatus.SUCCESS try again soon
+          echo "DEBUG: transfering"
           python3 tools/transfer.py
-          python3 tools/account_info.py
+          echo "DEBUG: querying account info"
+          ! timeout 10s python3 tools/account_info.py
+          echo "DEBUG: killing testnet"
+          kill -2 $(pidof cargo)
           cp -a ~/.ziggurat/ripple/testnet/ ~/.ziggurat/ripple/stateful
           rm ~/.ziggurat/ripple/stateful/*/rippled.cfg
           rm -rf ~/.ziggurat/ripple/testnet
