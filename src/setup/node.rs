@@ -3,7 +3,7 @@ use std::{
     fs, io,
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
     path::{Path, PathBuf},
-    process::{Child, Command, Stdio},
+    process::{Child, Command, ExitStatus, Stdio},
 };
 
 use anyhow::Result;
@@ -80,7 +80,7 @@ impl NodeBuilder {
     /// Creates new [NodeBuilder] which can handle stateful nodes.
     pub fn stateful() -> anyhow::Result<Self> {
         Ok(Self::stateless()
-            .expect("Failed to create a node builder")
+            .expect("failed to create a node builder")
             .network_id(TESTNET_NETWORK_ID))
     }
 
@@ -274,21 +274,45 @@ pub struct Node {
 impl Node {
     pub fn builder() -> NodeBuilder {
         NodeBuilder::stateful()
-            .map_err(|e| format!("Unable to create builder: {e:?}"))
+            .map_err(|e| format!("unable to create builder: {e:?}"))
             .unwrap()
     }
 
     pub fn stop(&mut self) -> io::Result<ChildExitCode> {
         match self.child.try_wait()? {
             None => self.child.kill()?,
-            Some(code) => return Ok(ChildExitCode::ErrorCode(code.code())),
+            Some(status) => return Ok(ChildExitCode::ErrorCode(status.code())),
         }
-        let exit = self.child.wait()?;
 
-        match exit.code() {
+        let exit_status = self.child.wait()?;
+
+        match exit_status.code() {
             None => Ok(ChildExitCode::Success),
-            Some(exit) if exit == 0 => Ok(ChildExitCode::Success),
-            Some(exit) => Ok(ChildExitCode::ErrorCode(Some(exit))),
+            Some(code) if code == 0 => Ok(ChildExitCode::Success),
+            Some(code) => Ok(ChildExitCode::ErrorCode(Some(code))),
+        }
+    }
+
+    /// Non-blocking function which periodically checks the node's status code.
+    pub async fn wait_until_exit(&mut self) -> ExitStatus {
+        // Once the async Drop trait support is introduced in Rust,
+        // we can remove the loop and use a non-blocking tokio::process::Command
+        // and then call a tokio version of wait() function on it.
+        //
+        // Because, calling wait() on std::process::Command will block the
+        // entire tokio runtime and the whole test process will be stopped until
+        // the node is actually killed - which is bad if we have other
+        // tokio threads running.
+        //
+        // So looping with a non-blocking try_wait() is the alternative solution.
+        loop {
+            match self.child.try_wait().expect("waiting try failed") {
+                None => {
+                    tokio::time::sleep(Duration::from_millis(500)).await;
+                    continue;
+                }
+                Some(status) => return status,
+            }
         }
     }
 
@@ -309,7 +333,7 @@ impl Drop for Node {
     fn drop(&mut self) {
         // We should avoid a panic.
         if let Err(e) = self.stop() {
-            eprintln!("Failed to stop the node: {e}");
+            eprintln!("failed to stop the node: {e}");
         }
     }
 }
