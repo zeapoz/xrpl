@@ -141,7 +141,7 @@ async fn try_crawling(
 /// Extract addresses from /crawl response.
 async fn extract_known_nodes(response: &CrawlResponse) -> Vec<(IpAddr, Option<u16>)> {
     response
-        .overlay
+        .peerlist
         .active
         .iter()
         .filter_map(parse_peer_addr)
