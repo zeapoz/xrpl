@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 # This script sets up the environment for the Ziggurat test suite.
 
-set -e
-
 # Rippled files
 if [ -z $RIPPLED_BIN_PATH ]; then
     echo "Aborting. Export RIPPLED_BIN_PATH before running this script."
-    exit
+    exit 1
 fi
 RIPPLED_BIN_NAME="rippled"
 
@@ -25,7 +23,7 @@ setup_config_file() {
     echo "# Rippled installation path" > $ZIGGURAT_RIPPLED_SETUP_CFG_FILE
     echo "path = \"$RIPPLED_BIN_PATH\"" >> $ZIGGURAT_RIPPLED_SETUP_CFG_FILE
     echo "# Start command with possible arguments" >> $ZIGGURAT_RIPPLED_SETUP_CFG_FILE
-    echo "start_command = \"./$RIPPLED_BIN_NAME\"" >> $ZIGGURAT_RIPPLED_SETUP_CFG_FILE
+    echo "start_command = \"./$RIPPLED_BIN_NAME --silent\"" >> $ZIGGURAT_RIPPLED_SETUP_CFG_FILE
 
     # Print file contents so the user can check whether the path is correct
     cat $ZIGGURAT_RIPPLED_SETUP_CFG_FILE
@@ -42,26 +40,34 @@ setup_ip_addresses() {
 setup_initial_node_state() {
     # Query only after a long delay to account for compilation times and network preparation work
     ACCOUNT_QUERY_DELAY_MIN=5m
-    # Wait for node to gracefully shutdown before performing cleanup
-    SHUTDOWN_GRACE_PERIOD_SEC=10s
 
     echo "--- Setting up initial node state, takes at least 5 minutes"
     echo
-    echo "--- Spinning up a node instance, please be patient"
+    echo "Spinning up a node instance, please be patient"
     cargo t setup::testnet::test::run_testnet -- --ignored &
     echo
     sleep $ACCOUNT_QUERY_DELAY_MIN
     echo "--- Querying account info"
-    timeout 10s python3 tools/account_info.py | grep "ResponseStatus.SUCCESS"
+    # Run account query until it responds with "ResponseStatus.SUCCESS" or MAX_ATTEMPTS is reached
+    ACCOUNT_QUERY_TIMEOUT_SEC=5s
+    MAX_ATTEMPTS=5
+    NUM_ATTEMPTS=0
+    until [ $NUM_ATTEMPTS -gt $(($MAX_ATTEMPTS-1)) ] || timeout $ACCOUNT_QUERY_TIMEOUT_SEC python3 tools/account_info.py | grep "ResopnseStatus.SUCCESS"; do
+        ((NUM_ATTEMPTS++))
+        echo "Query failed, number of attempts made: $NUM_ATTEMPTS"
+        sleep $ACCOUNT_QUERY_TIMEOUT_SEC
+    done
+    echo "Established connection with genesis account"
     echo
     echo "--- Executing transfer script"
     python3 tools/transfer.py
+    # Copy the node's files to directory referenced by constant pub const STATEFUL_NODES_DIR
+    cp -a $ZIGGURAT_RIPPLED_TESTNET_DIR $ZIGGURAT_RIPPLED_STATEFUL_DIR
     echo
     echo "--- Gracefully stopping the network"
     kill -2 $(pidof cargo)
-    sleep $SHUTDOWN_GRACE_PERIOD_SEC
     echo "--- Performing cleanup"
-    cp -a $ZIGGURAT_RIPPLED_TESTNET_DIR $ZIGGURAT_RIPPLED_STATEFUL_DIR
+    # Remove unneeded and temporary files
     rm $ZIGGURAT_RIPPLED_STATEFUL_DIR/*/rippled.cfg
     rm -rf $ZIGGURAT_RIPPLED_TESTNET_DIR
     echo
