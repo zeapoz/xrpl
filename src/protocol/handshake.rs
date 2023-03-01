@@ -24,6 +24,31 @@ enum NodeType {
     Private = 32,
 }
 
+/// Handshake configuration allows some customization of the handshake procedure.
+#[derive(Clone)]
+pub struct HandshakeCfg {
+    /// Will flip a random bit in a random byte of shared value used for session signing.
+    pub bitflip_shared_val: bool,
+
+    /// Will flip a random bit in a random byte of the public key.
+    pub bitflip_pub_key: bool,
+
+    /// Identification header to be set during a handshake.
+    /// Either 'User-Agent' or 'Server' depending on connection side.
+    pub ident: String,
+    // TODO(Rqnsom) expand with much more options.
+}
+
+impl Default for HandshakeCfg {
+    fn default() -> Self {
+        Self {
+            ident: "rippled-1.9.4".into(),
+            bitflip_shared_val: false,
+            bitflip_pub_key: false,
+        }
+    }
+}
+
 // Used to populate the Public-Key field.
 fn encode_base58(node_type: NodeType, public_key: &[u8]) -> String {
     let mut payload = Vec::with_capacity(1 + public_key.len());
@@ -81,6 +106,12 @@ impl Handshake for InnerNode {
         let stream = self.take_stream(&mut conn);
         let addr = conn.addr();
 
+        // The function shouldn't be called in case the handshake config is not set.
+        let hs_cfg = self
+            .handshake_cfg
+            .as_ref()
+            .expect("a handshake config is not set");
+
         let tls_stream = match own_conn_side {
             ConnectionSide::Initiator => {
                 let ssl = self
@@ -102,10 +133,10 @@ impl Handshake for InnerNode {
 
                 let public_key = &mut self.crypto.public_key.serialize().clone();
                 // introduce intentional errors into handshake if needed
-                if self.config.handshake_bit_flip_shared_val {
+                if hs_cfg.bitflip_shared_val {
                     randomly_flip_bit(&mut shared_value);
                 }
-                if self.config.handshake_bit_flip_pub_key {
+                if hs_cfg.bitflip_pub_key {
                     randomly_flip_bit(public_key.as_mut_slice());
                 }
 
@@ -116,8 +147,7 @@ impl Handshake for InnerNode {
                 // prepare the HTTP request message
                 let mut request = Vec::new();
                 request.extend_from_slice(b"GET / HTTP/1.1\r\n");
-                request
-                    .extend_from_slice(format!("User-Agent: {}\r\n", self.config.ident).as_bytes());
+                request.extend_from_slice(format!("User-Agent: {}\r\n", hs_cfg.ident).as_bytes());
                 request.extend_from_slice(b"Connection: Upgrade\r\n");
                 request.extend_from_slice(b"Upgrade: XRPL/2.0, XRPL/2.1, XRPL/2.2\r\n"); // TODO: which ones should we handle?
                 request.extend_from_slice(b"Connect-As: Peer\r\n");
@@ -167,10 +197,10 @@ impl Handshake for InnerNode {
 
                 let public_key = &mut self.crypto.public_key.serialize().clone();
                 // introduce intentional errors into handshake if needed
-                if self.config.handshake_bit_flip_shared_val {
+                if hs_cfg.bitflip_shared_val {
                     randomly_flip_bit(&mut shared_value);
                 }
-                if self.config.handshake_bit_flip_pub_key {
+                if hs_cfg.bitflip_pub_key {
                     randomly_flip_bit(public_key.as_mut_slice());
                 }
                 // base58-encode the public key and create the session signature
@@ -183,7 +213,7 @@ impl Handshake for InnerNode {
                 response.extend_from_slice(b"Connection: Upgrade\r\n");
                 response.extend_from_slice(b"Upgrade: XRPL/2.2\r\n");
                 response.extend_from_slice(b"Connect-As: Peer\r\n");
-                response.extend_from_slice(format!("Server: {}\r\n", self.config.ident).as_bytes());
+                response.extend_from_slice(format!("Server: {}\r\n", hs_cfg.ident).as_bytes());
                 response.extend_from_slice(format!("Public-Key: {base58_pk}\r\n").as_bytes());
                 response.extend_from_slice(format!("Session-Signature: {sig}\r\n").as_bytes());
                 response.extend_from_slice(b"X-Protocol-Ctl: txrr=1\r\n");
