@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # This script sets up the environment for the Ziggurat test suite.
 
+# The subnet to add to loopback devices
+SUBNET="1.1.1.0/24"
+
 # Rippled files
-if [ -z $RIPPLED_BIN_PATH ]; then
+if [ -z "$RIPPLED_BIN_PATH" ]; then
     echo "Aborting. Export RIPPLED_BIN_PATH before running this script."
     exit 1
 fi
@@ -13,7 +16,7 @@ ZIGGURAT_RIPPLED_DIR="$HOME/.ziggurat/ripple"
 ZIGGURAT_RIPPLED_SETUP_DIR="$ZIGGURAT_RIPPLED_DIR/setup"
 ZIGGURAT_RIPPLED_SETUP_CFG_FILE="$ZIGGURAT_RIPPLED_SETUP_DIR/config.toml"
 ZIGGURAT_RIPPLED_TESTNET_DIR="$ZIGGURAT_RIPPLED_DIR/testnet"
-ZIGGURAT_RIPPLED_STATEFUL_DIR="$ZIGGURAT_RIPPLED_SETUP_DIR/stateful"
+ZIGGURAT_RIPPLED_STATEFUL_DIR="$ZIGGURAT_RIPPLED_DIR/stateful"
 
 setup_config_file() {
     echo "--- Setting up configuration file"
@@ -27,13 +30,6 @@ setup_config_file() {
 
     # Print file contents so the user can check whether the path is correct
     cat $ZIGGURAT_RIPPLED_SETUP_CFG_FILE
-    echo
-}
-
-setup_ip_addresses() {
-    echo "--- Creating a package of IP addresses required for performance tests"
-    sudo python3 ./tools/ips.py --subnet 1.1.1.0/24 --file src/tools/ips.rs --dev_prefix test_zeth
-    sudo python3 ./tools/ips.py --subnet 1.1.1.0/24 --file src/tools/ips.rs --dev lo
     echo
 }
 
@@ -94,16 +90,15 @@ if [ "`basename $REPO_ROOT`" != "xrpl" ]; then
     fi
 fi
 
-# Setup the main ziggurat directory in the home directory
+# Remove already present ziggurat directory to ensure a fresh start
 rm -rf $ZIGGURAT_RIPPLED_DIR
 
 # Change dir to ensure script paths are always correct
 pushd . &> /dev/null
-cd $REPO_ROOT;
+cd $REPO_ROOT
 
 setup_config_file
 cp setup/validators.txt $ZIGGURAT_RIPPLED_SETUP_DIR
-setup_ip_addresses
 setup_initial_node_state
 echo "--- Setup successful"
 
