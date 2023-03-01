@@ -11,7 +11,7 @@ use crate::{
         constants::CONNECTION_TIMEOUT,
         node::{Node, NodeType},
     },
-    tools::{config::TestConfig, synth_node::SyntheticNode},
+    tools::{config::SynthNodeCfg, synth_node::SyntheticNode},
     wait_until,
 };
 
@@ -28,9 +28,13 @@ async fn r001_t1_HANDSHAKE_reject_if_user_agent_too_long() {
         .expect("unable to start the node");
 
     // Start the first synthetic node with a 'User-Agent' header that's too long.
-    let mut test_config = TestConfig::default();
-    test_config.synth_node_config.ident = format!("{:8192}", 0);
-    let synth_node1 = SyntheticNode::new(&test_config).await;
+    let mut cfg = SynthNodeCfg::default();
+    cfg.handshake = cfg.handshake.map(|mut hs_cfg| {
+        hs_cfg.ident = format!("{:8192}", 0);
+        hs_cfg
+    });
+
+    let synth_node1 = SyntheticNode::new(&cfg).await;
     // Ensure this connection was rejected by the node.
     assert!(synth_node1.connect(node.addr()).await.is_err());
     assert_eq!(synth_node1.num_connected(), 0);
@@ -55,19 +59,23 @@ async fn r001_t2_HANDSHAKE_reject_if_server_too_long() {
     // ZG-RESISTANCE-001
 
     // Start the first synthetic node. Set identification ('Server' header) for the value that's too long.
-    let mut test_config = TestConfig::default();
-    test_config.synth_node_config.ident = format!("{:8192}", 0);
-    test_config.pea2pea_config.listener_ip = Some(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 2)));
-    let synth_node1 = SyntheticNode::new(&test_config).await;
+    let mut cfg = SynthNodeCfg::default();
+    cfg.pea2pea_config.listener_ip = Some(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 2)));
+    cfg.handshake = cfg.handshake.map(|mut hs_cfg| {
+        hs_cfg.ident = format!("{:8192}", 0);
+        hs_cfg
+    });
+
+    let synth_node1 = SyntheticNode::new(&cfg).await;
     let sn1_listening_addr = synth_node1
         .start_listening()
         .await
         .expect("unable to start listening");
 
     // Start the second synthetic node with the default 'Server' header.
-    let mut test_config2 = TestConfig::default();
-    test_config2.pea2pea_config.listener_ip = Some(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 3)));
-    let synth_node2 = SyntheticNode::new(&test_config2).await;
+    let mut cfg2 = SynthNodeCfg::default();
+    cfg2.pea2pea_config.listener_ip = Some(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 3)));
+    let synth_node2 = SyntheticNode::new(&cfg2).await;
     let sn2_listening_addr = synth_node2
         .start_listening()
         .await
@@ -99,10 +107,14 @@ async fn r003_t1_HANDSHAKE_reject_if_public_key_has_bit_flipped() {
     // ZG-RESISTANCE-003
 
     // Prepare config for a synthetic node. Flip bit in the public_key.
-    let mut test_config = TestConfig::default();
-    test_config.synth_node_config.handshake_bit_flip_pub_key = true;
-    run_and_assert_handshake_failure(&test_config, Responder).await;
-    run_and_assert_handshake_failure(&test_config, Initiator).await;
+    let mut cfg = SynthNodeCfg::default();
+    cfg.handshake = cfg.handshake.map(|mut hs_cfg| {
+        hs_cfg.bitflip_pub_key = true;
+        hs_cfg
+    });
+
+    run_and_assert_handshake_failure(&cfg, Responder).await;
+    run_and_assert_handshake_failure(&cfg, Initiator).await;
 }
 
 #[allow(non_snake_case)]
@@ -111,13 +123,17 @@ async fn r003_t2_HANDSHAKE_reject_if_shared_value_has_bit_flipped() {
     // ZG-RESISTANCE-003
 
     // Prepare config for a synthetic node. Flip bit in the shared_value.
-    let mut test_config = TestConfig::default();
-    test_config.synth_node_config.handshake_bit_flip_shared_val = true;
-    run_and_assert_handshake_failure(&test_config, Responder).await;
-    run_and_assert_handshake_failure(&test_config, Initiator).await;
+    let mut cfg = SynthNodeCfg::default();
+    cfg.handshake = cfg.handshake.map(|mut hs_cfg| {
+        hs_cfg.bitflip_shared_val = true;
+        hs_cfg
+    });
+
+    run_and_assert_handshake_failure(&cfg, Responder).await;
+    run_and_assert_handshake_failure(&cfg, Initiator).await;
 }
 
-async fn run_and_assert_handshake_failure(config: &TestConfig, connection_side: ConnectionSide) {
+async fn run_and_assert_handshake_failure(config: &SynthNodeCfg, connection_side: ConnectionSide) {
     // Start a SyntheticNode with the required config.
     let synth_node = SyntheticNode::new(config).await;
     let listening_addr = synth_node
