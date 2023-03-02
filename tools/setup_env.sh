@@ -26,30 +26,28 @@ setup_config_file() {
     echo "# Rippled installation path" > $ZIGGURAT_RIPPLED_SETUP_CFG_FILE
     echo "path = \"$RIPPLED_BIN_PATH\"" >> $ZIGGURAT_RIPPLED_SETUP_CFG_FILE
     echo "# Start command with possible arguments" >> $ZIGGURAT_RIPPLED_SETUP_CFG_FILE
-    echo "start_command = \"./$RIPPLED_BIN_NAME --silent\"" >> $ZIGGURAT_RIPPLED_SETUP_CFG_FILE
+    echo "start_command = \"./$RIPPLED_BIN_NAME\"" >> $ZIGGURAT_RIPPLED_SETUP_CFG_FILE
 
     # Print file contents so the user can check whether the path is correct
     cat $ZIGGURAT_RIPPLED_SETUP_CFG_FILE
     echo
 }
 
-setup_initial_node_state() {
-    # Query only after a long delay to account for compilation times and network preparation work
-    ACCOUNT_QUERY_DELAY_MIN=5m
+query_account_info() {
+    if [ $(uname) == "Linux" ]; then
+        TIMEOUT_CMD="timeout"
+    elif [ $(uname) == "Darwin" ]; then
+        TIMEOUT_CMD="gtimeout"
+    fi
 
-    echo "--- Setting up initial node state, takes at least 5 minutes"
-    echo
-    echo "Spinning up a node instance, please be patient"
-    cargo t setup::testnet::test::run_testnet -- --ignored &
-    echo
-    sleep $ACCOUNT_QUERY_DELAY_MIN
-    echo "--- Querying account info"
     # Run account query until it responds with "ResponseStatus.SUCCESS" or MAX_ATTEMPTS is reached
     ACCOUNT_QUERY_TIMEOUT_SEC=5s
     ACCOUNT_QUERY_MAX_ATTEMPTS=5
     ACCOUNT_QUERY_NUM_ATTEMPTS=0
+
+    sleep $ACCOUNT_QUERY_TIMEOUT_SEC
     until [ $ACCOUNT_QUERY_NUM_ATTEMPTS -gt $(($ACCOUNT_QUERY_MAX_ATTEMPTS-1)) ] \
-        || timeout $ACCOUNT_QUERY_TIMEOUT_SEC python3 tools/account_info.py | grep "ResponseStatus.SUCCESS"; do
+        || $TIMEOUT_CMD $ACCOUNT_QUERY_TIMEOUT_SEC python3 tools/account_info.py | grep "ResponseStatus.SUCCESS"; do
         ((ACCOUNT_QUERY_NUM_ATTEMPTS++))
         echo "Query failed, number of attempts made: $ACCOUNT_QUERY_NUM_ATTEMPTS"
         echo "Retrying..."
@@ -60,6 +58,21 @@ setup_initial_node_state() {
         exit 1
     fi
     echo "Established a connection with the genesis account"
+    return 0
+}
+
+setup_stateful_nodes() {
+    # Query only after a long delay to account for compilation times and network preparation work
+    ACCOUNT_QUERY_DELAY_MIN=5m
+
+    echo "--- Setting up initial node state, takes at least 5 minutes"
+    echo
+    echo "Spinning up a node instance, please be patient"
+    cargo t setup::testnet::test::run_testnet -- --ignored &
+    echo
+    sleep $ACCOUNT_QUERY_DELAY_MIN
+    echo "--- Querying account info"
+    query_account_info
     echo
     echo "--- Executing transfer script"
     python3 tools/transfer.py
@@ -67,7 +80,7 @@ setup_initial_node_state() {
     cp -a $ZIGGURAT_RIPPLED_TESTNET_DIR $ZIGGURAT_RIPPLED_STATEFUL_DIR
     echo
     echo "--- Gracefully stopping the network"
-    kill -2 $(pidof cargo)
+    kill %1
     echo "--- Performing cleanup"
     # Remove unneeded and temporary files
     rm $ZIGGURAT_RIPPLED_STATEFUL_DIR/*/rippled.cfg
@@ -99,7 +112,7 @@ cd $REPO_ROOT
 
 setup_config_file
 cp setup/validators.txt $ZIGGURAT_RIPPLED_SETUP_DIR
-setup_initial_node_state
+setup_stateful_nodes
 echo "--- Setup successful"
 
 popd &> /dev/null
