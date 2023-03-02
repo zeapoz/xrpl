@@ -41,19 +41,19 @@ query_account_info() {
     fi
 
     # Run account query until it responds with "ResponseStatus.SUCCESS" or MAX_ATTEMPTS is reached
-    ACCOUNT_QUERY_TIMEOUT_SEC=5s
-    ACCOUNT_QUERY_MAX_ATTEMPTS=5
-    ACCOUNT_QUERY_NUM_ATTEMPTS=0
+    TIMEOUT_SEC=5
+    MAX_ATTEMPTS=5
+    NUM_ATTEMPTS=0
 
-    sleep $ACCOUNT_QUERY_TIMEOUT_SEC
-    until [ $ACCOUNT_QUERY_NUM_ATTEMPTS -gt $(($ACCOUNT_QUERY_MAX_ATTEMPTS-1)) ] \
-        || $TIMEOUT_CMD $ACCOUNT_QUERY_TIMEOUT_SEC python3 tools/account_info.py | grep "ResponseStatus.SUCCESS"; do
-        ((ACCOUNT_QUERY_NUM_ATTEMPTS++))
-        echo "Query failed, number of attempts made: $ACCOUNT_QUERY_NUM_ATTEMPTS"
+    sleep $TIMEOUT_SEC
+    until [ $NUM_ATTEMPTS -gt $(($MAX_ATTEMPTS-1)) ] \
+        || $TIMEOUT_CMD $TIMEOUT_SEC python3 tools/account_info.py | grep "ResponseStatus.SUCCESS"; do
+        ((NUM_ATTEMPTS++))
+        echo "Query failed, number of attempts made: $NUM_ATTEMPTS"
         echo "Retrying..."
-        sleep $ACCOUNT_QUERY_TIMEOUT_SEC
+        sleep $TIMEOUT_SEC
     done
-    if [ $ACCOUNT_QUERY_NUM_ATTEMPTS -gt $(($ACCOUNT_QUERY_MAX_ATTEMPTS-1)) ]; then
+    if [ $NUM_ATTEMPTS -gt $(($MAX_ATTEMPTS-1)) ]; then
         echo "Could not establish a connection with the genesis account. Please try again."
         exit 1
     fi
@@ -63,14 +63,14 @@ query_account_info() {
 
 setup_stateful_nodes() {
     # Query only after a long delay to account for compilation times and network preparation work
-    ACCOUNT_QUERY_DELAY_MIN=5m
+    ACCOUNT_QUERY_DELAY_SEC=300
 
     echo "--- Setting up initial node state, takes at least 5 minutes"
     echo
     echo "Spinning up a node instance, please be patient"
     cargo t setup::testnet::test::run_testnet -- --ignored &
     echo
-    sleep $ACCOUNT_QUERY_DELAY_MIN
+    sleep $ACCOUNT_QUERY_DELAY_SEC
     echo "--- Querying account info"
     query_account_info
     echo
