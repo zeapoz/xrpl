@@ -68,17 +68,6 @@ jobs:
         with:
           name: ziggurat-executable
           path: ./ziggurat
-      - name: Create ~/.ziggurat/ripple/setup
-        run: |
-          mkdir -p ~/.ziggurat/ripple/setup
-          cp setup/validators.txt ~/.ziggurat/ripple/setup
-          touch ~/.ziggurat/ripple/setup/config.toml
-          echo path = \"/home/runner/work/xrpl/xrpl/rippled\" >> ~/.ziggurat/ripple/setup/config.toml
-          echo start_command = \"./rippled\" >> ~/.ziggurat/ripple/setup/config.toml
-      - name: Prepare IP addresses
-        run: |
-          sudo python3 ./tools/ips.py --subnet 1.1.1.0/24 --file src/tools/ips.rs --dev_prefix test_zeth
-          sudo python3 ./tools/ips.py --subnet 1.1.1.0/24 --file src/tools/ips.rs --dev lo
       - name: Enable openSSL legacy functions
         run: |
           cp /etc/ssl/openssl.cnf ./
@@ -87,20 +76,16 @@ jobs:
           sed -i '/^\[default_sect\]/a activate = 1' openssl.cnf
           echo "[legacy_sect]" >> openssl.cnf
           echo "activate = 1" >> openssl.cnf
-      - name: Setup initial node state
+      - name: Run setup script
         env:
           OPENSSL_CONF: /home/runner/work/xrpl/xrpl/openssl.cnf
+          RIPPLED_BIN_PATH: /home/runner/work/xrpl/xrpl/rippled
         run: |
           pip3 install xrpl-py
           chmod +x rippled/rippled
-          cargo t setup::testnet::test::run_testnet -- --ignored &
-          sleep 5m
-          ! timeout 10s python3 tools/account_info.py
-          python3 tools/transfer.py
-          kill -2 $(pidof cargo)
-          cp -a ~/.ziggurat/ripple/testnet/ ~/.ziggurat/ripple/stateful
-          rm ~/.ziggurat/ripple/stateful/*/rippled.cfg
-          rm -rf ~/.ziggurat/ripple/testnet
+          ./tools/setup_env.sh
+      - name: Prepare IP addresses
+        run: sudo python3 ./tools/ips.py --subnet 1.1.1.0/24 --file src/tools/ips.rs --dev lo
       - name: Run ziggurat suite
         continue-on-error: true
         run: |
@@ -110,14 +95,15 @@ jobs:
           mkdir -p results/rippled
           rm -f results/rippled/latest.jsonl
           ./ziggurat_test --test-threads=1 --nocapture -Z unstable-options --report-time --format json > results/rippled/latest.jsonl
-      - name: git
+          cat results/rippled/latest.jsonl
+      - name: Git
         run: |
           FILENAME=$(date +%Y-%m-%d)
           cd results/rippled
           cp latest.jsonl $FILENAME.jsonl
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
           gzip $FILENAME.jsonl
-          git config user.name "GitHub Actions Bot"
-          git config user.email "<>"
           git pull
           git add ./
           git commit -m "ci: rippled suite results"
