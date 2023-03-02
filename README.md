@@ -15,7 +15,16 @@ Ziggurat is written in stable Rust; you can install the Rust toolchain by follow
 3. Make sure you have python3 installed. You should be able to run `python3 --version`.
 4. Install `xrpl` python lib: `pip3 install xrpl-py`.
 
-   ##### Important note!
+   ##### **Mandatory step for Mac users!**
+   On MacOS, the `coreutils` package is also required. It can be installed with: `brew install coreutils`
+
+   Also make sure that these two `127.0.0.x` (where `x != 1`) addresses are enabled:
+   ```bash
+   sudo ifconfig lo0 alias 127.0.0.2 up;
+   sudo ifconfig lo0 alias 127.0.0.3 up;
+   ```
+
+   ##### **Important note!**
    The `xrlp` library depends on legacy openSSL functions that are disabled by default. In the case of error, make sure to explicitly enable legacy functions in the config file, like so:
    ```
    openssl_conf = openssl_init
@@ -66,11 +75,6 @@ python3 ./tools/ips.py --subnet 1.1.1.0/24 --file src/tools/ips.rs --dev_prefix 
 Add the whole subnet to the loopback device - can also be used on Linux (device name - Linux: `lo`, MacOS: `lo0`):
 ```bash
 python3 ./tools/ips.py --subnet 1.1.0.0/24 --file src/tools/ips.rs --dev lo0
-```
-On MacOS, make sure these two `127.0.0.x` (where `x != 1`) addresses are enabled:
-```bash
-sudo ifconfig lo0 alias 127.0.0.2 up;
-sudo ifconfig lo0 alias 127.0.0.3 up;
 ```
 
 Read ./tools/ips.py for more details.
