@@ -14,6 +14,16 @@ use serde::{Deserialize, Serialize};
 use tracing::{debug, warn};
 use ziggurat_core_crawler::summary::NetworkSummary;
 
+#[derive(Default, Clone, Deserialize, Serialize)]
+pub struct DumpSummary {
+    /// 'success' or 'fail'.
+    pub status: String,
+    /// file length written, -1 if error
+    pub length: i32,
+    /// empty if success; error message if fail
+    pub message: String,
+}
+
 pub struct RpcContext(Arc<Mutex<NetworkSummary>>);
 
 impl RpcContext {
@@ -37,18 +47,40 @@ pub async fn initialize_rpc_server(rpc_addr: SocketAddr, rpc_context: RpcContext
 fn create_rpc_module(rpc_context: RpcContext) -> RpcModule<RpcContext> {
     let mut module = RpcModule::new(rpc_context);
     module
-        .register_method("getmetrics", |params, rpc_context| {
+        .register_method("getmetrics", |_params, rpc_context| {
+            Ok(rpc_context.0.lock().unwrap().clone())
+        })
+        .unwrap();
+    module
+        .register_method("dumpmetrics", |params, rpc_context| {
             let report_params = params.parse::<ReportParams>()?;
             if let Some(path) = report_params.file {
                 let content = serde_json::to_string(rpc_context.0.lock().unwrap().deref())?;
-                let length = content.len();
+                // Wrap our NetworkSummary in a JSON-RPC response envelope
+                let response =
+                    "{\"jsonrpc\":\"2.0\",\"result\":".to_owned() + &content + ",\"id\":0}";
+                let length = response.len() as i32;
                 // TODO: consider some checks against directory traversal
-                if let Err(e) = fs::write(path, content) {
+                if let Err(e) = fs::write(path, response) {
                     warn!("Unable to write to file: {}", e);
+                    Ok(DumpSummary {
+                        status: "fail".to_string(),
+                        length: -1,
+                        message: "Unable to write file: ".to_string() + &e.to_string(),
+                    })
+                } else {
+                    Ok(DumpSummary {
+                        status: "success".to_string(),
+                        length: length,
+                        message: "".to_string(),
+                    })
                 }
-                Ok(RpcOutput::Length(length))
             } else {
-                Ok(RpcOutput::Summary(rpc_context.0.lock().unwrap().clone()))
+                Ok(DumpSummary {
+                    status: "fail".to_string(),
+                    length: -1,
+                    message: "No file parameter in params".to_string(),
+                })
             }
         })
         .unwrap();
@@ -60,10 +92,4 @@ fn create_rpc_module(rpc_context: RpcContext) -> RpcModule<RpcContext> {
 pub struct ReportParams {
     /// If present then [NetworkSummary] will be written to given file.
     file: Option<PathBuf>,
-}
-
-#[derive(Serialize)]
-enum RpcOutput {
-    Length(usize),
-    Summary(NetworkSummary),
 }
