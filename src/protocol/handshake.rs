@@ -1,4 +1,39 @@
-/// The Ripple handshake implementation.
+//! The Ripple handshake implementation.
+//!
+//! Real request/response examples:
+//!
+//! --- HTTP request ---
+//! > GET / HTTP/1.1\r\n
+//! > User-Agent: rippled-1.9.3+47dec467ea659c1b64c7b5f4eb8a1bfa9759ff91.DEBUG\r\n
+//! > Upgrade: XRPL/2.0, XRPL/2.1, XRPL/2.2\r\n
+//! > Connection: Upgrade\r\n
+//! > Connect-As: Peer\r\n
+//! > Crawl: public\r\n
+//! > X-Protocol-Ctl: ledgerreplay=1;txrr=1;\r\n
+//! > Network-Time: 731242816\r\n
+//! > Public-Key: n9KPZKMNpJqkb6ov4k5BSX3c2Jh4ENHn5NNZuLaH4HpHSJXK4fZq\r\n
+//! > Session-Signature: MEUCIQDn5qlnxdhmPWlL33aJHs7LflciEwk2B6dzwmxTrIA3rQIgQ9KbnI6pbTwmikGglFmfE61l2JZI79m2NFl+moOn72A=\r\n
+//! > Closed-Ledger: cIaWNDUFFgvLmCesvyiXUgBh0mGaliIrmZFqqglAlAM=\r\n
+//! > Previous-Ledger: 6bsyOYDSAux+Ubqyqo41NT+ce9q1m/FzeOrdTQSG758=\r\n
+//! > \r\n
+//! --------------------
+//!
+//! --- HTTP response ---
+//! > "HTTP/1.1 101 Switching Protocols\r\n
+//! > Connection: Upgrade\r\n
+//! > Upgrade: XRPL/2.2\r\n
+//! > Connect-As: Peer\r\n
+//! > Server: rippled-1.9.3+47dec467ea659c1b64c7b5f4eb8a1bfa9759ff91.DEBUG\r\n
+//! > Crawl: public\r\n
+//! > X-Protocol-Ctl: ledgerreplay=1;txrr=1;\r\n
+//! > Network-Time: 731242634\r\n
+//! > Public-Key: n9KcgYqxCQ9fCzrDDXsJVHxXW7QteDvPDe2bvcz7gHcYv52bU4u4\r\n
+//! > Session-Signature: MEQCIA3hEeVR6fLiH4aHmUDd4Zvp846qu3CIBs30g6iU59PYAiAH78yxxlTQKVpDKPXYouxxDgxTAk869WiS62U8bTRqaA==\r\n
+//! > Closed-Ledger: X72fvYvkYwPj7iFsE4OTiSwSd5Okz40P+eBRwsOXo4g=\r\n
+//! > Previous-Ledger: 6bsyOYDSAux+Ubqyqo41NT+ce9q1m/FzeOrdTQSG758=\r\n
+//! > \r\n"
+//! ---------------------
+
 use std::{io, pin::Pin};
 
 use base64::{engine::general_purpose::STANDARD, Engine};
@@ -19,7 +54,7 @@ use crate::{
 
 // Default handshake header values.
 const CONNECTION: &str = "Upgrade";
-const UPGRADE_REQ: &str = "XRPL/2.0, XRPL/2.1, XRPL/2.2"; // TODO: which ones should we handle?
+const UPGRADE_REQ: &str = "XRPL/2.0, XRPL/2.1, XRPL/2.2";
 const UPGRADE_RSP: &str = "XRPL/2.2";
 const CONNECT_AS: &str = "Peer";
 // txrr - enables transaction relay
@@ -312,7 +347,7 @@ impl Handshake for InnerNode {
                 if let Some(ref header) = hs_cfg.http_unexpected_extra_field_and_value {
                     rsp_header(header.clone())
                 };
-                rsp_header("".into());
+                rsp_header("".into()); // An HTTP header ends with '\r\n'
 
                 // send the handshake HTTP response message
                 let rsp = Bytes::from(rsp);
