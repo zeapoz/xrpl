@@ -62,6 +62,21 @@ pub struct HandshakeCfg {
 
     /// A handshake field for the protocol CTL.
     pub http_x_protocol_ctl: String,
+
+    /// A handshake field which tells us whether the node is crawlable.
+    pub http_crawl: Option<String>,
+
+    /// A handshake field for the network time.
+    pub http_network_time: Option<String>,
+
+    /// A handshake field which contains a hash for the closed ledger.
+    pub http_closed_ledger: Option<String>,
+
+    /// A handshake field which contains a hash for the previous ledger.
+    pub http_prev_ledger: Option<String>,
+
+    /// A random field for testing HTTP headers.
+    pub http_unexpected_extra_field_and_value: Option<String>,
 }
 
 impl Default for HandshakeCfg {
@@ -71,13 +86,22 @@ impl Default for HandshakeCfg {
             bitflip_shared_val: false,
             bitflip_pub_key: false,
 
-            // Handshake HTTP fields.
+            // Mandatory handshake HTTP fields.
             http_ident: "rippled-1.9.4".into(),
             http_connection: CONNECTION.to_owned(),
             http_upgrade_req: UPGRADE_REQ.to_owned(),
             http_upgrade_rsp: UPGRADE_RSP.to_owned(),
             http_connect_as: CONNECT_AS.to_owned(),
             http_x_protocol_ctl: X_PROTOCOL_CTL.to_owned(),
+
+            // Optional handshake HTTP fields.
+            http_crawl: None,
+            http_network_time: None,
+            http_closed_ledger: None,
+            http_prev_ledger: None,
+
+            // A random field.
+            http_unexpected_extra_field_and_value: None,
         }
     }
 }
@@ -190,13 +214,24 @@ impl Handshake for InnerNode {
                 req_header(format!("Upgrade: {}", hs_cfg.http_upgrade_req));
                 req_header(format!("Connection: {}", hs_cfg.http_connection));
                 req_header(format!("Connect-As: {}", hs_cfg.http_connect_as));
-                // TODO: an optional crawl goes here
+                if let Some(ref crawl) = hs_cfg.http_crawl {
+                    req_header(format!("Crawl: {crawl}"))
+                };
                 req_header(format!("X-Protocol-Ctl: {}", hs_cfg.http_x_protocol_ctl));
-                // TODO: an optional network time goes here
+                if let Some(ref time) = hs_cfg.http_network_time {
+                    req_header(format!("Network-Time: {time}"))
+                };
                 req_header(format!("Public-Key: {base58_pk}"));
                 req_header(format!("Session-Signature: {sig}"));
-                // TODO: an optional closed ledger goes here
-                // TODO: an optional prev ledger goes here
+                if let Some(ref ledger) = hs_cfg.http_closed_ledger {
+                    req_header(format!("Closed-Ledger: {ledger}"))
+                };
+                if let Some(ref ledger) = hs_cfg.http_prev_ledger {
+                    req_header(format!("Previous-Ledger: {ledger}"))
+                };
+                if let Some(ref header) = hs_cfg.http_unexpected_extra_field_and_value {
+                    req_header(header.clone())
+                };
                 req_header("".into()); // An HTTP header ends with '\r\n'
 
                 // use the HTTP codec to read/write the (post-TLS) handshake messages
@@ -259,13 +294,24 @@ impl Handshake for InnerNode {
                 rsp_header(format!("Upgrade: {}", hs_cfg.http_upgrade_rsp));
                 rsp_header(format!("Connect-As: {}", hs_cfg.http_connect_as));
                 rsp_header(format!("Server: {}", hs_cfg.http_ident));
-                // TODO: an optional crawl goes here
+                if let Some(ref crawl) = hs_cfg.http_crawl {
+                    rsp_header(format!("Crawl: {crawl}"))
+                };
                 rsp_header(format!("X-Protocol-Ctl: {}", hs_cfg.http_x_protocol_ctl));
-                // TODO: an optional network time goes here
+                if let Some(ref time) = hs_cfg.http_network_time {
+                    rsp_header(format!("Network-Time: {time}"))
+                };
                 rsp_header(format!("Public-Key: {base58_pk}"));
                 rsp_header(format!("Session-Signature: {sig}"));
-                // TODO: an optional closed ledger goes here
-                // TODO: an optional prev ledger goes here
+                if let Some(ref ledger) = hs_cfg.http_closed_ledger {
+                    rsp_header(format!("Closed-Ledger: {ledger}"))
+                };
+                if let Some(ref ledger) = hs_cfg.http_prev_ledger {
+                    rsp_header(format!("Previous-Ledger: {ledger}"))
+                };
+                if let Some(ref header) = hs_cfg.http_unexpected_extra_field_and_value {
+                    rsp_header(header.clone())
+                };
                 rsp_header("".into());
 
                 // send the handshake HTTP response message
