@@ -30,7 +30,7 @@ async fn r001_t1_HANDSHAKE_reject_if_user_agent_too_long() {
     // Start the first synthetic node with a 'User-Agent' header that's too long.
     let mut cfg = SynthNodeCfg::default();
     cfg.handshake = cfg.handshake.map(|mut hs_cfg| {
-        hs_cfg.ident = format!("{:8192}", 0);
+        hs_cfg.http_ident = format!("{:8192}", 0);
         hs_cfg
     });
 
@@ -62,7 +62,7 @@ async fn r001_t2_HANDSHAKE_reject_if_server_too_long() {
     let mut cfg = SynthNodeCfg::default();
     cfg.pea2pea_config.listener_ip = Some(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 2)));
     cfg.handshake = cfg.handshake.map(|mut hs_cfg| {
-        hs_cfg.ident = format!("{:8192}", 0);
+        hs_cfg.http_ident = format!("{:8192}", 0);
         hs_cfg
     });
 
