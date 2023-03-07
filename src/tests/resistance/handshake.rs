@@ -5,15 +5,25 @@ use pea2pea::{
     ConnectionSide::{Initiator, Responder},
 };
 use tempfile::TempDir;
+use tokio::time::{sleep, Duration};
+use ziggurat_core_utils::err_constants::{ERR_NODE_BUILD, ERR_NODE_STOP, ERR_TEMPDIR_NEW};
 
 use crate::{
+    protocol::{codecs::message::BinaryMessage, handshake::HandshakeCfg},
     setup::{
         constants::CONNECTION_TIMEOUT,
-        node::{Node, NodeType},
+        node::{ChildExitCode, Node, NodeType},
     },
-    tools::{config::SynthNodeCfg, synth_node::SyntheticNode},
+    tools::{
+        config::SynthNodeCfg,
+        synth_node::{self, SyntheticNode},
+    },
     wait_until,
 };
+
+// Empirical values based on some unofficial testing.
+const WS_HTTP_HEADER_MAX_SIZE: usize = 7700;
+const WS_HTTP_HEADER_INVALID_SIZE: usize = WS_HTTP_HEADER_MAX_SIZE + 300;
 
 #[allow(non_snake_case)]
 #[tokio::test]
@@ -99,6 +109,137 @@ async fn r001_t2_HANDSHAKE_reject_if_server_too_long() {
     synth_node1.shut_down().await;
     synth_node2.shut_down().await;
     node.stop().unwrap();
+}
+
+/// Decide whether to enable node logs and tracing for synthetic nodes.
+#[derive(Clone, Copy)]
+enum Debug {
+    On,
+    Off,
+}
+
+impl Debug {
+    // This API exists just so we could enable the synth tracing once,
+    // because calling that function twice would break the test.
+    fn enable() -> Self {
+        synth_node::enable_tracing();
+        Self::On
+    }
+
+    fn disable() -> Self {
+        // We should use something like synth_node::disable_tracing here (still unimplemented),
+        // but we'll never use it anyway so this is good enough
+        Self::Off
+    }
+
+    /// Convert to a boolean value.
+    fn is_on(self) -> bool {
+        match self {
+            Self::On => true,
+            Self::Off => false,
+        }
+    }
+}
+
+// Runs the handshake request test with a given handshake configuration.
+// Returns the truthful fact about the relationship with the node.
+async fn run_handshake_req_test_with_cfg(cfg: SynthNodeCfg, debug: Debug) -> bool {
+    // Spin up a node instance.
+    let target = TempDir::new().expect(ERR_TEMPDIR_NEW);
+    let mut node = Node::builder()
+        .log_to_stdout(debug.is_on())
+        .start(target.path(), NodeType::Stateless)
+        .await
+        .expect(ERR_NODE_BUILD);
+
+    // Create a synthetic node and enable handshaking.
+    let mut synthetic_node = SyntheticNode::new(&cfg).await;
+
+    // Connect to the node and initiate the handshake.
+    let handshake_established = if synthetic_node.connect(node.addr()).await.is_err() {
+        false
+    } else {
+        // Wait for any message.
+        synthetic_node
+            .expect_message(&|m: &BinaryMessage| matches!(&m, _))
+            .await
+    };
+
+    if debug.is_on() && !handshake_established {
+        // Let us see a few more logs from the node before shutdown.
+        sleep(Duration::from_millis(200)).await;
+    }
+
+    // Gracefully shut down the nodes.
+    synthetic_node.shut_down().await;
+    assert_eq!(node.stop().expect(ERR_NODE_STOP), ChildExitCode::Success);
+
+    handshake_established
+}
+
+#[tokio::test]
+#[ignore = "internal test"]
+async fn normal_handshake() {
+    let debug = Debug::enable();
+
+    // Basically, a copy of the C001 test.
+    assert!(
+        run_handshake_req_test_with_cfg(Default::default(), debug).await,
+        "a default configuration doesn't work"
+    );
+}
+
+/// Generate a string with a given length.
+fn gen_huge_string(len: usize) -> String {
+    vec!['y'; len].into_iter().collect::<String>()
+}
+
+#[allow(non_snake_case)]
+#[tokio::test]
+async fn r001_t3_HANDSHAKE_connection_field() {
+    // ZG-RESISTANCE-001
+    // Expected valid value for the "Connection" field in the handshake should be "Upgrade".
+
+    let debug = Debug::disable();
+
+    let gen_cfg = |connection: String| SynthNodeCfg {
+        handshake: Some(HandshakeCfg {
+            http_connection: connection,
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    // Valid scenarios:
+
+    // These are also valid, but should they be?
+    let cfg = gen_cfg("upgrade".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+    let cfg = gen_cfg("uPgRAdE".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Below tests assert the connection shouldn't be established.
+
+    // Field is almost correct.
+    let cfg = gen_cfg("Upgrad".to_owned());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+    let cfg = gen_cfg("Upgradee".to_owned());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+    let cfg = gen_cfg("UpgradeUpgrade".to_owned());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Find the largest instance value which the node could accept, but won't due to invalid value
+    // in the field.
+    let cfg = gen_cfg(gen_huge_string(WS_HTTP_HEADER_MAX_SIZE));
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Use a huge value which the node will always reject.
+    let cfg = gen_cfg(gen_huge_string(WS_HTTP_HEADER_INVALID_SIZE));
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Send an empty field.
+    let cfg = gen_cfg(String::new());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
 }
 
 #[allow(non_snake_case)]
