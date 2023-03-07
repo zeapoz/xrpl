@@ -244,6 +244,54 @@ async fn r001_t3_HANDSHAKE_connection_field() {
 
 #[allow(non_snake_case)]
 #[tokio::test]
+async fn r001_t4_HANDSHAKE_connect_as_field() {
+    // ZG-RESISTANCE-001
+    // Expected valid value for the "Connect-As" field in the handshake should be "Peer".
+
+    let debug = Debug::disable();
+
+    let gen_cfg = |connect_as: String| SynthNodeCfg {
+        handshake: Some(HandshakeCfg {
+            http_connect_as: connect_as,
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    // Valid scenarios:
+
+    // These are also valid, but should they be?
+    let cfg = gen_cfg("peer".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+    let cfg = gen_cfg("PeER".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Below tests assert the connection shouldn't be established.
+
+    // Field is almost correct.
+    let cfg = gen_cfg("Pee".to_owned());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+    let cfg = gen_cfg("Peerr".to_owned());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+    let cfg = gen_cfg("PeerPeer".to_owned());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Find the largest instance value that the node could accept, but won't due to invalid value
+    // in the field.
+    let cfg = gen_cfg(gen_huge_string(WS_HTTP_HEADER_MAX_SIZE));
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Use a huge value that the node will always reject.
+    let cfg = gen_cfg(gen_huge_string(WS_HTTP_HEADER_INVALID_SIZE));
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Send an empty field.
+    let cfg = gen_cfg(String::new());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+}
+
+#[allow(non_snake_case)]
+#[tokio::test]
 async fn r003_t1_HANDSHAKE_reject_if_public_key_has_bit_flipped() {
     // ZG-RESISTANCE-003
 
