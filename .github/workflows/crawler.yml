@@ -1,0 +1,92 @@
+name: crawler
+
+on:
+  schedule:
+    - cron: '0 6 * * *' # Every day at 6:00 AM UTC.
+
+jobs:
+  install-rippled:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install git pkg-config protobuf-compiler libprotobuf-dev libssl-dev wget build-essential doxygen
+          wget https://github.com/Kitware/CMake/releases/download/v3.16.3/cmake-3.16.3-Linux-x86_64.sh
+          sudo sh cmake-3.16.3-Linux-x86_64.sh --prefix=/usr/local --exclude-subdir
+      - name: Compile boost
+        run: |
+          wget https://boostorg.jfrog.io/artifactory/main/release/1.75.0/source/boost_1_75_0.tar.gz
+          tar xvzf boost_1_75_0.tar.gz
+          cd boost_1_75_0
+          ./bootstrap.sh
+          ./b2 -j $(nproc)
+      - name: Clone and build rippled
+        env:
+          BOOST_ROOT: /home/runner/work/xrpl/xrpl/boost_1_75_0
+        run: |
+          git clone https://github.com/XRPLF/rippled
+          cd rippled
+          git checkout master
+          mkdir build
+          cd build
+          cmake ..
+          cmake --build .
+      - uses: actions/upload-artifact@v3
+        with:
+          name: rippled-executable
+          path: ./rippled/build/rippled
+
+  crawl-network:
+    runs-on: ubuntu-latest
+    needs: [ install-rippled ]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - run: rustup toolchain install stable --profile minimal
+      - name: Configure rippled
+        run: |
+          git clone https://github.com/XRPLF/rippled
+          mkdir -p ~/.config/ripple
+          cp rippled/cfg/rippled-example.cfg ~/.config/ripple/rippled.cfg
+          cp rippled/cfg/validators-example.txt ~/.config/ripple/validators.txt
+          sed -i 's#^path=/var/lib/rippled/db/nudb#path=/home/runner/work/rippled/rippled/db/nudb#' ~/.config/ripple/rippled.cfg
+          sed -i 's#^/var/lib/rippled/db#/home/runner/work/rippled/rippled/db#' ~/.config/ripple/rippled.cfg
+          sed -i 's#^/var/log/rippled/debug.log#/home/runner/work/rippled/rippled/debug.log#' ~/.config/ripple/rippled.cfg
+      - uses: actions/download-artifact@v3
+        with:
+          name: rippled-executable
+          path: ./rippled
+      - name: Begin crawling
+        run: |
+          chmod +x rippled/rippled
+          ./rippled/rippled &
+          cargo run --features crawler --bin crawler -- --seed-addrs 127.0.0.1:51235 --rpc-addr 127.0.0.1:54321 &
+          # After 30 min, query rpc and send SIGTERM.
+          sleep 30m
+          curl --data-binary '{"jsonrpc": "2.0", "id":0, "method": "dumpmetrics", "params": { "file": "latest.json" } }' -H 'content-type: application/json' http://127.0.0.1:54321/
+          kill $(pidof crawler) $(pidof rippled)
+      - name: Process results
+        run: |
+          FILENAME=$(date +%Y-%m-%d)
+          cat latest.json
+          # If the result contains any error, fail workflow
+          if grep "error" latest.json; then
+            echo "Aborting. Crawler results contained an error"
+            exit 1
+          fi
+          mkdir -p results/crawler
+          rm -f results/crawler/latest.json
+          mv latest.json results/crawler/latest.json
+          cd results/crawler
+          cp latest.json $FILENAME.json
+          gzip $FILENAME.json
+      - name: Git
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git pull
+          git add results/crawler
+          git commit -m "ci: crawler results"
+          git push
