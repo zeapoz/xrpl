@@ -244,6 +244,41 @@ async fn r001_t3_HANDSHAKE_connection_field() {
 
 #[allow(non_snake_case)]
 #[tokio::test]
+async fn r001_t5_HANDSHAKE_crawl_field() {
+    // ZG-RESISTANCE-001
+    // Expected valid value for the "Crawl" field in the handshake should be "Public" (case insensitive).
+    // Other values are considered to be "Private".
+
+    let debug = Debug::disable();
+
+    let gen_cfg = |crawl: String| SynthNodeCfg {
+        handshake: Some(HandshakeCfg {
+            http_crawl: Some(crawl),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    // Valid scenarios:
+
+    // This is also valid, but should it be? The node checks for "public" to determine whether it's public,
+    // everything else is considered not public.
+    let cfg = gen_cfg("Bazinga".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+    let cfg = gen_cfg(String::new());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+    let cfg = gen_cfg(gen_huge_string(WS_HTTP_HEADER_MAX_SIZE));
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Invalid scenarios:
+
+    // Use a huge value that the node will always reject.
+    let cfg = gen_cfg(gen_huge_string(WS_HTTP_HEADER_INVALID_SIZE));
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+}
+
+#[allow(non_snake_case)]
+#[tokio::test]
 async fn r001_t4_HANDSHAKE_connect_as_field() {
     // ZG-RESISTANCE-001
     // Expected valid value for the "Connect-As" field in the handshake should be "Peer".
