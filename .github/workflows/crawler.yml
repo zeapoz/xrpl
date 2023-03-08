@@ -65,7 +65,7 @@ jobs:
           cargo run --features crawler --bin crawler -- --seed-addrs 127.0.0.1:51235 --rpc-addr 127.0.0.1:54321 &
           # After 30 min, query rpc and send SIGTERM.
           sleep 30m
-          curl --data-binary '{"jsonrpc": "2.0", "id":0, "method": "getmetrics", "params": { "file": "latest.json" } }' -H 'content-type: application/json' http://127.0.0.1:54321/
+          curl --data-binary '{"jsonrpc": "2.0", "id":0, "method": "dumpmetrics", "params": { "file": "latest.json" } }' -H 'content-type: application/json' http://127.0.0.1:54321/
           kill $(pidof crawler) $(pidof rippled)
       - name: Process results
         run: |
