@@ -327,6 +327,45 @@ async fn r001_t4_HANDSHAKE_connect_as_field() {
 
 #[allow(non_snake_case)]
 #[tokio::test]
+async fn r001_t6_HANDSHAKE_x_protocol_ctl_field() {
+    // ZG-RESISTANCE-001
+    // Expected valid value for the "X-Protocol-Ctl" field in the handshake should be a valid string.
+
+    let debug = Debug::disable();
+
+    let gen_cfg = |protocol: String| SynthNodeCfg {
+        handshake: Some(HandshakeCfg {
+            http_x_protocol_ctl: protocol,
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    // These are also valid, but should they be?
+    let cfg = gen_cfg("leDgErrEpLay=하나;TXRR=да;".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    let cfg = gen_cfg("leDgErrEpLay=I'm happy to accept anything really;".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    let cfg = gen_cfg("unknown_option_here_is_fine=One11111!!;".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Find the largest instance value which the node could accept.
+    let cfg = gen_cfg(gen_huge_string(WS_HTTP_HEADER_MAX_SIZE));
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Send an empty field.
+    let cfg = gen_cfg(String::new());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Use a huge value which the node will always reject.
+    let cfg = gen_cfg(gen_huge_string(WS_HTTP_HEADER_INVALID_SIZE));
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+}
+
+#[allow(non_snake_case)]
+#[tokio::test]
 async fn r003_t1_HANDSHAKE_reject_if_public_key_has_bit_flipped() {
     // ZG-RESISTANCE-003
 
