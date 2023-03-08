@@ -3,9 +3,6 @@ name: crawler
 on:
   schedule:
     - cron: '0 6 * * *' # Every day at 6:00 AM UTC.
-  push:
-    branches:
-      - crawler-ci
 
 jobs:
   install-rippled:
@@ -66,12 +63,10 @@ jobs:
           chmod +x rippled/rippled
           ./rippled/rippled &
           cargo run --features crawler --bin crawler -- --seed-addrs 127.0.0.1:51235 --rpc-addr 127.0.0.1:54321 &
-          mkdir -p results/crawler
-          rm -f results/crawler/latest.json
-          # After 30 min, query rpc and send SIGINT.
+          # After 30 min, query rpc and send SIGTERM.
           sleep 30m
           curl --data-binary '{"jsonrpc": "2.0", "id":0, "method": "getmetrics", "params": { "file": "latest.json" } }' -H 'content-type: application/json' http://127.0.0.1:54321/
-          kill -2 $(pidof crawler) $(pidof rippled)
+          kill $(pidof crawler) $(pidof rippled)
       - name: Process results
         run: |
           FILENAME=$(date +%Y-%m-%d)
