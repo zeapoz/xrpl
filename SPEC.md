@@ -368,6 +368,10 @@ The test index makes use of symbolic language in describing connection and messa
     2. Bit flip in a shared_value (which later results in an invalid session signature). 
     3. "Connection" HTTP field is incorrect.
     4. "Connect-As" HTTP field is incorrect.
+    5. "Crawl" HTTP field is incorrect.
+    6. "X-Protocol-Ctl" HTTP field is incorrect.
+    7. "Network-Time" HTTP field is incorrect.
+    8. "Upgrade" HTTP field is incorrect.
 
 ### ZG-RESISTANCE-004
 
