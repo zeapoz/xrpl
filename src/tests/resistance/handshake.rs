@@ -1,4 +1,7 @@
-use std::net::{IpAddr, Ipv4Addr};
+use std::{
+    net::{IpAddr, Ipv4Addr},
+    time::SystemTime,
+};
 
 use pea2pea::{
     ConnectionSide,
@@ -24,6 +27,9 @@ use crate::{
 // Empirical values based on some unofficial testing.
 const WS_HTTP_HEADER_MAX_SIZE: usize = 7700;
 const WS_HTTP_HEADER_INVALID_SIZE: usize = WS_HTTP_HEADER_MAX_SIZE + 300;
+
+// Number of seconds between unix and ripple epoch.
+const RIPPLE_EPOCH_OFFSET: u64 = 946684800;
 
 #[allow(non_snake_case)]
 #[tokio::test]
@@ -361,6 +367,56 @@ async fn r001_t6_HANDSHAKE_x_protocol_ctl_field() {
 
     // Use a huge value which the node will always reject.
     let cfg = gen_cfg(gen_huge_string(WS_HTTP_HEADER_INVALID_SIZE));
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+}
+
+#[allow(non_snake_case)]
+#[tokio::test]
+async fn r001_t7_HANDSHAKE_network_time_field() {
+    // ZG-RESISTANCE-001
+    // Expected valid value for the "Network-Time" field in the handshake should be a valid number.
+
+    let debug = Debug::disable();
+
+    let gen_cfg = |time: String| SynthNodeCfg {
+        handshake: Some(HandshakeCfg {
+            http_network_time: Some(time),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    let time_now = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+        - RIPPLE_EPOCH_OFFSET;
+    // Valid value for Network-Time
+    let cfg = gen_cfg(format!("{time_now}"));
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Find the largest instance value which the node could accept.
+    // Send correct value but prepend lots of zeros.
+    let cfg = gen_cfg(format!("{:#07000}", time_now));
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Invalid values for Network-Time
+    let cfg = gen_cfg(format!("{}", time_now - 24 * 60 * 60));
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    let cfg = gen_cfg(format!("{}", time_now + 24 * 60 * 60));
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    let cfg = gen_cfg(format!("{time_now}xyz"));
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Send an empty field.
+    let cfg = gen_cfg(String::new());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Use a huge value which the node will always reject.
+    // Send correct value but prepend too many zeros.
+    let cfg = gen_cfg(format!("{:#08000}", time_now));
     assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
 }
 
