@@ -422,6 +422,52 @@ async fn r001_t7_HANDSHAKE_network_time_field() {
 
 #[allow(non_snake_case)]
 #[tokio::test]
+async fn r001_t8_HANDSHAKE_upgrade_req_field() {
+    // ZG-RESISTANCE-001
+    // Expected valid value for the "Upgrade" field in the handshake should be valid.
+
+    let debug = Debug::disable();
+
+    let gen_cfg = |version: String| SynthNodeCfg {
+        handshake: Some(HandshakeCfg {
+            http_upgrade_req: version,
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    // Valid value for Upgrade
+    let cfg = gen_cfg("XRPL/2.2".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Find the largest instance value which the node could accept.
+    let cfg = gen_cfg(format!("{:#7700}", "XRPL/2.2"));
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Invalid values
+    // Large version.
+    let cfg = gen_cfg("XRPL/20.2".to_owned());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Negative version number.
+    let cfg = gen_cfg("XRPL/-2.2".to_owned());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Send empty version.
+    let cfg = gen_cfg("XRPL/".to_owned());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Send an empty field.
+    let cfg = gen_cfg(String::new());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Use a huge value which the node will always reject.
+    let cfg = gen_cfg(format!("{:#8000}", "XRPL/2.2"));
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+}
+
+#[allow(non_snake_case)]
+#[tokio::test]
 async fn r003_t1_HANDSHAKE_reject_if_public_key_has_bit_flipped() {
     // ZG-RESISTANCE-003
 
