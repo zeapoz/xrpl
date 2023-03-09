@@ -370,6 +370,7 @@ The test index makes use of symbolic language in describing connection and messa
     4. "Connect-As" HTTP field is incorrect.
     5. "Crawl" HTTP field is incorrect.
     6. "X-Protocol-Ctl" HTTP field is incorrect.
+    7. "Network-Time" HTTP field is incorrect.
 
 ### ZG-RESISTANCE-004
 
