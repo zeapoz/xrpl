@@ -107,11 +107,26 @@ The test index makes use of symbolic language in describing connection and messa
 
 ### ZG-CONFORMANCE-003
 
-    The node responds with `pong` message for `ping`.
+    1. The node responds with `pong` message for `ping`.
 
-    <>
-    -> ping message with random `sequence` number
-    <- pong response with the same `sequence` number
+        <>
+        -> ping message with random `sequence` number
+        <- pong response with the same `sequence` number
+
+    2. The node sends `ping` message within the specified timeout. A synthetic node responds with correct `pong` and ensures
+        that it was not disconnected.
+
+        <>
+        <- ping request
+        -> pong response
+
+        Assert: The nodes stay connected.
+
+    3. The node receives an unsolicited `pong` message and disconnects sender.
+
+        <>
+        -> pong response with made up `sequence` number
+        Assert: the node disconnects sender after the specified timeout.
 
 ### ZG-CONFORMANCE-004
 
