@@ -1,4 +1,7 @@
-use std::net::{IpAddr, Ipv4Addr};
+use std::{
+    net::{IpAddr, Ipv4Addr},
+    time::SystemTime,
+};
 
 use pea2pea::{
     ConnectionSide,
@@ -24,6 +27,9 @@ use crate::{
 // Empirical values based on some unofficial testing.
 const WS_HTTP_HEADER_MAX_SIZE: usize = 7700;
 const WS_HTTP_HEADER_INVALID_SIZE: usize = WS_HTTP_HEADER_MAX_SIZE + 300;
+
+// Number of seconds between unix and ripple epoch.
+const RIPPLE_EPOCH_OFFSET: u64 = 946684800;
 
 #[allow(non_snake_case)]
 #[tokio::test]
@@ -244,6 +250,41 @@ async fn r001_t3_HANDSHAKE_connection_field() {
 
 #[allow(non_snake_case)]
 #[tokio::test]
+async fn r001_t5_HANDSHAKE_crawl_field() {
+    // ZG-RESISTANCE-001
+    // Expected valid value for the "Crawl" field in the handshake should be "Public" (case insensitive).
+    // Other values are considered to be "Private".
+
+    let debug = Debug::disable();
+
+    let gen_cfg = |crawl: String| SynthNodeCfg {
+        handshake: Some(HandshakeCfg {
+            http_crawl: Some(crawl),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    // Valid scenarios:
+
+    // This is also valid, but should it be? The node checks for "public" to determine whether it's public,
+    // everything else is considered not public.
+    let cfg = gen_cfg("Bazinga".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+    let cfg = gen_cfg(String::new());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+    let cfg = gen_cfg(gen_huge_string(WS_HTTP_HEADER_MAX_SIZE));
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Invalid scenarios:
+
+    // Use a huge value that the node will always reject.
+    let cfg = gen_cfg(gen_huge_string(WS_HTTP_HEADER_INVALID_SIZE));
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+}
+
+#[allow(non_snake_case)]
+#[tokio::test]
 async fn r001_t4_HANDSHAKE_connect_as_field() {
     // ZG-RESISTANCE-001
     // Expected valid value for the "Connect-As" field in the handshake should be "Peer".
@@ -287,6 +328,141 @@ async fn r001_t4_HANDSHAKE_connect_as_field() {
 
     // Send an empty field.
     let cfg = gen_cfg(String::new());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+}
+
+#[allow(non_snake_case)]
+#[tokio::test]
+async fn r001_t6_HANDSHAKE_x_protocol_ctl_field() {
+    // ZG-RESISTANCE-001
+    // Expected valid value for the "X-Protocol-Ctl" field in the handshake should be a valid string.
+
+    let debug = Debug::disable();
+
+    let gen_cfg = |protocol: String| SynthNodeCfg {
+        handshake: Some(HandshakeCfg {
+            http_x_protocol_ctl: protocol,
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    // These are also valid, but should they be?
+    let cfg = gen_cfg("leDgErrEpLay=하나;TXRR=да;".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    let cfg = gen_cfg("leDgErrEpLay=I'm happy to accept anything really;".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    let cfg = gen_cfg("unknown_option_here_is_fine=One11111!!;".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Find the largest instance value which the node could accept.
+    let cfg = gen_cfg(gen_huge_string(WS_HTTP_HEADER_MAX_SIZE));
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Send an empty field.
+    let cfg = gen_cfg(String::new());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Use a huge value which the node will always reject.
+    let cfg = gen_cfg(gen_huge_string(WS_HTTP_HEADER_INVALID_SIZE));
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+}
+
+#[allow(non_snake_case)]
+#[tokio::test]
+async fn r001_t7_HANDSHAKE_network_time_field() {
+    // ZG-RESISTANCE-001
+    // Expected valid value for the "Network-Time" field in the handshake should be a valid number.
+
+    let debug = Debug::disable();
+
+    let gen_cfg = |time: String| SynthNodeCfg {
+        handshake: Some(HandshakeCfg {
+            http_network_time: Some(time),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    let time_now = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+        - RIPPLE_EPOCH_OFFSET;
+    // Valid value for Network-Time
+    let cfg = gen_cfg(format!("{time_now}"));
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Find the largest instance value which the node could accept.
+    // Send correct value but prepend lots of zeros.
+    let cfg = gen_cfg(format!("{:#07000}", time_now));
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Invalid values for Network-Time
+    let cfg = gen_cfg(format!("{}", time_now - 24 * 60 * 60));
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    let cfg = gen_cfg(format!("{}", time_now + 24 * 60 * 60));
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    let cfg = gen_cfg(format!("{time_now}xyz"));
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Send an empty field.
+    let cfg = gen_cfg(String::new());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Use a huge value which the node will always reject.
+    // Send correct value but prepend too many zeros.
+    let cfg = gen_cfg(format!("{:#08000}", time_now));
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+}
+
+#[allow(non_snake_case)]
+#[tokio::test]
+async fn r001_t8_HANDSHAKE_upgrade_req_field() {
+    // ZG-RESISTANCE-001
+    // Expected valid value for the "Upgrade" field in the handshake should be valid.
+
+    let debug = Debug::disable();
+
+    let gen_cfg = |version: String| SynthNodeCfg {
+        handshake: Some(HandshakeCfg {
+            http_upgrade_req: version,
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    // Valid value for Upgrade
+    let cfg = gen_cfg("XRPL/2.2".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Find the largest instance value which the node could accept.
+    let cfg = gen_cfg(format!("{:#7700}", "XRPL/2.2"));
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Invalid values
+    // Large version.
+    let cfg = gen_cfg("XRPL/20.2".to_owned());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Negative version number.
+    let cfg = gen_cfg("XRPL/-2.2".to_owned());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Send empty version.
+    let cfg = gen_cfg("XRPL/".to_owned());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Send an empty field.
+    let cfg = gen_cfg(String::new());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Use a huge value which the node will always reject.
+    let cfg = gen_cfg(format!("{:#8000}", "XRPL/2.2"));
     assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
 }
 
