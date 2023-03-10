@@ -17,6 +17,7 @@ use crate::{
         constants::CONNECTION_TIMEOUT,
         node::{ChildExitCode, Node, NodeType},
     },
+    tests::conformance::RIPPLE_EPOCH,
     tools::{
         config::SynthNodeCfg,
         synth_node::{self, SyntheticNode},
@@ -27,9 +28,6 @@ use crate::{
 // Empirical values based on some unofficial testing.
 const WS_HTTP_HEADER_MAX_SIZE: usize = 7700;
 const WS_HTTP_HEADER_INVALID_SIZE: usize = WS_HTTP_HEADER_MAX_SIZE + 300;
-
-// Number of seconds between unix and ripple epoch.
-const RIPPLE_EPOCH_OFFSET: u64 = 946684800;
 
 #[allow(non_snake_case)]
 #[tokio::test]
@@ -390,7 +388,7 @@ async fn r001_t7_HANDSHAKE_network_time_field() {
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap()
         .as_secs()
-        - RIPPLE_EPOCH_OFFSET;
+        - RIPPLE_EPOCH as u64;
     // Valid value for Network-Time
     let cfg = gen_cfg(format!("{time_now}"));
     assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
@@ -536,8 +534,10 @@ async fn r001_t10_HANDSHAKE_closed_ledger_field() {
     assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
 
     // Valid encoding but too long
-    let cfg =
-        gen_cfg(format!("{:#9000}", "X72fvYvkYwPj7iFsE4OTiSwSd5Okz40P+eBRwsOXo4g=").to_owned());
+    let cfg = gen_cfg(format!(
+        "{:#9000}",
+        "X72fvYvkYwPj7iFsE4OTiSwSd5Okz40P+eBRwsOXo4g="
+    ));
     assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
 }
 
