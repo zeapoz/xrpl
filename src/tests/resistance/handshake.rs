@@ -468,6 +468,42 @@ async fn r001_t8_HANDSHAKE_upgrade_req_field() {
 
 #[allow(non_snake_case)]
 #[tokio::test]
+async fn r001_t9_HANDSHAKE_user_agent_field() {
+    // ZG-RESISTANCE-001
+    // Expected valid value for the "User-Agent" field in the handshake should be a valid string.
+
+    let debug = Debug::disable();
+
+    let gen_cfg = |ident: String| SynthNodeCfg {
+        handshake: Some(HandshakeCfg {
+            http_ident: ident,
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    // Valid value for User-Agent
+    let cfg = gen_cfg("Ziggurat/1.0".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // These values are also valid, but should they be?
+    let cfg = gen_cfg("".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+    let cfg = gen_cfg("الزقورة".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Find the largest instance value which the node could accept.
+    let cfg = gen_cfg(format!("{:#7000}", "Ziggurat/1.0"));
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Invalid values for User-Agent
+    // String too long
+    let cfg = gen_cfg(format!("{:#9000}", "Ziggurat/1.0"));
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+}
+
+#[allow(non_snake_case)]
+#[tokio::test]
 async fn r003_t1_HANDSHAKE_reject_if_public_key_has_bit_flipped() {
     // ZG-RESISTANCE-003
 
