@@ -543,6 +543,32 @@ async fn r001_t10_HANDSHAKE_closed_ledger_field() {
 
 #[allow(non_snake_case)]
 #[tokio::test]
+async fn r001_t11_HANDSHAKE_previous_ledger_field() {
+    // ZG-RESISTANCE-001
+    // Expected valid value for the "Previous-Ledger" field in the handshake should be a valid string.
+
+    let debug = Debug::disable();
+
+    let gen_cfg = |ledger: String| SynthNodeCfg {
+        handshake: Some(HandshakeCfg {
+            http_prev_ledger: Some(ledger),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    // Valid value for Previous-Ledger but unable to do handshake
+    let cfg = gen_cfg("6bsyOYDSAux+Ubqyqo41NT+ce9q1m/FzeOrdTQSG758=".to_owned());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Invalid values
+    // Empty
+    let cfg = gen_cfg("".to_owned());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+}
+
+#[allow(non_snake_case)]
+#[tokio::test]
 async fn r003_t1_HANDSHAKE_reject_if_public_key_has_bit_flipped() {
     // ZG-RESISTANCE-003
 

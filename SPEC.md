@@ -389,6 +389,8 @@ The test index makes use of symbolic language in describing connection and messa
     8. "Upgrade" HTTP field is incorrect.
     9. "User-Agent" HTTP field is incorrect.
     10. "Closed-Ledger" HTTP field is incorrect.
+    11. "Previous-Ledger" HTTP field is incorrect. It was discovered that a valid string results with rejected handshake
+        with a message "Malformed handshake data (2)"
 
 ### ZG-RESISTANCE-004
 
