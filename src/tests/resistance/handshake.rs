@@ -504,6 +504,45 @@ async fn r001_t9_HANDSHAKE_user_agent_field() {
 
 #[allow(non_snake_case)]
 #[tokio::test]
+async fn r001_t10_HANDSHAKE_closed_ledger_field() {
+    // ZG-RESISTANCE-001
+    // Expected valid value for the "Closed-ledger" field in the handshake should be a valid string.
+
+    let debug = Debug::disable();
+
+    let gen_cfg = |ledger: String| SynthNodeCfg {
+        handshake: Some(HandshakeCfg {
+            http_closed_ledger: Some(ledger),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    // Valid value for Closed-Ledger
+    let cfg = gen_cfg("X72fvYvkYwPj7iFsE4OTiSwSd5Okz40P+eBRwsOXo4g=".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Invalid values
+    // Too short
+    let cfg = gen_cfg("vYvkYwPj7iFsE4OTiSwSd5Okz40P+eBRwsOXo4g=".to_owned());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Too long
+    let cfg = gen_cfg("X72fvYvkYwPj7iFsE4OTiSwSdSwSd5Okz40P+eBRwsOXo4g=".to_owned());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Empty
+    let cfg = gen_cfg("".to_owned());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Valid encoding but too long
+    let cfg =
+        gen_cfg(format!("{:#9000}", "X72fvYvkYwPj7iFsE4OTiSwSd5Okz40P+eBRwsOXo4g=").to_owned());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+}
+
+#[allow(non_snake_case)]
+#[tokio::test]
 async fn r003_t1_HANDSHAKE_reject_if_public_key_has_bit_flipped() {
     // ZG-RESISTANCE-003
 
