@@ -569,6 +569,37 @@ async fn r001_t11_HANDSHAKE_previous_ledger_field() {
 
 #[allow(non_snake_case)]
 #[tokio::test]
+async fn r001_t12_HANDSHAKE_extra_field() {
+    // ZG-RESISTANCE-001
+    // Checks for handshake status after sending various extra header fields.
+
+    let debug = Debug::disable();
+
+    let gen_cfg = |value: String| SynthNodeCfg {
+        handshake: Some(HandshakeCfg {
+            http_unexpected_extra_field_and_value: Some(value),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    // "Valid" fields
+    let cfg = gen_cfg("Exec: /bin/bash".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    let cfg = gen_cfg("Exec: ".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    let cfg = gen_cfg(format!("{:#7000}", "Exec: /bin/bash"));
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Invalid value (too long)
+    let cfg = gen_cfg(format!("{:#9000}", "Exec: /bin/bash"));
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+}
+
+#[allow(non_snake_case)]
+#[tokio::test]
 async fn r003_t1_HANDSHAKE_reject_if_public_key_has_bit_flipped() {
     // ZG-RESISTANCE-003
 
