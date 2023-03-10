@@ -1,1 +1,1 @@
-{"jsonrpc":"2.0","result":{"num_known_nodes":432,"num_good_nodes":0,"num_known_connections":791,"num_versions":0,"protocol_versions":{},"user_agents":{"1.10.0-rc4":1,"1.9.4":7},"crawler_runtime":{"secs":1530,"nanos":552646435},"node_addrs":[],"nodes_indices":[]},"id":0}
+{"jsonrpc":"2.0","result":{"num_known_nodes":618,"num_good_nodes":0,"num_known_connections":1018,"num_versions":0,"protocol_versions":{},"user_agents":{"1.9.4":11},"crawler_runtime":{"secs":1836,"nanos":509192937},"node_addrs":[],"nodes_indices":[]},"id":0}
