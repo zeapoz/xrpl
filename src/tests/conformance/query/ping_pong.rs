@@ -8,7 +8,9 @@ use std::time::Duration;
 use rand::{thread_rng, RngCore};
 use tempfile::TempDir;
 use tokio::time::{sleep, Instant};
-use ziggurat_core_utils::err_constants::{ERR_NODE_BUILD, ERR_SYNTH_CONNECT, ERR_TEMPDIR_NEW};
+use ziggurat_core_utils::err_constants::{
+    ERR_NODE_BUILD, ERR_SYNTH_CONNECT, ERR_SYNTH_UNICAST, ERR_TEMPDIR_NEW,
+};
 
 use crate::{
     protocol::{
@@ -100,7 +102,7 @@ async fn c003_t2_TM_PING_expect_ping() {
     });
     synth_node
         .unicast(node.addr(), response)
-        .expect("unable to send pong");
+        .expect(ERR_SYNTH_UNICAST);
 
     // Assert that we're still connected after given timeout.
     sleep(EXPECTED_PING_MESSAGE_TIMEOUT).await;
@@ -121,7 +123,7 @@ async fn c003_t3_TM_PING_send_pong() {
     let mut node = Node::builder()
         .start(target.path(), NodeType::Stateful)
         .await
-        .expect("unable to start the rippled node");
+        .expect(ERR_NODE_BUILD);
 
     // Create a synthetic node and connect it to rippled.
     let synth_node = SyntheticNode::new(&Default::default()).await;
@@ -141,7 +143,7 @@ async fn c003_t3_TM_PING_send_pong() {
                 net_time: None,
             }),
         )
-        .expect("unable to send TmPing message");
+        .expect(ERR_SYNTH_UNICAST);
     sleep(2 * EXPECTED_PING_MESSAGE_TIMEOUT).await;
     assert!(!synth_node.is_connected(node.addr()));
 

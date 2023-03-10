@@ -391,7 +391,8 @@ The test index makes use of symbolic language in describing connection and messa
     10. "Closed-Ledger" HTTP field is incorrect.
     11. "Previous-Ledger" HTTP field is incorrect. It was discovered that a valid string results with rejected handshake
         with a message "Malformed handshake data (2)".
-    12. Extra header checks: Checks for rippled bahaviour when sending extra headers.
+    12. Extra header checks: Checks for rippled bahaviour when sending duplicate headers. It was found that in such case
+        rippled will not drop the connection.
 
 ### ZG-RESISTANCE-004
 
