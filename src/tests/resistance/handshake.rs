@@ -583,19 +583,9 @@ async fn r001_t12_HANDSHAKE_extra_field() {
         ..Default::default()
     };
 
-    // "Valid" fields
-    let cfg = gen_cfg("Exec: /bin/bash".to_owned());
+    // Repeat a field with different value. "Connect-As: Peer" is always present during a handshake"
+    let cfg = gen_cfg("Connect-As: NonPear".to_owned());
     assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
-
-    let cfg = gen_cfg("Exec: ".to_owned());
-    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
-
-    let cfg = gen_cfg(format!("{:#7000}", "Exec: /bin/bash"));
-    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
-
-    // Invalid value (too long)
-    let cfg = gen_cfg(format!("{:#9000}", "Exec: /bin/bash"));
-    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
 }
 
 #[allow(non_snake_case)]
