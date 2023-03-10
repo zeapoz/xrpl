@@ -102,7 +102,7 @@ impl SyntheticNode {
     }
 
     /// Reads a message from the inbound (internal) queue of the node. If there is no message
-    /// by the given time there is an error returned indicating if timeout occured.
+    /// by the given time there is an error returned indicating if timeout occurred.
     pub async fn recv_message_timeout(
         &mut self,
         duration: Duration,
