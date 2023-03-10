@@ -378,7 +378,7 @@ The test index makes use of symbolic language in describing connection and messa
 
 ### ZG-RESISTANCE-003
 
-    The node rejects the handshake when there is an in any of handshake field: 
+    The node rejects the handshake when there is error an in any of handshake field: 
     1. Bit flip in a public_key. 
     2. Bit flip in a shared_value (which later results in an invalid session signature). 
     3. "Connection" HTTP field is incorrect.
@@ -390,7 +390,8 @@ The test index makes use of symbolic language in describing connection and messa
     9. "User-Agent" HTTP field is incorrect.
     10. "Closed-Ledger" HTTP field is incorrect.
     11. "Previous-Ledger" HTTP field is incorrect. It was discovered that a valid string results with rejected handshake
-        with a message "Malformed handshake data (2)"
+        with a message "Malformed handshake data (2)".
+    12. Extra header checks: Checks for rippled bahaviour when sending extra headers.
 
 ### ZG-RESISTANCE-004
 
