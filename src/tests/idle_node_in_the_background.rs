@@ -11,10 +11,15 @@ use reqwest::Client;
 use tempfile::TempDir;
 use tokio::time::{sleep, Duration};
 use ziggurat_core_utils::err_constants::{
-    ERR_NODE_BUILD, ERR_SYNTH_CONNECT, ERR_SYNTH_START_LISTENING, ERR_TEMPDIR_NEW,
+    ERR_NODE_BUILD, ERR_SYNTH_CONNECT, ERR_SYNTH_START_LISTENING, ERR_SYNTH_UNICAST,
+    ERR_TEMPDIR_NEW,
 };
 
 use crate::{
+    protocol::{
+        codecs::message::Payload,
+        proto::{tm_ping::PingType, TmPing},
+    },
     setup::node::{Node, NodeType},
     tools::{
         config::SynthNodeCfg,
@@ -114,8 +119,7 @@ async fn dev002_t1_MONITOR_NODE_FOREVER_WITH_SYNTH_NODE_sn_is_conn_initiator() {
     // This test is used for testing/development purposes.
 
     let mut cfg = DevTestCfg::default();
-    cfg.tracing = TracingOpt::On;
-    cfg.crawl = PeriodicCrawlOpt::On(Duration::from_secs(5));
+    cfg.crawl = PeriodicCrawlOpt::On(Duration::from_secs(3));
     cfg.synth_node = SynthNodeOpt::On_TryToConnect(SynthNodeCfg::default());
     node_run_forever(cfg).await;
 
@@ -232,13 +236,34 @@ async fn node_start(path: &Path, log_to_stdout: bool, initial_peers: Vec<SocketA
 
 /// Use recv_message to clear up the inbound queue and print out
 /// the received messages.
+///
+/// Only replies to the ping messages so the connection is never dropped.
 async fn spawn_periodic_msg_recv(mut synth_node: SyntheticNode) {
     tokio::spawn(async move {
         loop {
-            let (_from_addr, msg) = synth_node.recv_message().await;
+            let (from_addr, msg) = synth_node.recv_message().await;
 
             let payload = msg.payload;
             tracing::info!("message received: {payload:?}");
+
+            match payload {
+                Payload::TmEndpoints(_) => println!("Endpoints: {payload:?}"),
+                Payload::TmPing(TmPing {
+                    r#type: r_type,
+                    seq: Some(seq),
+                    ..
+                }) if r_type == PingType::PtPing as i32 => {
+                    let rsp = Payload::TmPing(TmPing {
+                        r#type: PingType::PtPong as i32,
+                        seq: Some(seq),
+                        ping_time: None,
+                        net_time: None,
+                    });
+
+                    synth_node.unicast(from_addr, rsp).expect(ERR_SYNTH_UNICAST);
+                }
+                _ => (),
+            }
         }
     });
 }
