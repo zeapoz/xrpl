@@ -1,4 +1,5 @@
 use std::{
+    num::NonZeroU32,
     sync::{Arc, Mutex},
     time::Duration,
 };
@@ -9,6 +10,13 @@ use reqwest::Client;
 use tracing::info;
 use tracing_subscriber::filter::{EnvFilter, LevelFilter};
 use ziggurat_core_crawler::summary::NetworkSummary;
+
+use governor::{
+    clock::{QuantaClock, QuantaInstant},
+    middleware::NoOpMiddleware,
+    state::{InMemoryState, NotKeyed},
+    Jitter, Quota, RateLimiter,
+};
 
 use crate::{
     args::Args,
@@ -25,6 +33,8 @@ mod network;
 mod rpc;
 
 const CRAWLER_TIMEOUT: Duration = Duration::from_secs(10);
+const MAX_REQUESTS_PER_SEC: u32 = 25;
+const JITTER_MAX_SEC: u64 = 30;
 
 fn start_logger(default_level: LevelFilter) {
     let filter = match EnvFilter::try_from_default_env() {
@@ -41,6 +51,30 @@ fn start_logger(default_level: LevelFilter) {
         .with_env_filter(filter)
         .with_target(false)
         .init();
+}
+
+struct Limiter {
+    limiter: RateLimiter<NotKeyed, InMemoryState, QuantaClock, NoOpMiddleware<QuantaInstant>>,
+    jitter: Jitter,
+}
+
+impl Limiter {
+    /// Wrapper function around `governor::RateLimiter::until_ready_with_jitter`, using
+    /// the self contained `Jitter`.
+    async fn until_ready(&self) {
+        self.limiter.until_ready_with_jitter(self.jitter).await;
+    }
+}
+
+impl Default for Limiter {
+    fn default() -> Self {
+        Self {
+            limiter: RateLimiter::direct(Quota::per_second(
+                NonZeroU32::new(MAX_REQUESTS_PER_SEC).unwrap(),
+            )),
+            jitter: Jitter::up_to(Duration::from_secs(JITTER_MAX_SEC)),
+        }
+    }
 }
 
 #[tokio::main]
@@ -65,6 +99,8 @@ async fn main() {
         .timeout(CRAWLER_TIMEOUT)
         .build()
         .expect("unable to build the web client");
+    let limiter = Arc::new(Limiter::default());
+
     tokio::spawn(update_summary_snapshot_task(
         crawler.known_network.clone(),
         summary_snapshot,
@@ -72,6 +108,7 @@ async fn main() {
     for addr in args.seed_addrs {
         crawler::crawl(
             client.clone(),
+            limiter.clone(),
             addr.ip(),
             Some(addr.port()),
             crawler.known_network.clone(),
