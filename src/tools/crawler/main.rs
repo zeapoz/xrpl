@@ -6,17 +6,16 @@ use std::{
 
 use clap::Parser;
 use futures_util::future::pending;
-use reqwest::Client;
-use tracing::info;
-use tracing_subscriber::filter::{EnvFilter, LevelFilter};
-use ziggurat_core_crawler::summary::NetworkSummary;
-
 use governor::{
     clock::{QuantaClock, QuantaInstant},
     middleware::NoOpMiddleware,
     state::{InMemoryState, NotKeyed},
     Jitter, Quota, RateLimiter,
 };
+use reqwest::Client;
+use tracing::info;
+use tracing_subscriber::filter::{EnvFilter, LevelFilter};
+use ziggurat_core_crawler::summary::NetworkSummary;
 
 use crate::{
     args::Args,
