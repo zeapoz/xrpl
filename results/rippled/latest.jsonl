@@ -1,6 +1,6 @@
 { "type": "suite", "event": "started", "test_count": 53 }
 { "type": "test", "event": "started", "name": "protocol::codecs::message::tests::decode_and_encode" }
-{ "type": "test", "name": "protocol::codecs::message::tests::decode_and_encode", "event": "ok", "exec_time": 0.000296306 }
+{ "type": "test", "name": "protocol::codecs::message::tests::decode_and_encode", "event": "ok", "exec_time": 0.000201604 }
 { "type": "test", "event": "started", "name": "setup::node::test::run_stateful_nodes_in_parallel" }
 { "type": "test", "name": "setup::node::test::run_stateful_nodes_in_parallel", "event": "ignored", "message": "use only when changing src/setup files" }
 { "type": "test", "event": "started", "name": "setup::node::test::run_stateful_nodes_sequentially" }
@@ -14,158 +14,158 @@
 { "type": "test", "event": "started", "name": "setup::testnet::test::run_testnet" }
 { "type": "test", "name": "setup::testnet::test::run_testnet", "event": "ignored", "message": "used to set up a small testnet that can be used to procure node state" }
 { "type": "test", "event": "started", "name": "tests::conformance::cmd::cluster::c024_TM_CLUSTER_node_should_connect_to_other_nodes_in_cluster" }
-{ "type": "test", "name": "tests::conformance::cmd::cluster::c024_TM_CLUSTER_node_should_connect_to_other_nodes_in_cluster", "event": "ok", "exec_time": 11.289571191 }
+{ "type": "test", "name": "tests::conformance::cmd::cluster::c024_TM_CLUSTER_node_should_connect_to_other_nodes_in_cluster", "event": "ok", "exec_time": 10.69588066 }
 { "type": "test", "event": "started", "name": "tests::conformance::cmd::haveset::c020_MT_HAVESET_node_should_broadcast_transaction_set_to_all_peers" }
-{ "type": "test", "name": "tests::conformance::cmd::haveset::c020_MT_HAVESET_node_should_broadcast_transaction_set_to_all_peers", "event": "ok", "exec_time": 42.007490883 }
+{ "type": "test", "name": "tests::conformance::cmd::haveset::c020_MT_HAVESET_node_should_broadcast_transaction_set_to_all_peers", "event": "ok", "exec_time": 43.456653181 }
 { "type": "test", "event": "started", "name": "tests::conformance::cmd::squelch::c009_TM_SQUELCH_cannot_squelch_peer_ledger_proposals" }
-{ "type": "test", "name": "tests::conformance::cmd::squelch::c009_TM_SQUELCH_cannot_squelch_peer_ledger_proposals", "event": "ok", "exec_time": 4.841649769 }
+{ "type": "test", "name": "tests::conformance::cmd::squelch::c009_TM_SQUELCH_cannot_squelch_peer_ledger_proposals", "event": "ok", "exec_time": 4.477880874 }
 { "type": "test", "event": "started", "name": "tests::conformance::cmd::squelch::c016_TM_SQUELCH_squelch_distant_validators" }
-{ "type": "test", "name": "tests::conformance::cmd::squelch::c016_TM_SQUELCH_squelch_distant_validators", "event": "ok", "exec_time": 13.779855831 }
+{ "type": "test", "name": "tests::conformance::cmd::squelch::c016_TM_SQUELCH_squelch_distant_validators", "event": "ok", "exec_time": 13.13677424 }
 { "type": "test", "event": "started", "name": "tests::conformance::cmd::transaction::c019_MT_TRANSACTION_node_should_broadcast_transaction_to_all_peers" }
-{ "type": "test", "name": "tests::conformance::cmd::transaction::c019_MT_TRANSACTION_node_should_broadcast_transaction_to_all_peers", "event": "ok", "exec_time": 41.834439657 }
+{ "type": "test", "name": "tests::conformance::cmd::transaction::c019_MT_TRANSACTION_node_should_broadcast_transaction_to_all_peers", "event": "ok", "exec_time": 42.975329435 }
 { "type": "test", "event": "started", "name": "tests::conformance::handshake::c001_handshake_when_node_receives_connection" }
-{ "type": "test", "name": "tests::conformance::handshake::c001_handshake_when_node_receives_connection", "event": "ok", "exec_time": 2.035751792 }
+{ "type": "test", "name": "tests::conformance::handshake::c001_handshake_when_node_receives_connection", "event": "ok", "exec_time": 1.129875328 }
 { "type": "test", "event": "started", "name": "tests::conformance::handshake::c002_handshake_when_node_initiates_connection" }
-{ "type": "test", "name": "tests::conformance::handshake::c002_handshake_when_node_initiates_connection", "event": "ok", "exec_time": 2.432192228 }
+{ "type": "test", "name": "tests::conformance::handshake::c002_handshake_when_node_initiates_connection", "event": "ok", "exec_time": 2.395775356 }
 { "type": "test", "event": "started", "name": "tests::conformance::handshake::c006_node_should_not_send_any_messages_if_no_handshake" }
-{ "type": "test", "name": "tests::conformance::handshake::c006_node_should_not_send_any_messages_if_no_handshake", "event": "ok", "exec_time": 22.149286353 }
+{ "type": "test", "name": "tests::conformance::handshake::c006_node_should_not_send_any_messages_if_no_handshake", "event": "ok", "exec_time": 21.013102309 }
 { "type": "test", "event": "started", "name": "tests::conformance::post_handshake::endpoints::c018_TM_ENDPOINTS_node_should_send_endpoints_after_handshake" }
-{ "type": "test", "name": "tests::conformance::post_handshake::endpoints::c018_TM_ENDPOINTS_node_should_send_endpoints_after_handshake", "event": "ok", "exec_time": 1.7931952020000002 }
+{ "type": "test", "name": "tests::conformance::post_handshake::endpoints::c018_TM_ENDPOINTS_node_should_send_endpoints_after_handshake", "event": "ok", "exec_time": 1.6817780789999999 }
 { "type": "test", "event": "started", "name": "tests::conformance::post_handshake::manifest::c017_TM_MANIFEST_node_should_send_manifest_after_handshake" }
-{ "type": "test", "name": "tests::conformance::post_handshake::manifest::c017_TM_MANIFEST_node_should_send_manifest_after_handshake", "event": "ok", "exec_time": 1.209239328 }
+{ "type": "test", "name": "tests::conformance::post_handshake::manifest::c017_TM_MANIFEST_node_should_send_manifest_after_handshake", "event": "ok", "exec_time": 1.325332505 }
 { "type": "test", "event": "started", "name": "tests::conformance::post_handshake::peer_shard_info::c005_TM_GET_PEER_SHARD_INFO_V2_node_should_query_for_shard_info_after_handshake" }
-{ "type": "test", "name": "tests::conformance::post_handshake::peer_shard_info::c005_TM_GET_PEER_SHARD_INFO_V2_node_should_query_for_shard_info_after_handshake", "event": "ok", "exec_time": 1.189675346 }
+{ "type": "test", "name": "tests::conformance::post_handshake::peer_shard_info::c005_TM_GET_PEER_SHARD_INFO_V2_node_should_query_for_shard_info_after_handshake", "event": "ok", "exec_time": 2.226306987 }
 { "type": "test", "event": "started", "name": "tests::conformance::post_handshake::validation::c021_TM_VALIDATION_node_should_send_validation_after_handshake" }
-{ "type": "test", "name": "tests::conformance::post_handshake::validation::c021_TM_VALIDATION_node_should_send_validation_after_handshake", "event": "ok", "exec_time": 2.139391604 }
+{ "type": "test", "name": "tests::conformance::post_handshake::validation::c021_TM_VALIDATION_node_should_send_validation_after_handshake", "event": "ok", "exec_time": 1.346183418 }
 { "type": "test", "event": "started", "name": "tests::conformance::post_handshake::validators::c015_TM_VALIDATOR_LIST_COLLECTION_node_should_send_validator_list" }
-{ "type": "test", "name": "tests::conformance::post_handshake::validators::c015_TM_VALIDATOR_LIST_COLLECTION_node_should_send_validator_list", "event": "ok", "exec_time": 1.051777351 }
+{ "type": "test", "name": "tests::conformance::post_handshake::validators::c015_TM_VALIDATOR_LIST_COLLECTION_node_should_send_validator_list", "event": "ok", "exec_time": 1.591591485 }
 { "type": "test", "event": "started", "name": "tests::conformance::post_handshake::validators::c026_TM_VALIDATOR_LIST_send_validator_list" }
-{ "type": "test", "name": "tests::conformance::post_handshake::validators::c026_TM_VALIDATOR_LIST_send_validator_list", "event": "ok", "exec_time": 2.184196479 }
+{ "type": "test", "name": "tests::conformance::post_handshake::validators::c026_TM_VALIDATOR_LIST_send_validator_list", "event": "ok", "exec_time": 1.544403848 }
 { "type": "test", "event": "started", "name": "tests::conformance::query::get_by_hash::c007_TM_GET_OBJECT_BY_HASH_get_transaction_by_hash" }
-{ "type": "test", "name": "tests::conformance::query::get_by_hash::c007_TM_GET_OBJECT_BY_HASH_get_transaction_by_hash", "event": "ok", "exec_time": 4.443889761 }
+{ "type": "test", "name": "tests::conformance::query::get_by_hash::c007_TM_GET_OBJECT_BY_HASH_get_transaction_by_hash", "event": "ok", "exec_time": 4.510946619 }
 { "type": "test", "event": "started", "name": "tests::conformance::query::get_by_hash::c008_TM_HAVE_TRANSACTIONS_query_for_transactions_after_have_transactions" }
-{ "type": "test", "name": "tests::conformance::query::get_by_hash::c008_TM_HAVE_TRANSACTIONS_query_for_transactions_after_have_transactions", "event": "ok", "exec_time": 4.81689012 }
+{ "type": "test", "name": "tests::conformance::query::get_by_hash::c008_TM_HAVE_TRANSACTIONS_query_for_transactions_after_have_transactions", "event": "ok", "exec_time": 3.915402806 }
 { "type": "test", "event": "started", "name": "tests::conformance::query::ledger::c004_t1_TM_GET_LEDGER_LiBase_get_basic_info" }
-{ "type": "test", "name": "tests::conformance::query::ledger::c004_t1_TM_GET_LEDGER_LiBase_get_basic_info", "event": "ok", "exec_time": 1.786018358 }
+{ "type": "test", "name": "tests::conformance::query::ledger::c004_t1_TM_GET_LEDGER_LiBase_get_basic_info", "event": "ok", "exec_time": 0.96796596 }
 { "type": "test", "event": "started", "name": "tests::conformance::query::ledger::c004_t2_TM_GET_LEDGER_LiAsNode_get_account_state_info" }
-{ "type": "test", "name": "tests::conformance::query::ledger::c004_t2_TM_GET_LEDGER_LiAsNode_get_account_state_info", "event": "ok", "exec_time": 1.6315456350000002 }
+{ "type": "test", "name": "tests::conformance::query::ledger::c004_t2_TM_GET_LEDGER_LiAsNode_get_account_state_info", "event": "ok", "exec_time": 0.895637421 }
 { "type": "test", "event": "started", "name": "tests::conformance::query::peer_shard_info::c011_TM_GET_PEER_SHARD_INFO_V2_node_should_relay_shard_info" }
-{ "type": "test", "name": "tests::conformance::query::peer_shard_info::c011_TM_GET_PEER_SHARD_INFO_V2_node_should_relay_shard_info", "event": "ok", "exec_time": 8.593679894 }
+{ "type": "test", "name": "tests::conformance::query::peer_shard_info::c011_TM_GET_PEER_SHARD_INFO_V2_node_should_relay_shard_info", "event": "ok", "exec_time": 5.980896313 }
 { "type": "test", "event": "started", "name": "tests::conformance::query::peer_shard_info::c012_TM_GET_PEER_SHARD_INFO_V2_node_should_not_relay_shard_info_with_invalid_key_type" }
-{ "type": "test", "name": "tests::conformance::query::peer_shard_info::c012_TM_GET_PEER_SHARD_INFO_V2_node_should_not_relay_shard_info_with_invalid_key_type", "event": "ok", "exec_time": 22.117679478 }
+{ "type": "test", "name": "tests::conformance::query::peer_shard_info::c012_TM_GET_PEER_SHARD_INFO_V2_node_should_not_relay_shard_info_with_invalid_key_type", "event": "ok", "exec_time": 21.88495531 }
 { "type": "test", "event": "started", "name": "tests::conformance::query::peer_shard_info::c013_TM_GET_PEER_SHARD_INFO_V2_node_should_not_relay_shard_info_when_relays_equals_zero" }
-{ "type": "test", "name": "tests::conformance::query::peer_shard_info::c013_TM_GET_PEER_SHARD_INFO_V2_node_should_not_relay_shard_info_when_relays_equals_zero", "event": "ok", "exec_time": 22.239536731 }
+{ "type": "test", "name": "tests::conformance::query::peer_shard_info::c013_TM_GET_PEER_SHARD_INFO_V2_node_should_not_relay_shard_info_when_relays_equals_zero", "event": "ok", "exec_time": 21.73308656 }
 { "type": "test", "event": "started", "name": "tests::conformance::query::peer_shard_info::c014_TM_GET_PEER_SHARD_INFO_V2_node_should_not_relay_shard_info_when_relays_above_limit" }
-{ "type": "test", "name": "tests::conformance::query::peer_shard_info::c014_TM_GET_PEER_SHARD_INFO_V2_node_should_not_relay_shard_info_when_relays_above_limit", "event": "ok", "exec_time": 23.145416398 }
+{ "type": "test", "name": "tests::conformance::query::peer_shard_info::c014_TM_GET_PEER_SHARD_INFO_V2_node_should_not_relay_shard_info_when_relays_above_limit", "event": "ok", "exec_time": 21.742494004 }
 { "type": "test", "event": "started", "name": "tests::conformance::query::peer_shard_info::c023_TM_PEER_SHARD_INFO_V2_node_should_respond_with_shard_info_if_sharding_enabled" }
-{ "type": "test", "name": "tests::conformance::query::peer_shard_info::c023_TM_PEER_SHARD_INFO_V2_node_should_respond_with_shard_info_if_sharding_enabled", "event": "ok", "exec_time": 1.62150038 }
+{ "type": "test", "name": "tests::conformance::query::peer_shard_info::c023_TM_PEER_SHARD_INFO_V2_node_should_respond_with_shard_info_if_sharding_enabled", "event": "ok", "exec_time": 1.500799453 }
 { "type": "test", "event": "started", "name": "tests::conformance::query::ping_pong::c003_t1_TM_PING_expect_pong" }
-{ "type": "test", "name": "tests::conformance::query::ping_pong::c003_t1_TM_PING_expect_pong", "event": "ok", "exec_time": 1.5594393709999999 }
+{ "type": "test", "name": "tests::conformance::query::ping_pong::c003_t1_TM_PING_expect_pong", "event": "ok", "exec_time": 1.419491174 }
 { "type": "test", "event": "started", "name": "tests::conformance::query::ping_pong::c003_t2_TM_PING_expect_ping" }
-{ "type": "test", "name": "tests::conformance::query::ping_pong::c003_t2_TM_PING_expect_ping", "event": "ok", "exec_time": 123.004750462 }
+{ "type": "test", "name": "tests::conformance::query::ping_pong::c003_t2_TM_PING_expect_ping", "event": "ok", "exec_time": 123.280873401 }
 { "type": "test", "event": "started", "name": "tests::conformance::query::ping_pong::c003_t3_TM_PING_send_pong" }
-{ "type": "test", "name": "tests::conformance::query::ping_pong::c003_t3_TM_PING_send_pong", "event": "ok", "exec_time": 125.505473483 }
+{ "type": "test", "name": "tests::conformance::query::ping_pong::c003_t3_TM_PING_send_pong", "event": "ok", "exec_time": 125.14706203 }
 { "type": "test", "event": "started", "name": "tests::conformance::query::proof_path::c025_TM_PROOF_PATH_REQUEST_TM_PROOF_PATH_RESPONSE_send_req_expect_rsp" }
-{ "type": "test", "name": "tests::conformance::query::proof_path::c025_TM_PROOF_PATH_REQUEST_TM_PROOF_PATH_RESPONSE_send_req_expect_rsp", "event": "ok", "exec_time": 7.375167391 }
+{ "type": "test", "name": "tests::conformance::query::proof_path::c025_TM_PROOF_PATH_REQUEST_TM_PROOF_PATH_RESPONSE_send_req_expect_rsp", "event": "ok", "exec_time": 7.876069719 }
 { "type": "test", "event": "started", "name": "tests::conformance::query::replay_delta::c022_TM_REPLAY_DELTA_REQUEST_TM_REPLAY_DELTA_RESPONSE_node_should_respond_for_replay_delta_request" }
-{ "type": "test", "name": "tests::conformance::query::replay_delta::c022_TM_REPLAY_DELTA_REQUEST_TM_REPLAY_DELTA_RESPONSE_node_should_respond_for_replay_delta_request", "event": "ok", "exec_time": 6.980211618 }
+{ "type": "test", "name": "tests::conformance::query::replay_delta::c022_TM_REPLAY_DELTA_REQUEST_TM_REPLAY_DELTA_RESPONSE_node_should_respond_for_replay_delta_request", "event": "ok", "exec_time": 7.111773666 }
 { "type": "test", "event": "started", "name": "tests::conformance::stateful::should_start_stop_stateful_node" }
 { "type": "test", "name": "tests::conformance::stateful::should_start_stop_stateful_node", "event": "ignored", "message": "convenience test to tinker with a running node for dev purposes" }
 { "type": "test", "event": "started", "name": "tests::conformance::status::c010_TM_STATUS_CHANGE_node_should_send_ledger_information_using_status_change" }
-{ "type": "test", "name": "tests::conformance::status::c010_TM_STATUS_CHANGE_node_should_send_ledger_information_using_status_change", "event": "ok", "exec_time": 6.702320344 }
+{ "type": "test", "name": "tests::conformance::status::c010_TM_STATUS_CHANGE_node_should_send_ledger_information_using_status_change", "event": "ok", "exec_time": 6.6768372849999995 }
 { "type": "test", "event": "started", "name": "tests::performance::connections::p002_connections_load" }
 
 ┌─────────────┬─────────┬──────────────┬──────────────┬──────────────┬──────────────┬──────────────┬────────────┐
 │             │         │  connection  │  connection  │  connection  │  connection  │  connection  │            │
 │  max peers  │  peers  │  accepted    │  rejected    │  terminated  │  error       │  timed out   │  time (s)  │
 ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
-│         100 │       1 │            1 │            0 │            0 │            0 │            0 │       0.46 │
+│         100 │       1 │            1 │            0 │            0 │            0 │            0 │       0.76 │
 ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
 │         100 │       5 │            5 │            0 │            0 │            0 │            0 │       2.34 │
 ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
-│         100 │      10 │           10 │            0 │            0 │            0 │            0 │       4.58 │
+│         100 │      10 │           10 │            0 │            0 │            0 │            0 │       3.26 │
 ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
-│         100 │      20 │           16 │            4 │            0 │            0 │            0 │       8.11 │
+│         100 │      20 │           19 │            1 │            0 │            0 │            0 │       6.21 │
 ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
-│         100 │      30 │           16 │           14 │            0 │            0 │            0 │      11.74 │
+│         100 │      30 │           18 │           12 │            0 │            0 │            0 │       8.81 │
 ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
-│         100 │      50 │           18 │           32 │            0 │            0 │            0 │      18.42 │
+│         100 │      50 │           17 │           33 │            0 │            0 │            0 │      15.49 │
 ├─────────────┼─────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼────────────┤
-│         100 │     100 │            0 │            0 │            0 │            0 │          100 │      36.30 │
+│         100 │     100 │            0 │           61 │            0 │            0 │           39 │      32.34 │
 └─────────────┴─────────┴──────────────┴──────────────┴──────────────┴──────────────┴──────────────┴────────────┘
-{ "type": "test", "name": "tests::performance::connections::p002_connections_load", "event": "failed", "exec_time": 88.72620067 }
+{ "type": "test", "name": "tests::performance::connections::p002_connections_load", "event": "failed", "exec_time": 73.34850156 }
 { "type": "test", "event": "started", "name": "tests::performance::get_trans::p003_t1_GET_TRANSACTION_latency" }
 
 ┌─────────┬────────────┬────────────┬────────────┬────────────────┬────────────┬────────────┬────────────┬────────────┬────────────┬────────────────┬────────────┬──────────────┐
 │  peers  │  requests  │  min (ms)  │  max (ms)  │  std dev (ms)  │  10% (ms)  │  50% (ms)  │  75% (ms)  │  90% (ms)  │  99% (ms)  │  completion %  │  time (s)  │  requests/s  │
 ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-│       1 │        150 │          0 │         42 │              4 │          0 │          0 │          0 │          0 │         42 │         100.00 │       0.74 │       203.71 │
+│       1 │        150 │          0 │         40 │              4 │          0 │          0 │          0 │          0 │         40 │         100.00 │       0.81 │       185.03 │
 ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-│      10 │        150 │          0 │         49 │              5 │          0 │          0 │          0 │          3 │         14 │         100.00 │       4.35 │       345.02 │
+│      10 │        150 │          0 │         56 │              4 │          0 │          0 │          0 │          1 │          9 │         100.00 │       2.91 │       515.69 │
 ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-│      20 │        150 │          0 │         50 │              6 │          0 │          2 │          6 │          9 │         41 │          85.00 │       8.49 │       300.41 │
+│      20 │        150 │          0 │         65 │              7 │          0 │          2 │          7 │         12 │         21 │         100.00 │       6.05 │       496.09 │
 ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-│      50 │        150 │          0 │         64 │              5 │          0 │          3 │          3 │          5 │         16 │          30.00 │      17.68 │       127.28 │
+│      50 │        150 │          0 │         57 │              5 │          0 │          1 │          2 │          3 │         36 │          32.00 │      14.33 │       167.47 │
 ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-│      75 │        150 │          0 │         52 │              6 │          0 │          0 │          5 │         10 │         40 │          20.00 │      25.83 │        87.10 │
+│      75 │        150 │          0 │        120 │              7 │          0 │          1 │          4 │          8 │         40 │          24.00 │      21.71 │       124.35 │
 ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-│     100 │        150 │          0 │         55 │              6 │          0 │          0 │          4 │          9 │         19 │          14.00 │      36.53 │        57.49 │
+│     100 │        150 │          0 │         96 │              5 │          0 │          1 │          2 │          5 │         16 │          17.00 │      29.08 │        87.70 │
 ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-│     125 │        150 │          0 │        153 │              6 │          0 │          2 │          2 │          6 │         14 │          11.20 │      45.81 │        45.84 │
+│     125 │        150 │          0 │         56 │              7 │          0 │          1 │          6 │         11 │         40 │          13.60 │      37.30 │        68.36 │
 ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-│     150 │        150 │          0 │         49 │              5 │          0 │          2 │          4 │          8 │         18 │          10.00 │      54.37 │        41.38 │
+│     150 │        150 │          0 │         90 │              6 │          0 │          1 │          4 │          9 │         20 │          12.00 │      44.91 │        60.12 │
 ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-│     200 │        150 │          0 │         51 │              5 │          0 │          1 │          3 │          8 │         19 │           7.50 │      74.12 │        30.36 │
+│     200 │        150 │          0 │         57 │              5 │          0 │          1 │          2 │          6 │         14 │           8.50 │      59.46 │        42.88 │
 └─────────┴────────────┴────────────┴────────────┴────────────────┴────────────┴────────────┴────────────┴────────────┴────────────┴────────────────┴────────────┴──────────────┘
-{ "type": "test", "name": "tests::performance::get_trans::p003_t1_GET_TRANSACTION_latency", "event": "ok", "exec_time": 331.464161955 }
+{ "type": "test", "name": "tests::performance::get_trans::p003_t1_GET_TRANSACTION_latency", "event": "ok", "exec_time": 278.490093583 }
 { "type": "test", "event": "started", "name": "tests::performance::ping_pong::p001_t1_PING_PONG_throughput" }
 
 ┌─────────┬────────────┬────────────┬────────────┬────────────────┬────────────┬────────────┬────────────┬────────────┬────────────┬────────────────┬────────────┬──────────────┐
 │  peers  │  requests  │  min (ms)  │  max (ms)  │  std dev (ms)  │  10% (ms)  │  50% (ms)  │  75% (ms)  │  90% (ms)  │  99% (ms)  │  completion %  │  time (s)  │  requests/s  │
 ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-│       1 │       1000 │          0 │         48 │              6 │          0 │          0 │          0 │          0 │         43 │         100.00 │       2.34 │       428.23 │
+│       1 │       1000 │          0 │         43 │              2 │          0 │          0 │          0 │          0 │          0 │         100.00 │       0.90 │      1114.71 │
 ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-│      10 │       1000 │          0 │         52 │              6 │          0 │          0 │          1 │          3 │         44 │          19.60 │       8.55 │       229.14 │
+│      10 │       1000 │          0 │         60 │             10 │          0 │          0 │          1 │          2 │         44 │          19.19 │       8.46 │       226.95 │
 ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-│      15 │       1000 │          0 │         63 │             12 │          0 │          2 │          4 │         11 │         47 │          12.79 │      11.07 │       173.32 │
+│      15 │       1000 │          0 │         47 │              4 │          0 │          1 │          2 │          3 │         12 │          12.80 │       9.00 │       213.34 │
 ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-│      20 │       1000 │          0 │         57 │              8 │          0 │          2 │          8 │         13 │         45 │           9.59 │      12.91 │       148.69 │
+│      20 │       1000 │          0 │         52 │              7 │          0 │          1 │          2 │          5 │         42 │           9.59 │      10.94 │       175.48 │
 ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-│      30 │       1000 │          0 │         71 │             10 │          0 │          1 │          3 │          9 │         45 │           6.40 │      15.49 │       124.05 │
+│      30 │       1000 │          0 │         68 │             12 │          0 │          1 │          2 │          8 │         48 │           6.58 │      13.41 │       147.27 │
 ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-│      50 │       1000 │          0 │         65 │             12 │          0 │          1 │          3 │          8 │         50 │           3.87 │      24.01 │        80.50 │
+│      50 │       1000 │          0 │         83 │             13 │          0 │          1 │          1 │          9 │         48 │           3.84 │      19.03 │       100.82 │
 ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-│     100 │       1000 │          0 │        206 │             19 │          0 │          1 │          2 │         10 │         72 │           1.94 │      48.35 │        40.12 │
+│     100 │       1000 │          0 │        229 │             25 │          0 │          1 │          6 │         41 │         65 │           1.98 │      36.28 │        54.60 │
 ├─────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼────────────┼────────────┼────────────┼────────────┼────────────────┼────────────┼──────────────┤
-│     150 │       1000 │          0 │        216 │             20 │          0 │          1 │          6 │         44 │         53 │           1.28 │      71.62 │        26.88 │
+│     150 │       1000 │          0 │        179 │             10 │          0 │          1 │          1 │          4 │         48 │           1.28 │      55.87 │        34.40 │
 └─────────┴────────────┴────────────┴────────────┴────────────────┴────────────┴────────────┴────────────┴────────────┴────────────┴────────────────┴────────────┴──────────────┘
-{ "type": "test", "name": "tests::performance::ping_pong::p001_t1_PING_PONG_throughput", "event": "ok", "exec_time": 200.952332189 }
+{ "type": "test", "name": "tests::performance::ping_pong::p001_t1_PING_PONG_throughput", "event": "ok", "exec_time": 160.004568478 }
 { "type": "test", "event": "started", "name": "tests::resistance::handshake::normal_handshake" }
 { "type": "test", "name": "tests::resistance::handshake::normal_handshake", "event": "ignored", "message": "internal test" }
 { "type": "test", "event": "started", "name": "tests::resistance::handshake::r001_t1_HANDSHAKE_reject_if_user_agent_too_long" }
-{ "type": "test", "name": "tests::resistance::handshake::r001_t1_HANDSHAKE_reject_if_user_agent_too_long", "event": "ok", "exec_time": 2.421373129 }
+{ "type": "test", "name": "tests::resistance::handshake::r001_t1_HANDSHAKE_reject_if_user_agent_too_long", "event": "ok", "exec_time": 1.833956208 }
 { "type": "test", "event": "started", "name": "tests::resistance::handshake::r001_t2_HANDSHAKE_reject_if_server_too_long" }
-{ "type": "test", "name": "tests::resistance::handshake::r001_t2_HANDSHAKE_reject_if_server_too_long", "event": "ok", "exec_time": 3.453018598 }
+{ "type": "test", "name": "tests::resistance::handshake::r001_t2_HANDSHAKE_reject_if_server_too_long", "event": "ok", "exec_time": 3.029795255 }
 { "type": "test", "event": "started", "name": "tests::resistance::handshake::r001_t3_HANDSHAKE_connection_field" }
-{ "type": "test", "name": "tests::resistance::handshake::r001_t3_HANDSHAKE_connection_field", "event": "ok", "exec_time": 11.442956953 }
+{ "type": "test", "name": "tests::resistance::handshake::r001_t3_HANDSHAKE_connection_field", "event": "ok", "exec_time": 9.475118043 }
 { "type": "test", "event": "started", "name": "tests::resistance::handshake::r001_t4_HANDSHAKE_connect_as_field" }
-{ "type": "test", "name": "tests::resistance::handshake::r001_t4_HANDSHAKE_connect_as_field", "event": "ok", "exec_time": 112.998359555 }
+{ "type": "test", "name": "tests::resistance::handshake::r001_t4_HANDSHAKE_connect_as_field", "event": "ok", "exec_time": 110.524891365 }
 { "type": "test", "event": "started", "name": "tests::resistance::handshake::r001_t5_HANDSHAKE_crawl_field" }
-{ "type": "test", "name": "tests::resistance::handshake::r001_t5_HANDSHAKE_crawl_field", "event": "ok", "exec_time": 5.133261578 }
+{ "type": "test", "name": "tests::resistance::handshake::r001_t5_HANDSHAKE_crawl_field", "event": "ok", "exec_time": 4.226356608 }
 { "type": "test", "event": "started", "name": "tests::resistance::handshake::r001_t6_HANDSHAKE_x_protocol_ctl_field" }
-{ "type": "test", "name": "tests::resistance::handshake::r001_t6_HANDSHAKE_x_protocol_ctl_field", "event": "ok", "exec_time": 8.540063593 }
+{ "type": "test", "name": "tests::resistance::handshake::r001_t6_HANDSHAKE_x_protocol_ctl_field", "event": "ok", "exec_time": 5.870543207 }
 { "type": "test", "event": "started", "name": "tests::resistance::handshake::r001_t7_HANDSHAKE_network_time_field" }
-{ "type": "test", "name": "tests::resistance::handshake::r001_t7_HANDSHAKE_network_time_field", "event": "ok", "exec_time": 89.642663377 }
+{ "type": "test", "name": "tests::resistance::handshake::r001_t7_HANDSHAKE_network_time_field", "event": "ok", "exec_time": 88.195191865 }
 { "type": "test", "event": "started", "name": "tests::resistance::handshake::r001_t8_HANDSHAKE_upgrade_req_field" }
-{ "type": "test", "name": "tests::resistance::handshake::r001_t8_HANDSHAKE_upgrade_req_field", "event": "ok", "exec_time": 31.99452453 }
+{ "type": "test", "name": "tests::resistance::handshake::r001_t8_HANDSHAKE_upgrade_req_field", "event": "ok", "exec_time": 28.103850177 }
 { "type": "test", "event": "started", "name": "tests::resistance::handshake::r003_t1_HANDSHAKE_reject_if_public_key_has_bit_flipped" }
-{ "type": "test", "name": "tests::resistance::handshake::r003_t1_HANDSHAKE_reject_if_public_key_has_bit_flipped", "event": "ok", "exec_time": 3.366999076 }
+{ "type": "test", "name": "tests::resistance::handshake::r003_t1_HANDSHAKE_reject_if_public_key_has_bit_flipped", "event": "ok", "exec_time": 2.482594802 }
 { "type": "test", "event": "started", "name": "tests::resistance::handshake::r003_t2_HANDSHAKE_reject_if_shared_value_has_bit_flipped" }
-{ "type": "test", "name": "tests::resistance::handshake::r003_t2_HANDSHAKE_reject_if_shared_value_has_bit_flipped", "event": "ok", "exec_time": 3.167328968 }
+{ "type": "test", "name": "tests::resistance::handshake::r003_t2_HANDSHAKE_reject_if_shared_value_has_bit_flipped", "event": "ok", "exec_time": 2.7008253 }
 { "type": "test", "event": "started", "name": "tests::resistance::random_bytes::r002_node_must_disconnect_when_receiving_random_bytes" }
-Seed for RNG: [142, 131, 36, 156, 61, 42, 131, 150, 148, 209, 211, 87, 224, 82, 199, 39, 31, 89, 89, 135, 50, 178, 233, 223, 88, 239, 81, 247, 131, 226, 79, 46]
-{ "type": "test", "name": "tests::resistance::random_bytes::r002_node_must_disconnect_when_receiving_random_bytes", "event": "ok", "exec_time": 16.379942813 }
+Seed for RNG: [139, 73, 182, 66, 94, 201, 203, 113, 134, 150, 233, 226, 230, 225, 87, 239, 150, 187, 23, 120, 88, 217, 122, 218, 204, 4, 227, 150, 106, 218, 59, 11]
+{ "type": "test", "name": "tests::resistance::random_bytes::r002_node_must_disconnect_when_receiving_random_bytes", "event": "failed", "exec_time": 3.155890031 }
 { "type": "test", "event": "started", "name": "tests::resistance::random_bytes::r004_node_must_disconnect_when_receiving_random_bytes_pre_handshake" }
-Seed for RNG: [248, 177, 52, 200, 229, 114, 149, 8, 13, 131, 30, 175, 100, 250, 237, 232, 145, 192, 98, 6, 94, 120, 168, 6, 7, 27, 248, 161, 232, 192, 46, 248]
-{ "type": "test", "name": "tests::resistance::random_bytes::r004_node_must_disconnect_when_receiving_random_bytes_pre_handshake", "event": "ok", "exec_time": 16.026746499 }
-{ "type": "suite", "event": "failed", "passed": 44, "failed": 1, "ignored": 8, "measured": 0, "filtered_out": 0, "exec_time": 1437.189828591 }
+Seed for RNG: [80, 208, 137, 199, 109, 152, 250, 6, 98, 201, 218, 152, 147, 225, 223, 118, 147, 142, 5, 120, 221, 63, 227, 76, 49, 184, 55, 36, 215, 23, 254, 217]
+{ "type": "test", "name": "tests::resistance::random_bytes::r004_node_must_disconnect_when_receiving_random_bytes_pre_handshake", "event": "ok", "exec_time": 13.212160581 }
+{ "type": "suite", "event": "failed", "passed": 43, "failed": 2, "ignored": 8, "measured": 0, "filtered_out": 0, "exec_time": 1288.311777111 }
