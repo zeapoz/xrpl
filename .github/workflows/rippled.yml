@@ -5,35 +5,8 @@ on:
     - cron: '0 6 * * *' # Every day at 6:00 AM UTC.
 
 jobs:
-  install-rippled:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install dependencies
-        run: |
-          pip install -Iv conan==1.59.0
-          wget https://github.com/Kitware/CMake/releases/download/v3.16.3/cmake-3.16.3-Linux-x86_64.sh
-          sudo sh cmake-3.16.3-Linux-x86_64.sh --prefix=/usr/local --exclude-subdir
-      - name: Clone rippled and set up conan
-        run: |
-          git clone https://github.com/XRPLF/rippled
-          cd rippled
-          git checkout master
-          conan profile new default --detect
-          conan profile update settings.compiler.cppstd=20 default
-          conan profile update settings.compiler.libcxx=libstdc++11 default
-      - name: Build rippled
-        run: |
-          cd rippled
-          conan export external/snappy snappy/1.1.9@
-          mkdir build
-          cd build
-          conan install .. --output-folder . --build missing --settings build_type=Release
-          cmake -DCMAKE_TOOLCHAIN_FILE:FILEPATH=build/generators/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release ..
-          cmake --build . -j $(nproc)
-      - uses: actions/upload-artifact@v3
-        with:
-          name: rippled-executable
-          path: ./rippled/build/rippled
+  call-install-rippled-workflow:
+    uses: runziggurat/xrpl/.github/workflows/install-rippled.yml@main
 
   install-ziggurat:
     runs-on: ubuntu-latest
@@ -49,7 +22,7 @@ jobs:
 
   test-rippled:
     runs-on: ubuntu-latest
-    needs: [ install-ziggurat, install-rippled ]
+    needs: [ install-ziggurat, call-install-rippled-workflow ]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -91,41 +64,19 @@ jobs:
           mv ./ziggurat/ziggurat_* ziggurat_test
           chmod +x ziggurat_test
           mkdir -p results/rippled
-          mv results/rippled/latest.jsonl results/rippled/comparison.jsonl
+          mv results/rippled/latest.jsonl results/rippled/previous.jsonl
           ./ziggurat_test --test-threads=1 --nocapture -Z unstable-options --report-time --format json > results/rippled/latest.jsonl
-          cat results/rippled/latest.jsonl
-      - name: Process results
-        run: |
-          FILENAME=$(date +%Y-%m-%d)
-          cd results/rippled
-          cp latest.jsonl $FILENAME.jsonl
-          gzip $FILENAME.jsonl
-      - name: Compare results
-        run: |
-          # Helper function to remove ignored tests and started ones, and then attributes exec_time and type
-          filter_json() {
-            tmp=$(mktemp)
-            ! jq 'del(select(.event == "ignored"))' $1 > $tmp && mv $tmp $1 # Remove ignored tests
-            jq 'del(select(.event == "started"))' $1 > $tmp && mv $tmp $1 # Remove started tests
-            jq 'del(.exec_time) | del(.type)' $1 > $tmp && mv $tmp $1 # Remove exec_time and type attributes
-            # Remove null characters and empty lines
-            sed -i 's/null//g' $1
-            sed -i '/^$/d' $1
-          }
-          mkdir temp
-          cp results/rippled/latest.jsonl temp/
-          mv results/rippled/comparison.jsonl temp/
-          cd temp
-          filter_json latest.jsonl
-          filter_json comparison.jsonl
-          ! diff -u comparison.jsonl latest.jsonl
-          cd ..
-          rm -rf temp
-      - name: Git
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git pull
-          git add results/rippled
-          git commit -m "ci: rippled suite results"
-          git push
+      - uses: actions/upload-artifact@v3
+        with:
+          name: latest-result
+          path: results/rippled/latest.jsonl
+      - uses: actions/upload-artifact@v3
+        with:
+          name: previous-result
+          path: results/rippled/previous.jsonl
+
+  call-process-results-workflow:
+    needs: [ test-rippled ]
+    uses: runziggurat/zcash/.github/workflows/process-results.yml@main
+    with:
+      name: rippled
