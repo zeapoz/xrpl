@@ -16,6 +16,7 @@ use ziggurat_xrpl::tools::inner_node::InnerNode;
 use crate::{
     crawl::{get_crawl_response, CrawlResponse, Peer},
     network::KnownNetwork,
+    Limiter,
 };
 const CRAWLER_DEFAULT_PORT: u16 = 51235;
 const PROTOCOL_DEFAULT_PORT: u16 = 2459;
@@ -39,6 +40,7 @@ impl Crawler {
 /// process it and start more crawl tasks recursively.
 pub(super) fn crawl(
     client: Client,
+    limiter: Arc<Limiter>,
     ip: IpAddr,
     port: Option<u16>,
     known_network: Arc<KnownNetwork>,
@@ -59,12 +61,21 @@ pub(super) fn crawl(
             loop {
                 let mut success = false;
                 for port in &ports {
+                    limiter.until_ready().await;
+
                     // TODO(team): decide how to use this information about the handshake_successful data
                     tokio::spawn(try_handshake(
                         SocketAddr::new(ip, *port),
                         known_network.clone(),
                     ));
-                    success = try_crawling(client.clone(), ip, *port, known_network.clone()).await;
+                    success = try_crawling(
+                        client.clone(),
+                        limiter.clone(),
+                        ip,
+                        *port,
+                        known_network.clone(),
+                    )
+                    .await;
                     if success {
                         break;
                     }
@@ -120,6 +131,7 @@ async fn try_handshake(addr: SocketAddr, known_network: Arc<KnownNetwork>) {
 
 async fn try_crawling(
     client: Client,
+    limiter: Arc<Limiter>,
     ip: IpAddr,
     port: u16,
     known_network: Arc<KnownNetwork>,
@@ -142,7 +154,14 @@ async fn try_crawling(
                 .insert_connections(SocketAddr::new(ip, port), &peers)
                 .await;
             for (ip, port) in addresses {
-                crawl(client.clone(), ip, port, known_network.clone()).await;
+                crawl(
+                    client.clone(),
+                    limiter.clone(),
+                    ip,
+                    port,
+                    known_network.clone(),
+                )
+                .await;
             }
             true
         }
