@@ -1,0 +1,33 @@
+on:
+  workflow_call:
+
+jobs:
+  install-rippled:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: |
+          pip install -Iv conan==1.59.0
+          wget https://github.com/Kitware/CMake/releases/download/v3.16.3/cmake-3.16.3-Linux-x86_64.sh
+          sudo sh cmake-3.16.3-Linux-x86_64.sh --prefix=/usr/local --exclude-subdir
+      - name: Clone rippled and set up conan
+        run: |
+          git clone https://github.com/XRPLF/rippled
+          cd rippled
+          git checkout master
+          conan profile new default --detect
+          conan profile update settings.compiler.cppstd=20 default
+          conan profile update settings.compiler.libcxx=libstdc++11 default
+      - name: Build rippled
+        run: |
+          cd rippled
+          conan export external/snappy snappy/1.1.9@
+          mkdir build
+          cd build
+          conan install .. --output-folder . --build missing --settings build_type=Release
+          cmake -DCMAKE_TOOLCHAIN_FILE:FILEPATH=build/generators/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release ..
+          cmake --build . -j $(nproc)
+      - uses: actions/upload-artifact@v3
+        with:
+          name: rippled-executable
+          path: ./rippled/build/rippled
