@@ -5,12 +5,12 @@ on:
     - cron: '0 6 * * *' # Every day at 6:00 AM UTC.
 
 jobs:
-  call-install-rippled-workflow:
-    uses: runziggurat/xrpl/.github/workflows/install-rippled.yml@main
+  call-build-rippled-workflow:
+    uses: runziggurat/xrpl/.github/workflows/build-rippled.yml@main
 
   crawl-network:
     runs-on: ubuntu-latest
-    needs: [ call-install-rippled-workflow ]
+    needs: [ call-build-rippled-workflow ]
     steps:
       - uses: actions/checkout@v3
         with:
