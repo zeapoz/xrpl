@@ -2,7 +2,7 @@ on:
   workflow_call:
 
 jobs:
-  install-rippled:
+  build-rippled:
     runs-on: ubuntu-latest
     steps:
       - name: Install dependencies
