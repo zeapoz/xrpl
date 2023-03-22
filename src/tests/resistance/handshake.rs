@@ -17,6 +17,7 @@ use crate::{
         constants::CONNECTION_TIMEOUT,
         node::{ChildExitCode, Node, NodeType},
     },
+    tests::conformance::RIPPLE_EPOCH,
     tools::{
         config::SynthNodeCfg,
         synth_node::{self, SyntheticNode},
@@ -27,9 +28,6 @@ use crate::{
 // Empirical values based on some unofficial testing.
 const WS_HTTP_HEADER_MAX_SIZE: usize = 7700;
 const WS_HTTP_HEADER_INVALID_SIZE: usize = WS_HTTP_HEADER_MAX_SIZE + 300;
-
-// Number of seconds between unix and ripple epoch.
-const RIPPLE_EPOCH_OFFSET: u64 = 946684800;
 
 #[allow(non_snake_case)]
 #[tokio::test]
@@ -390,7 +388,7 @@ async fn r001_t7_HANDSHAKE_network_time_field() {
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap()
         .as_secs()
-        - RIPPLE_EPOCH_OFFSET;
+        - RIPPLE_EPOCH as u64;
     // Valid value for Network-Time
     let cfg = gen_cfg(format!("{time_now}"));
     assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
@@ -464,6 +462,130 @@ async fn r001_t8_HANDSHAKE_upgrade_req_field() {
     // Use a huge value which the node will always reject.
     let cfg = gen_cfg(format!("{:#8000}", "XRPL/2.2"));
     assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+}
+
+#[allow(non_snake_case)]
+#[tokio::test]
+async fn r001_t9_HANDSHAKE_user_agent_field() {
+    // ZG-RESISTANCE-001
+    // Expected valid value for the "User-Agent" field in the handshake should be a valid string.
+
+    let debug = Debug::disable();
+
+    let gen_cfg = |ident: String| SynthNodeCfg {
+        handshake: Some(HandshakeCfg {
+            http_ident: ident,
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    // Valid value for User-Agent
+    let cfg = gen_cfg("Ziggurat/1.0".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // These values are also valid, but should they be?
+    let cfg = gen_cfg("".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+    let cfg = gen_cfg("الزقورة".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Find the largest instance value which the node could accept.
+    let cfg = gen_cfg(format!("{:#7000}", "Ziggurat/1.0"));
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Invalid values for User-Agent
+    // String too long
+    let cfg = gen_cfg(format!("{:#9000}", "Ziggurat/1.0"));
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+}
+
+#[allow(non_snake_case)]
+#[tokio::test]
+async fn r001_t10_HANDSHAKE_closed_ledger_field() {
+    // ZG-RESISTANCE-001
+    // Expected valid value for the "Closed-ledger" field in the handshake should be a valid string.
+
+    let debug = Debug::disable();
+
+    let gen_cfg = |ledger: String| SynthNodeCfg {
+        handshake: Some(HandshakeCfg {
+            http_closed_ledger: Some(ledger),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    // Valid value for Closed-Ledger
+    let cfg = gen_cfg("X72fvYvkYwPj7iFsE4OTiSwSd5Okz40P+eBRwsOXo4g=".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Invalid values
+    // Too short
+    let cfg = gen_cfg("vYvkYwPj7iFsE4OTiSwSd5Okz40P+eBRwsOXo4g=".to_owned());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Too long
+    let cfg = gen_cfg("X72fvYvkYwPj7iFsE4OTiSwSdSwSd5Okz40P+eBRwsOXo4g=".to_owned());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Empty
+    let cfg = gen_cfg("".to_owned());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Valid encoding but too long
+    let cfg = gen_cfg(format!(
+        "{:#9000}",
+        "X72fvYvkYwPj7iFsE4OTiSwSd5Okz40P+eBRwsOXo4g="
+    ));
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+}
+
+#[allow(non_snake_case)]
+#[tokio::test]
+async fn r001_t11_HANDSHAKE_previous_ledger_field() {
+    // ZG-RESISTANCE-001
+    // Expected valid value for the "Previous-Ledger" field in the handshake should be a valid string.
+
+    let debug = Debug::disable();
+
+    let gen_cfg = |ledger: String| SynthNodeCfg {
+        handshake: Some(HandshakeCfg {
+            http_prev_ledger: Some(ledger),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    // Valid value for Previous-Ledger but unable to do handshake
+    let cfg = gen_cfg("6bsyOYDSAux+Ubqyqo41NT+ce9q1m/FzeOrdTQSG758=".to_owned());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+
+    // Invalid values
+    // Empty
+    let cfg = gen_cfg("".to_owned());
+    assert!(!run_handshake_req_test_with_cfg(cfg, debug).await);
+}
+
+#[allow(non_snake_case)]
+#[tokio::test]
+async fn r001_t12_HANDSHAKE_extra_field() {
+    // ZG-RESISTANCE-001
+    // Checks for handshake status after sending various extra header fields.
+
+    let debug = Debug::disable();
+
+    let gen_cfg = |value: String| SynthNodeCfg {
+        handshake: Some(HandshakeCfg {
+            http_unexpected_extra_field_and_value: Some(value),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    // Repeat a field with different value. "Connect-As: Peer" is always present during a handshake"
+    let cfg = gen_cfg("Connect-As: NonPear".to_owned());
+    assert!(run_handshake_req_test_with_cfg(cfg, debug).await);
 }
 
 #[allow(non_snake_case)]
