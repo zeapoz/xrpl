@@ -20,7 +20,6 @@ const ST_TAG_SIGNATURE: u8 = 0x76;
 const ST_TAG_MASTER_SIGNATURE: u8 = 0x12;
 
 const ONE_YEAR: u32 = 86400 * 365;
-const JAN1_2000: u32 = 946684800;
 const RAND_SEQUENCE_NUMBER: u32 = 2022102584;
 const MANIFEST_PREFIX: &[u8] = b"MAN\x00";
 const WAIT_MSG_TIMEOUT: Duration = Duration::from_secs(5);
@@ -37,7 +36,7 @@ use crate::{
         proto::TmValidatorList,
     },
     setup::node::{Node, NodeType},
-    tests::conformance::{perform_expected_message_test, PUBLIC_KEY_TYPES},
+    tests::conformance::{perform_expected_message_test, PUBLIC_KEY_TYPES, RIPPLE_EPOCH},
     tools::synth_node::SyntheticNode,
 };
 
@@ -116,7 +115,7 @@ fn get_expiration() -> u32 {
         .expect("time went backwards");
     let now = epoch.as_secs() as u32;
     let year: u32 = ONE_YEAR;
-    now + year - JAN1_2000
+    now + year - RIPPLE_EPOCH
 }
 
 fn create_validator_list_json(manifest: &[u8], public_key: &str) -> String {
