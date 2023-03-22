@@ -36,11 +36,8 @@ enum NodeLogToStdout {
 }
 
 impl NodeLogToStdout {
-    fn is_on(self) -> bool {
-        match self {
-            NodeLogToStdout::Off => false,
-            _ => true,
-        }
+    fn is_on(&self) -> bool {
+        matches!(self, NodeLogToStdout::On)
     }
 }
 
@@ -105,8 +102,10 @@ async fn dev001_t1_RUN_NODE_FOREVER_with_logs() {
 async fn dev001_t2_RUN_NODE_FOREVER_no_logs() {
     // This test is used for testing/development purposes.
 
-    let mut cfg = DevTestCfg::default();
-    cfg.crawl = PeriodicCrawlOpt::On(Duration::from_secs(2));
+    let cfg = DevTestCfg {
+        crawl: PeriodicCrawlOpt::On(Duration::from_secs(2)),
+        ..Default::default()
+    };
     node_run_forever(cfg).await;
 
     panic!("the node shouldn't have died");
@@ -118,9 +117,11 @@ async fn dev001_t2_RUN_NODE_FOREVER_no_logs() {
 async fn dev002_t1_MONITOR_NODE_FOREVER_WITH_SYNTH_NODE_sn_is_conn_initiator() {
     // This test is used for testing/development purposes.
 
-    let mut cfg = DevTestCfg::default();
-    cfg.crawl = PeriodicCrawlOpt::On(Duration::from_secs(3));
-    cfg.synth_node = SynthNodeOpt::On_TryToConnect(SynthNodeCfg::default());
+    let cfg = DevTestCfg {
+        crawl: PeriodicCrawlOpt::On(Duration::from_secs(3)),
+        synth_node: SynthNodeOpt::On_TryToConnect(SynthNodeCfg::default()),
+        ..Default::default()
+    };
     node_run_forever(cfg).await;
 
     panic!("the node shouldn't have died");
@@ -132,11 +133,12 @@ async fn dev002_t1_MONITOR_NODE_FOREVER_WITH_SYNTH_NODE_sn_is_conn_initiator() {
 async fn dev002_t2_MONITOR_NODE_FOREVER_WITH_SYNTH_NODE_sn_is_conn_responder() {
     // This test is used for testing/development purposes.
 
-    let mut cfg = DevTestCfg::default();
-    cfg.log_to_stdout = NodeLogToStdout::On;
-    cfg.tracing = TracingOpt::On;
-    cfg.crawl = PeriodicCrawlOpt::On(Duration::from_secs(5));
-    cfg.synth_node = SynthNodeOpt::On_OnlyListening(SynthNodeCfg::default());
+    let cfg = DevTestCfg {
+        log_to_stdout: NodeLogToStdout::On,
+        tracing: TracingOpt::On,
+        crawl: PeriodicCrawlOpt::On(Duration::from_secs(5)),
+        synth_node: SynthNodeOpt::On_OnlyListening(SynthNodeCfg::default()),
+    };
     node_run_forever(cfg).await;
 
     panic!("the node shouldn't have died");
