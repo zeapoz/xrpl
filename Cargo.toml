@@ -9,6 +9,7 @@ anyhow = "1.0"
 async-trait = "0.1"
 base64 = "0.21.0"
 bytes = "1"
+chrono = "0.4"
 fs_extra = "1.2"
 governor = "0.5.1"
 hex = "0.4"
@@ -25,6 +26,7 @@ serde_json = "1.0"
 sha2 = "0.10"
 tabled = "0.10"
 tempfile = "3.3"
+thiserror = "1.0"
 tokio-openssl = "0.6"
 toml = "0.5.9"
 ziggurat-core-metrics = { git = "https://github.com/runziggurat/ziggurat-core", tag = "v0.1.2-zgm" }
@@ -70,8 +72,9 @@ features = ["global-context", "rand-std"]
 version = "1"
 features = ["derive"]
 
-[dependencies.thiserror]
-version = "1"
+[dependencies.spectre]
+git = "https://github.com/niklaslong/spectre"
+rev = "9a0664f"
 optional = true
 
 [dependencies.tokio]
@@ -91,18 +94,13 @@ version = "0.3"
 default-features = false
 features = ["ansi", "env-filter", "fmt", "parking_lot", "smallvec"]
 
-[dependencies.spectre]
-git = "https://github.com/niklaslong/spectre"
-rev = "9a0664f"
-optional = true
-
 [dependencies.ziggurat-core-crawler]
 git = "https://github.com/runziggurat/ziggurat-core"
 rev = "1a5c2e2"
 optional = true
 
 [features]
-crawler = ["clap", "thiserror", "jsonrpsee", "spectre", "ziggurat-core-crawler"]
+crawler = ["clap", "jsonrpsee", "spectre", "ziggurat-core-crawler"]
 performance = []
 
 [[bin]]

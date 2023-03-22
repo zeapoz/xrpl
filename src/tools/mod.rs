@@ -2,6 +2,11 @@
 
 pub mod config;
 pub mod constants;
+// This mod belongs to the tools/crawler and we are using a sym
+// link to get it here.
+// This is a workaround solution in this repo for this case,
+// in future Ziggurat repos, we will handle this differently.
+pub mod crawl;
 pub mod inner_node;
 pub mod ips;
 pub mod rpc;
