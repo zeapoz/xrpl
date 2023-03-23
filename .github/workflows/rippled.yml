@@ -8,21 +8,14 @@ jobs:
   call-build-rippled-workflow:
     uses: runziggurat/xrpl/.github/workflows/build-rippled.yml@main
 
-  build-ziggurat:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - run: rustup toolchain install stable --profile minimal
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo test --all-targets --no-run --features performance
-      - uses: actions/upload-artifact@v3
-        with:
-          name: ziggurat-executable
-          path: ./target/debug/deps/ziggurat_*
+  call-build-ziggurat-workflow:
+    uses: runziggurat/zcash/.github/workflows/build-ziggurat.yml@main
+    with:
+      extra-args: --features performance
 
   test-rippled:
     runs-on: ubuntu-latest
-    needs: [ build-ziggurat, call-build-rippled-workflow ]
+    needs: [ call-build-ziggurat-workflow, call-build-rippled-workflow ]
     steps:
       - uses: actions/checkout@v3
         with:
