@@ -10,14 +10,21 @@ jobs:
   core:
     uses: runziggurat/ziggurat-core/.github/workflows/check-and-lint.yml@main
 
-  check-crawler:
+  extra:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        steps:
+          - name: check-crawler
+            run: ci-check-crawler
     steps:
       - uses: actions/checkout@v3
       - uses: Swatinem/rust-cache@v2
       - uses: cachix/install-nix-action@v19
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
-      - run: |
+      - name: ${{ matrix.steps.name }}
+        run: |
           nix develop --command \
-          cargo check --features=crawler
+          ${{ matrix.steps.run }}
