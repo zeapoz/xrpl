@@ -57,3 +57,6 @@ jobs:
     with:
       name: crawler
       extension: json
+      repository: xrpl
+    secrets:
+      gcp_credentials: ${{ secrets.GCP_CREDENTIALS }}
