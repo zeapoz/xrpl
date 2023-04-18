@@ -75,6 +75,9 @@ jobs:
     uses: runziggurat/ziggurat-core/.github/workflows/process-results.yml@main
     with:
       name: rippled
+      repository: xrpl
+    secrets:
+      gcp_credentials: ${{ secrets.GCP_CREDENTIALS }}
 
   call-diff-with-previous-workflow:
     needs: [ test-rippled ]
