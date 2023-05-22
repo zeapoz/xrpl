@@ -1,6 +1,7 @@
 name: rippled
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '0 6 * * *' # Every day at 6:00 AM UTC.
 
@@ -58,17 +59,11 @@ jobs:
           rm ./ziggurat/*.d
           mv ./ziggurat/ziggurat_* ziggurat_test
           chmod +x ziggurat_test
-          mkdir -p results/rippled
-          mv results/rippled/latest.jsonl results/rippled/previous.jsonl
-          ./ziggurat_test --test-threads=1 --nocapture -Z unstable-options --report-time --format json > results/rippled/latest.jsonl
+          ./ziggurat_test --test-threads=1 --nocapture -Z unstable-options --report-time --format json > latest.jsonl
       - uses: actions/upload-artifact@v3
         with:
           name: latest-result
-          path: results/rippled/latest.jsonl
-      - uses: actions/upload-artifact@v3
-        with:
-          name: previous-result
-          path: results/rippled/previous.jsonl
+          path: latest.jsonl
 
   call-process-results-workflow:
     needs: [ test-rippled ]
@@ -82,3 +77,8 @@ jobs:
   call-diff-with-previous-workflow:
     needs: [ test-rippled ]
     uses: runziggurat/ziggurat-core/.github/workflows/diff-with-previous.yml@main
+    with:
+      name: rippled
+      repository: xrpl
+    secrets:
+      gcp_credentials: ${{ secrets.GCP_CREDENTIALS }}
