@@ -73,12 +73,3 @@ jobs:
       repository: xrpl
     secrets:
       gcp_credentials: ${{ secrets.GCP_CREDENTIALS }}
-
-  call-diff-with-previous-workflow:
-    needs: [ test-rippled ]
-    uses: runziggurat/ziggurat-core/.github/workflows/diff-with-previous.yml@main
-    with:
-      name: rippled
-      repository: xrpl
-    secrets:
-      gcp_credentials: ${{ secrets.GCP_CREDENTIALS }}
