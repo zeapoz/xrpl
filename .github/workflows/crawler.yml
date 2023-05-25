@@ -55,7 +55,7 @@ jobs:
     needs: [ crawl-network ]
     uses: runziggurat/ziggurat-core/.github/workflows/build-viz-state.yml@main
     with:
-      filter: "Ripple"
+      filter: Ripple
 
   call-process-results-workflow:
     needs: [ call-build-viz-state-workflow ]
