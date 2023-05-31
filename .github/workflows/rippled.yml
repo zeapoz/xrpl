@@ -6,33 +6,22 @@ on:
     - cron: '0 6 * * *' # Every day at 6:00 AM UTC.
 
 jobs:
-  call-build-rippled-workflow:
+  build-rippled:
     uses: runziggurat/xrpl/.github/workflows/build-rippled.yml@main
 
-  call-build-ziggurat-workflow:
+  build-ziggurat:
     uses: runziggurat/ziggurat-core/.github/workflows/build-ziggurat.yml@main
     with:
       extra-args: --features performance
 
-  test-rippled:
+  run-test-suite:
     runs-on: ubuntu-latest
-    needs: [ call-build-ziggurat-workflow, call-build-rippled-workflow ]
+    needs: [ build-rippled, build-ziggurat ]
     steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - run: rustup toolchain install stable --profile minimal
-      - uses: actions/setup-python@v4
-        with:
-          python-version: 3.11
       - uses: actions/download-artifact@v3
         with:
-          name: rippled-executable
+          name: node-executable
           path: ./rippled
-      - uses: actions/download-artifact@v3
-        with:
-          name: ziggurat-executable
-          path: ./ziggurat
       - name: Enable openSSL legacy functions
         run: |
           cp /etc/ssl/openssl.cnf ./
@@ -53,17 +42,11 @@ jobs:
         run: |
           wget -O tools/ips.py https://raw.githubusercontent.com/runziggurat/ziggurat-core/main/ziggurat-core-scripts/ips.py
           python3 ./tools/ips.py --subnet 1.1.0.0/24 --file tools/ips_list.json --dev lo
-      - name: Run ziggurat suite
-        continue-on-error: true
-        run: |
-          rm ./ziggurat/*.d
-          mv ./ziggurat/ziggurat_* ziggurat_test
-          chmod +x ziggurat_test
-          ./ziggurat_test --test-threads=1 --nocapture -Z unstable-options --report-time --format json > latest.jsonl
-      - uses: actions/upload-artifact@v3
+      - name: Run Ziggurat test suite
+        uses: zeapoz/ziggurat-core@ci/node-commit-hash
         with:
-          name: latest-result
-          path: latest.jsonl
+          node-name: rippled
+          commit-hash: ${{ needs.build-rippled.outputs.commit-hash }}
 
   call-process-results-workflow:
     needs: [ test-rippled ]
