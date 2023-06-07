@@ -47,6 +47,7 @@ jobs:
         uses: runziggurat/ziggurat-core@main
         with:
           node-name: rippled
+          commit-hash: ${{ needs.build-rippled.outputs.commit-hash }}
 
   call-process-results-workflow:
     needs: [ run-test-suite ]

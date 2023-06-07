@@ -1,9 +1,14 @@
 on:
   workflow_call:
+    outputs:
+      commit-hash:
+        value: ${{ jobs.build-rippled.outputs.commit-hash }}
 
 jobs:
   build-rippled:
     runs-on: ubuntu-latest
+    outputs:
+      commit-hash: ${{ steps.commit-hash.outputs.commit-hash }}
     steps:
       - name: Install dependencies
         run: |
@@ -14,6 +19,9 @@ jobs:
         with:
           repository: XRPLF/rippled
           ref: develop
+      - name: Grab short commit hash and store in env
+        id: commit-hash
+        run: echo commit-hash=$(git log -n 1 --pretty=format:"%h") >> "$GITHUB_OUTPUT"
       - name: Set up conan
         run: |
           conan profile new default --detect
